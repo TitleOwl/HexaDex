@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="hf" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%"   stop-color="#fde047"/>
+      <stop offset="35%"  stop-color="#fb923c"/>
+      <stop offset="70%"  stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="hs" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#b45309"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </linearGradient>
+    <radialGradient id="hg" cx="38%" cy="22%" r="48%">
+      <stop offset="0%"   stop-color="white" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <polygon points="50,8 87,30 87,70 50,92 13,70 13,30" fill="url(#hf)" stroke="url(#hs)" stroke-width="2.5" stroke-linejoin="round"/>
+  <polygon points="50,8 87,30 87,70 50,92 13,70 13,30" fill="url(#hg)"/>
+  <g stroke="white" stroke-width="1.2" opacity="0.7" stroke-linecap="round">
+    <line x1="50" y1="50" x2="50" y2="20"/>
+    <line x1="50" y1="50" x2="76" y2="35"/>
+    <line x1="50" y1="50" x2="76" y2="65"/>
+    <line x1="50" y1="50" x2="50" y2="80"/>
+    <line x1="50" y1="50" x2="24" y2="65"/>
+    <line x1="50" y1="50" x2="24" y2="35"/>
+  </g>
+  <polygon points="50,28 67,39 67,61 50,72 33,61 33,39" fill="none" stroke="white" stroke-width="1.2" opacity="0.85" stroke-linejoin="round"/>
+  <g fill="white">
+    <circle cx="50" cy="20" r="2.7"/>
+    <circle cx="76" cy="35" r="2.7"/>
+    <circle cx="76" cy="65" r="2.7"/>
+    <circle cx="50" cy="80" r="2.7"/>
+    <circle cx="24" cy="65" r="2.7"/>
+    <circle cx="24" cy="35" r="2.7"/>
+  </g>
+  <circle cx="50" cy="50" r="9" fill="white"/>
+  <circle cx="50" cy="50" r="6.3" fill="#dc2626"/>
+  <circle cx="50" cy="50" r="2.4" fill="white"/>
+</svg>

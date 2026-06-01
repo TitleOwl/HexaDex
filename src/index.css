@@ -1,0 +1,114 @@
+/* ─── index.css — Global performance & accessibility rules ───
+ *
+ * This file is loaded by main.jsx via `import "./index.css"`.
+ * Contains ONLY base/global rules — App.css remains untouched.
+ */
+
+/* ─── Smooth scrolling, but respect user preference ─── */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ─── Better default font rendering ─── */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+/* ─── Prevent body bounce on iOS ─── */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* ─── Prevent FOUC on initial load ─── */
+#root {
+  isolation: isolate;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * REDUCED MOTION — Honor user's OS-level animation preference
+ * ═══════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * IMAGE LOADING — Prevent layout shift, lazy by default
+ * ═══════════════════════════════════════════════════════════ */
+img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  -webkit-user-drag: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * BUTTON RESETS — better defaults
+ * ═══════════════════════════════════════════════════════════ */
+button {
+  font-family: inherit;
+  font-size: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  touch-action: manipulation; /* removes 300ms tap delay on mobile */
+}
+button:focus-visible {
+  outline: 2px solid #06b6d4;
+  outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * SCROLLBAR — slim, modern (WebKit)
+ * ═══════════════════════════════════════════════════════════ */
+@media (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(100, 116, 139, 0.35);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.6);
+    background-clip: padding-box;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * SELECTION HIGHLIGHT — branded color
+ * ═══════════════════════════════════════════════════════════ */
+::selection {
+  background: rgba(6, 182, 212, 0.25);
+  color: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * PRINT — hide non-essential UI when printing
+ * ═══════════════════════════════════════════════════════════ */
+@media print {
+  .header,
+  .mode-tabs,
+  .header-actions,
+  .modal-close,
+  button {
+    display: none !important;
+  }
+}
