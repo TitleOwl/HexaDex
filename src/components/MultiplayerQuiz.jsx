@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { STRINGS, GENERATIONS } from "../data.js";
 import { getLocalName, playCry } from "../utils.js";
+import { useModalLifecycle } from "../perfUtils.js";
 
 // Generate a deterministic quiz from a room code (so 2 people with same code see same questions)
 function generateQuestions(roomCode, allList, count = 10) {
@@ -50,6 +51,7 @@ function randomRoomCode() {
 }
 
 export default function MultiplayerQuiz({ allList, thaiArr, jpArr, lang, onClose }) {
+  useModalLifecycle(onClose);
   const s = STRINGS[lang];
 
   // Phase: lobby | playing | result

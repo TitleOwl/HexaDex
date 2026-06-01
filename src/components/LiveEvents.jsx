@@ -59,7 +59,7 @@ function getEventTypeMeta(type) {
 }
 
 export default function LiveEvents({ lang = "en", onClose }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
   const [events,  setEvents]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);

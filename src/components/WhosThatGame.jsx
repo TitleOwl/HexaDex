@@ -4,9 +4,10 @@ import {
   TYPE_NAMES_TH, TYPE_NAMES_JA, GENERATIONS,
 } from "../data.js";
 import { getLocalName, playCry, typeColor } from "../utils.js";
-import CatchBattleMusic from "./CatchBattleMusic.jsx";
+import { useModalLifecycle } from "../perfUtils.js";
 
-export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, cachedFetch, genIdx }) {
+export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, cachedFetch, genIdx, onCorrectAnswer }) {
+  useModalLifecycle(onClose);
   const s = STRINGS[lang];
 
   // Setup state
@@ -140,6 +141,7 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
       setCombo(v => v + 1);
       setRevealed(true);
       playCry(target.id, 0.4);
+      onCorrectAnswer?.();  // ⭐ Track challenge progress
     } else {
       handleWrong();
     }
@@ -246,7 +248,6 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
 
   return (
     <div className="game-overlay">
-      <CatchBattleMusic pokemonId={pokemon.id} />
       <div className="game-content">
         <button className="modal-close game-close" onClick={onClose}>✕</button>
 

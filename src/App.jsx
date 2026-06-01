@@ -52,6 +52,40 @@ export default function App() {
   const { theme, toggleTheme, autoMode, enableAuto } = useTheme();
   useEffect(() => { try { localStorage.setItem("pkdx_lang", lang); } catch {} }, [lang]);
 
+  // 🔙 Global back-button trap — closes topmost modal instead of leaving SPA
+  // Uses ui:modal:open/close events from useModalLifecycle to track active modals
+  useEffect(() => {
+    let modalStack = 0;
+    let trapPushed = false;
+
+    const pushTrap = () => {
+      if (!trapPushed) {
+        try { window.history.pushState({ hexadexTrap: true }, ""); trapPushed = true; } catch {}
+      }
+    };
+    const onModalOpen  = () => { modalStack++; pushTrap(); };
+    const onModalClose = () => { modalStack = Math.max(0, modalStack - 1); };
+    const onPopstate = () => {
+      trapPushed = false;
+      if (modalStack > 0) {
+        // Close topmost modal — dispatch a close-all event that modals listen for
+        window.dispatchEvent(new CustomEvent("ui:back-pressed"));
+        // Re-push trap to catch the NEXT back press too
+        pushTrap();
+      }
+      // If no modal: let browser navigate normally (back exits app)
+    };
+
+    window.addEventListener("ui:modal:open",  onModalOpen);
+    window.addEventListener("ui:modal:close", onModalClose);
+    window.addEventListener("popstate", onPopstate);
+    return () => {
+      window.removeEventListener("ui:modal:open",  onModalOpen);
+      window.removeEventListener("ui:modal:close", onModalClose);
+      window.removeEventListener("popstate", onPopstate);
+    };
+  }, []);
+
   // 🏷️ Update document title with HexaDex branding
   useEffect(() => {
     const title = lang === "th" ? "HexaDex — สารานุกรมโปเกม่อนสุดล้ำ"

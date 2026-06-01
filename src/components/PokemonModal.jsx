@@ -279,7 +279,7 @@ export default function PokemonModal({
   const [view3d,  setView3d]  = useState(false);
   const [isShiny, setIsShiny] = useState(false);
   const [catchOpen, setCatchOpen] = useState(false);
-  useModalLifecycle();
+  useModalLifecycle(onClose);
 
   useEffect(() => { setTab(0); }, [pokemon.id]);
 

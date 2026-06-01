@@ -46,7 +46,7 @@ const TH_COMMUNITIES = [
 ];
 
 export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList = [] }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
   const [raids,   setRaids]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(Date.now());

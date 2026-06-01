@@ -50,7 +50,7 @@ function eggKey(egg) {
 }
 
 export default function EggPool({ lang = "en", onClose, onOpenPokemon, allList = [] }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
   const [eggs,    setEggs]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);

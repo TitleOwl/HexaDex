@@ -10,55 +10,46 @@ const CACHE_KEY = "pkdx_raids_cache_v1";
 const CACHE_TTL = 60 * 60 * 1000;
 
 const TIER_META = {
-  "Mega":     { order: 0, color: "#e11d48",
-                bg: "linear-gradient(135deg, #fda4af 0%, #f43f5e 50%, #be123c 100%)",
-                emoji: "💎", description: { en: "Mega Evolution raids", th: "เมก้าวิวัฒนาการ", ja: "メガシンカ" },
-                label: { en: "MEGA RAIDS", th: "MEGA RAIDS", ja: "メガレイド" } },
-  "Mega 5":   { order: 1, color: "#b45309",
-                bg: "linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #78350f 100%)",
-                emoji: "👑", description: { en: "Primal Reversion raids", th: "ไพรมัล", ja: "原始回帰" },
-                label: { en: "PRIMAL RAIDS", th: "PRIMAL RAIDS", ja: "原始レイド" } },
-  "5":        { order: 2, color: "#7c2d12",
-                bg: "linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #6b21a8 100%)",
-                emoji: "⭐", description: { en: "Legendary tier", th: "ระดับตำนาน", ja: "伝説級" },
-                label: { en: "5-STAR RAIDS", th: "5-STAR RAIDS", ja: "5★レイド" } },
-  "Shadow 5": { order: 3, color: "#1f2937",
-                bg: "linear-gradient(135deg, #6b7280 0%, #374151 50%, #111827 100%)",
-                emoji: "🌑", description: { en: "Shadow Legendary", th: "แชโดว์ตำนาน", ja: "シャドウ伝説" },
-                label: { en: "SHADOW 5-STAR", th: "SHADOW 5-STAR", ja: "シャドウ5★" } },
-  "3":        { order: 4, color: "#a16207",
-                bg: "linear-gradient(135deg, #fde047 0%, #ca8a04 50%, #713f12 100%)",
-                emoji: "🌟", description: { en: "Mid-tier raids", th: "ระดับกลาง", ja: "中級" },
-                label: { en: "3-STAR RAIDS", th: "3-STAR RAIDS", ja: "3★レイド" } },
-  "Shadow 3": { order: 5, color: "#3f3f46",
-                bg: "linear-gradient(135deg, #a1a1aa 0%, #52525b 50%, #18181b 100%)",
-                emoji: "🌑", description: { en: "Shadow mid-tier", th: "แชโดว์ระดับกลาง", ja: "シャドウ中級" },
-                label: { en: "SHADOW 3-STAR", th: "SHADOW 3-STAR", ja: "シャドウ3★" } },
-  "1":        { order: 6, color: "#0369a1",
-                bg: "linear-gradient(135deg, #7dd3fc 0%, #0284c7 50%, #075985 100%)",
-                emoji: "✨", description: { en: "Entry tier", th: "ระดับเริ่มต้น", ja: "初級" },
-                label: { en: "1-STAR RAIDS", th: "1-STAR RAIDS", ja: "1★レイド" } },
-  "Shadow 1": { order: 7, color: "#3730a3",
-                bg: "linear-gradient(135deg, #a5b4fc 0%, #4f46e5 50%, #312e81 100%)",
-                emoji: "🌑", description: { en: "Shadow entry", th: "แชโดว์เริ่มต้น", ja: "シャドウ初級" },
-                label: { en: "SHADOW 1-STAR", th: "SHADOW 1-STAR", ja: "シャドウ1★" } },
-  "Max 6":    { order: 8, color: "#7c3aed",
-                bg: "linear-gradient(135deg, #f0abfc 0%, #d946ef 50%, #86198f 100%)",
-                emoji: "⚡", description: { en: "Gigantamax Battles", th: "การต่อสู้ Gigantamax", ja: "キョダイマックス" },
-                label: { en: "GIGANTAMAX", th: "GIGANTAMAX", ja: "キョダイマックスバトル" } },
-  "Max 5":    { order: 9, color: "#9333ea",
-                bg: "linear-gradient(135deg, #e9d5ff 0%, #a855f7 50%, #6b21a8 100%)",
-                emoji: "⚡", description: { en: "Max Battles 5★", th: "Max Battles 5★", ja: "ダイマックス 5★" },
-                label: { en: "MAX BATTLES 5★", th: "MAX BATTLES 5★", ja: "ダイマックス 5★" } },
-  "Max 3":    { order: 10, color: "#8b5cf6",
-                bg: "linear-gradient(135deg, #ddd6fe 0%, #8b5cf6 50%, #5b21b6 100%)",
-                emoji: "⚡", description: { en: "Max Battles 3★", th: "Max Battles 3★", ja: "ダイマックス 3★" },
-                label: { en: "MAX BATTLES 3★", th: "MAX BATTLES 3★", ja: "ダイマックス 3★" } },
-  "Max 1":    { order: 11, color: "#6366f1",
-                bg: "linear-gradient(135deg, #c7d2fe 0%, #6366f1 50%, #3730a3 100%)",
-                emoji: "⚡", description: { en: "Max Battles 1★", th: "Max Battles 1★", ja: "ダイマックス 1★" },
-                label: { en: "MAX BATTLES 1★", th: "MAX BATTLES 1★", ja: "ダイマックス 1★" } },
+  "Mega Raids":         { order: 0, color: "#e11d48",
+                          bg: "linear-gradient(135deg, #fda4af 0%, #f43f5e 50%, #be123c 100%)",
+                          emoji: "💎", description: { en: "Mega Evolution raids", th: "เมก้าวิวัฒนาการ", ja: "メガシンカ" },
+                          label: { en: "MEGA RAIDS", th: "MEGA RAIDS", ja: "メガレイド" } },
+  "5-Star Raids":       { order: 2, color: "#7c2d12",
+                          bg: "linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #6b21a8 100%)",
+                          emoji: "⭐", description: { en: "Legendary tier", th: "ระดับตำนาน", ja: "伝説級" },
+                          label: { en: "5-STAR RAIDS", th: "5-STAR RAIDS", ja: "5★レイド" } },
+  "Shadow 5-Star Raids":{ order: 3, color: "#1f2937",
+                          bg: "linear-gradient(135deg, #6b7280 0%, #374151 50%, #111827 100%)",
+                          emoji: "🌑", description: { en: "Shadow Legendary", th: "แชโดว์ตำนาน", ja: "シャドウ伝説" },
+                          label: { en: "SHADOW 5-STAR", th: "SHADOW 5-STAR", ja: "シャドウ5★" } },
+  "3-Star Raids":       { order: 4, color: "#a16207",
+                          bg: "linear-gradient(135deg, #fde047 0%, #ca8a04 50%, #713f12 100%)",
+                          emoji: "🌟", description: { en: "Mid-tier raids", th: "ระดับกลาง", ja: "中級" },
+                          label: { en: "3-STAR RAIDS", th: "3-STAR RAIDS", ja: "3★レイド" } },
+  "Shadow 3-Star Raids":{ order: 5, color: "#3f3f46",
+                          bg: "linear-gradient(135deg, #a1a1aa 0%, #52525b 50%, #18181b 100%)",
+                          emoji: "🌑", description: { en: "Shadow mid-tier", th: "แชโดว์ระดับกลาง", ja: "シャドウ中級" },
+                          label: { en: "SHADOW 3-STAR", th: "SHADOW 3-STAR", ja: "シャドウ3★" } },
+  "1-Star Raids":       { order: 6, color: "#0369a1",
+                          bg: "linear-gradient(135deg, #7dd3fc 0%, #0284c7 50%, #075985 100%)",
+                          emoji: "✨", description: { en: "Entry tier", th: "ระดับเริ่มต้น", ja: "初級" },
+                          label: { en: "1-STAR RAIDS", th: "1-STAR RAIDS", ja: "1★レイド" } },
+  "Shadow 1-Star Raids":{ order: 7, color: "#3730a3",
+                          bg: "linear-gradient(135deg, #a5b4fc 0%, #4f46e5 50%, #312e81 100%)",
+                          emoji: "🌑", description: { en: "Shadow entry", th: "แชโดว์เริ่มต้น", ja: "シャドウ初級" },
+                          label: { en: "SHADOW 1-STAR", th: "SHADOW 1-STAR", ja: "シャドウ1★" } },
 };
+
+// Derive synthetic tier — split Shadow raids from regular ones for clearer grouping
+function deriveTier(boss) {
+  const isShadow = (boss.name || "").toLowerCase().startsWith("shadow ");
+  if (!isShadow) return boss.tier;
+  if (boss.tier === "1-Star Raids") return "Shadow 1-Star Raids";
+  if (boss.tier === "3-Star Raids") return "Shadow 3-Star Raids";
+  if (boss.tier === "5-Star Raids") return "Shadow 5-Star Raids";
+  return boss.tier;
+}
+
 
 const TYPE_COLORS = {
   Normal: "#A8A878", Fire: "#F08030", Water: "#6890F0", Electric: "#F8D030",
@@ -82,7 +73,7 @@ function getNextRotation() {
 }
 
 export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allList = [] }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
   const [raids,   setRaids]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);

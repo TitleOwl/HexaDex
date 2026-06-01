@@ -142,14 +142,26 @@ export function useRafThrottle() {
   };
 }
 
-// ─── Modal lifecycle — dispatches global events ─────────────
-// Call from any popup/modal component. WeatherStatus listens
-// to these events to hide weather effects during overlays.
-//   useModalLifecycle();   // → fires ui:modal:open / ui:modal:close
-export function useModalLifecycle() {
+// ─── Modal lifecycle — dispatches global events + back-button support ──
+// • Dispatches ui:modal:open / ui:modal:close (WeatherStatus uses these)
+// • Listens for ui:back-pressed (dispatched by App.jsx on browser back)
+//   → calls onClose to close this modal
+//
+// SAFE pattern (no history manipulation here): App.jsx owns the history
+// trap. This hook just receives the back event. No StrictMode conflicts.
+// Usage: useModalLifecycle(onClose)
+export function useModalLifecycle(onClose) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     window.dispatchEvent(new CustomEvent("ui:modal:open"));
-    return () => window.dispatchEvent(new CustomEvent("ui:modal:close"));
+    const onBack = () => onCloseRef.current?.();
+    window.addEventListener("ui:back-pressed", onBack);
+    return () => {
+      window.dispatchEvent(new CustomEvent("ui:modal:close"));
+      window.removeEventListener("ui:back-pressed", onBack);
+    };
   }, []);
 }
 
@@ -162,36 +174,50 @@ export function pokeApiArtwork(id) {
 }
 
 // ─── Match raid/egg/research Pokémon name → ID from allList ─
-// Handles "Mega/Primal/Shadow/Alolan/Galarian/Hisuian/Paldean" prefixes,
-// Mega X/Y suffix, parentheses, hyphens, special chars.
+// PRIORITY 1: Parse Pokemon ID directly from LeekDuck image URL (e.g., "pm52.icon.png" → 52)
+//             This is 100% reliable because LeekDuck uses National Dex IDs in filenames.
+// PRIORITY 2: Fall back to name matching (handles cases without LeekDuck image URL)
 export function matchPokemonId(boss, allList) {
-  if (!boss?.name || !Array.isArray(allList) || allList.length === 0) return null;
+  if (!boss) return null;
+
+  // PRIORITY 1: extract ID from LeekDuck image URL
+  // Examples:
+  //   "https://cdn.leekduck.com/assets/img/pokemon_icons/pm52.icon.png"     → 52 (Meowth)
+  //   "https://cdn.leekduck.com/assets/img/pokemon_icons/pm308.fMEGA.icon.png" → 308 (Medicham base)
+  //   "https://leekduck.com/assets/img/pokemon_icons/pm150.icon.png"        → 150 (Mewtwo)
+  if (boss.image && typeof boss.image === "string") {
+    const m = boss.image.match(/[\/_]pm(\d+)(?:\.|_)/i);
+    if (m) {
+      const id = parseInt(m[1], 10);
+      if (id > 0 && id < 10000) return id;
+    }
+  }
+
+  // PRIORITY 2: name-based matching (fallback)
+  if (!boss.name || !Array.isArray(allList) || allList.length === 0) return null;
 
   const normalize = (s) => s.toLowerCase()
     .replace(/[\.\u2019']/g, "")          // periods, apostrophes
     .replace(/[♀♂]/g, "")                  // gender symbols
-    .replace(/\s+/g, " ")
+    .replace(/[\s\-]+/g, " ")              // hyphens AND spaces → single space (PokeAPI uses hyphens)
     .trim();
 
   const original = normalize(boss.name);
   const stripped = normalize(boss.name
     .replace(/^(mega |primal |shadow |alolan |galarian |hisuian |paldean )/i, "")
     .replace(/\s*\(.*?\)\s*/g, "")
-    .replace(/\s+(x|y)$/i, "")  // Strip Mega X/Y suffix
+    .replace(/\s+(x|y)$/i, "")
   );
 
-  // Try exact match against original or stripped
   for (const name of [stripped, original]) {
     const m = allList.find(p => normalize(p.name) === name);
     if (m) return m.id;
   }
 
-  // Try first word match
   const firstWord = stripped.split(" ")[0];
   let m = allList.find(p => normalize(p.name) === firstWord);
   if (m) return m.id;
 
-  // Try contains either way
   m = allList.find(p => {
     const pn = normalize(p.name);
     return pn.includes(firstWord) || firstWord.includes(pn);

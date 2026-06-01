@@ -31,7 +31,7 @@ function loadHtml2Canvas() {
 }
 
 export default function SummaryOverview({ lang = "en", onClose, onOpenPokemon, allList = [] }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
   const captureRef = useRef(null);
   const [raids,    setRaids]    = useState(null);
   const [events,   setEvents]   = useState(null);

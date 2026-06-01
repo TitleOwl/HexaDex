@@ -30,7 +30,7 @@ function mapWeatherCode(code) {
 }
 
 export default function WeatherBoost({ lang, loaded, thaiArr, jpArr, onOpen, onClose }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
   const { weather, loading, error, permissionState } = useWeather();
   const [manualWeather, setManualWeather] = useState(null);
 

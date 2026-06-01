@@ -93,167 +93,179 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
 
   return (
     <div className="go-tools-hub" style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 20px" }}>
-      {/* ─── BEAUTIFUL OVERRIDES (injected before render) ─── */}
+      {/* ─── VISUAL-FIRST DESIGN (less text, bigger icons) ─── */}
       <style>{`
         @keyframes gth-float {
           0%, 100% { transform: translateY(0) rotate(0); }
           50%      { transform: translateY(-8px) rotate(3deg); }
         }
-        @keyframes gth-shimmer {
-          0%   { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
         @keyframes gth-card-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to   { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(16px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes gth-pulse-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-          50%      { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+          70%      { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+        @keyframes gth-icon-bob {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-4px); }
         }
 
-        /* Hero header */
+        /* Hero header — compact, less visual weight */
         .go-tools-hub .go-hub-header {
           background: linear-gradient(135deg, #1e3a8a 0%, #312e81 45%, #4c1d95 100%) !important;
           color: white !important;
-          padding: 32px 28px !important;
-          border-radius: 22px !important;
-          margin-bottom: 28px !important;
+          padding: 20px 24px !important;
+          border-radius: 20px !important;
+          margin-bottom: 22px !important;
           position: relative !important;
           overflow: hidden !important;
-          box-shadow: 0 20px 50px rgba(67, 56, 202, 0.3), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+          box-shadow: 0 16px 40px rgba(67, 56, 202, 0.28), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
         }
-        /* Hero title (gradient text - hero header ONLY) */
         .go-tools-hub .go-hub-header .go-hub-title {
-          font-size: 32px !important;
+          font-size: 24px !important;
           font-weight: 900 !important;
           letter-spacing: -0.02em !important;
-          margin: 0 0 6px 0 !important;
+          margin: 0 0 2px 0 !important;
           background: linear-gradient(135deg, #fff 20%, #c7d2fe 100%) !important;
           -webkit-background-clip: text !important;
           background-clip: text !important;
           -webkit-text-fill-color: transparent !important;
           color: transparent !important;
-          text-shadow: 0 4px 20px rgba(199, 210, 254, 0.3) !important;
         }
         .go-tools-hub .go-hub-subtitle {
-          font-size: 14px !important;
-          color: rgba(199, 210, 254, 0.85) !important;
+          font-size: 12px !important;
+          color: rgba(199, 210, 254, 0.78) !important;
           font-weight: 600 !important;
           margin: 0 !important;
-          letter-spacing: 0.3px !important;
         }
 
-        /* Category banner */
+        /* Category banner — more compact */
         .go-tools-hub .go-category {
-          margin-bottom: 24px !important;
+          margin-bottom: 20px !important;
         }
         .go-tools-hub .go-category-header {
-          font-size: 16px !important;
+          font-size: 13px !important;
           font-weight: 900 !important;
-          letter-spacing: 1px !important;
+          letter-spacing: 1.2px !important;
           text-transform: uppercase !important;
-          padding: 12px 18px !important;
-          border-radius: 12px !important;
+          padding: 9px 16px !important;
+          border-radius: 11px !important;
           color: white !important;
-          margin-bottom: 14px !important;
+          margin-bottom: 12px !important;
           position: relative !important;
           overflow: hidden !important;
         }
-        .go-tools-hub .go-category:nth-of-type(2) .go-category-header {
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
-          box-shadow: 0 8px 22px rgba(220, 38, 38, 0.35) !important;
+        /* Category header — color-coded by section ID (reliable) */
+        .go-tools-hub .go-category[data-cat="summary"] .go-category-header {
+          background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%) !important;
+          box-shadow: 0 8px 22px rgba(124, 58, 237, 0.4) !important;
         }
-        .go-tools-hub .go-category:nth-of-type(3) .go-category-header {
-          background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%) !important;
-          box-shadow: 0 8px 22px rgba(37, 99, 235, 0.35) !important;
+        .go-tools-hub .go-category[data-cat="battle"] .go-category-header {
+          background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%) !important;
+          box-shadow: 0 8px 22px rgba(220, 38, 38, 0.4) !important;
+        }
+        .go-tools-hub .go-category[data-cat="live"] .go-category-header {
+          background: linear-gradient(135deg, #06b6d4 0%, #1e40af 100%) !important;
+          box-shadow: 0 8px 22px rgba(6, 182, 212, 0.4) !important;
         }
 
-        /* Card grid */
+        /* Card grid — TILE style (more compact, visual-first) */
         .go-tools-hub .go-hub-grid {
           display: grid !important;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-          gap: 16px !important;
+          grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important;
+          gap: 14px !important;
         }
 
-        /* Cards - beautiful glass morphism */
+        /* Cards as visual tiles */
         .go-tools-hub .go-hub-card {
           background: var(--gth-card-bg, linear-gradient(160deg, #ffffff 0%, #f8fafc 100%)) !important;
-          border-radius: 18px !important;
-          padding: 18px !important;
+          border-radius: 22px !important;
+          padding: 20px 12px 18px !important;
           border: 2px solid transparent !important;
           box-shadow:
             0 8px 24px rgba(0, 0, 0, 0.06),
             0 0 0 1px rgba(0, 0, 0, 0.04) !important;
           cursor: pointer !important;
           transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-                      box-shadow 0.3s !important;
+                      box-shadow 0.3s, border-color 0.3s !important;
           display: flex !important;
+          flex-direction: column !important;
           align-items: center !important;
-          gap: 14px !important;
+          justify-content: center !important;
+          gap: 12px !important;
           position: relative !important;
           overflow: hidden !important;
-          text-align: left !important;
+          text-align: center !important;
+          min-height: 165px !important;
           animation: gth-card-in 0.4s ease backwards;
         }
         .go-tools-hub .go-hub-card::before {
           content: "";
           position: absolute;
           top: 0; left: 0; right: 0;
-          height: 4px;
+          height: 5px;
           background: var(--tool-color);
-          opacity: 0.9;
+          opacity: 1;
+          pointer-events: none;
         }
         .go-tools-hub .go-hub-card::after {
           content: "";
           position: absolute;
-          top: -40px; right: -40px;
-          width: 120px; height: 120px;
+          top: -60px; right: -60px;
+          width: 160px; height: 160px;
           border-radius: 50%;
           background: var(--tool-color);
-          opacity: 0.08;
-          filter: blur(10px);
+          opacity: 0.1;
+          filter: blur(16px);
           pointer-events: none;
           transition: opacity 0.3s, transform 0.4s;
         }
         .go-tools-hub .go-hub-card:hover {
-          transform: translateY(-6px) scale(1.015) !important;
+          transform: translateY(-8px) scale(1.04) !important;
+          border-color: var(--tool-color) !important;
           box-shadow:
-            0 20px 50px rgba(0, 0, 0, 0.15),
-            0 0 0 1px var(--tool-color) !important;
+            0 28px 60px rgba(0, 0, 0, 0.18),
+            0 0 0 2px var(--tool-color) !important;
         }
         .go-tools-hub .go-hub-card:hover::after {
-          opacity: 0.18;
-          transform: scale(1.4);
+          opacity: 0.3;
+          transform: scale(1.6);
+        }
+        .go-tools-hub .go-hub-card:hover .go-hub-icon {
+          animation: gth-icon-bob 1.2s ease-in-out infinite;
         }
 
-        /* Icon - bigger, with glow */
+        /* ICON — even bigger, more dramatic */
         .go-tools-hub .go-hub-icon {
-          width: 56px !important;
-          height: 56px !important;
-          border-radius: 14px !important;
+          width: 80px !important;
+          height: 80px !important;
+          border-radius: 22px !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          font-size: 28px !important;
+          font-size: 44px !important;
           flex-shrink: 0 !important;
           box-shadow:
-            0 8px 20px var(--tool-color),
-            0 0 0 1px rgba(255,255,255,0.2) inset !important;
+            0 14px 30px var(--tool-color),
+            0 0 0 1px rgba(255,255,255,0.3) inset !important;
           position: relative;
           z-index: 1;
+          transition: transform 0.3s;
         }
 
-        /* Info column */
+        /* Title — compact, single line if possible */
         .go-tools-hub .go-hub-info {
-          flex: 1 !important;
-          min-width: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          gap: 6px !important;
           position: relative !important;
           z-index: 1 !important;
         }
-        /* Card title — solid dark text (override hero gradient inheritance) */
         .go-tools-hub .go-hub-card .go-hub-title {
-          font-size: 16px !important;
+          font-size: 13px !important;
           font-weight: 800 !important;
           color: #1e293b !important;
           -webkit-text-fill-color: #1e293b !important;
@@ -261,35 +273,18 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
           -webkit-background-clip: initial !important;
           background-clip: initial !important;
           text-shadow: none !important;
-          margin-bottom: 4px !important;
+          margin: 0 !important;
           letter-spacing: -0.01em !important;
+          line-height: 1.25 !important;
           display: flex !important;
           align-items: center !important;
           flex-wrap: wrap !important;
-          gap: 4px !important;
+          justify-content: center !important;
+          gap: 5px !important;
         }
-        .go-tools-hub .go-hub-card .go-hub-desc {
-          font-size: 12px !important;
-          color: #475569 !important;
-          line-height: 1.5 !important;
-          font-weight: 500 !important;
-        }
-
-        /* Arrow */
-        .go-tools-hub .go-hub-arrow {
-          font-size: 22px !important;
-          color: var(--tool-color) !important;
-          font-weight: 900 !important;
-          opacity: 0.5 !important;
-          transition: transform 0.3s, opacity 0.3s !important;
-          position: relative !important;
-          z-index: 1 !important;
-          flex-shrink: 0 !important;
-        }
-        .go-tools-hub .go-hub-card:hover .go-hub-arrow {
-          transform: translateX(6px) !important;
-          opacity: 1 !important;
-        }
+        /* HIDE description + arrow — pure visual focus */
+        .go-tools-hub .go-hub-card .go-hub-desc { display: none !important; }
+        .go-tools-hub .go-hub-card .go-hub-arrow { display: none !important; }
 
         /* Dark mode */
         [data-theme="dark"] .go-tools-hub .go-hub-card {
@@ -298,16 +293,46 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
             0 8px 24px rgba(0, 0, 0, 0.4),
             0 0 0 1px rgba(255, 255, 255, 0.06) !important;
         }
-        [data-theme="dark"] .go-tools-hub .go-hub-title { color: #f1f5f9 !important; }
-        [data-theme="dark"] .go-tools-hub .go-hub-desc { color: #94a3b8 !important; }
+        [data-theme="dark"] .go-tools-hub .go-hub-card .go-hub-title {
+          color: #f1f5f9 !important;
+          -webkit-text-fill-color: #f1f5f9 !important;
+        }
+
+        /* Featured (summary) card spans wider */
+        .go-tools-hub .gth-featured {
+          grid-column: 1 / -1 !important;
+          flex-direction: row !important;
+          justify-content: flex-start !important;
+          padding: 18px 22px !important;
+          min-height: auto !important;
+          gap: 16px !important;
+          text-align: left !important;
+        }
+        .go-tools-hub .gth-featured .go-hub-info {
+          flex-direction: column !important;
+          align-items: flex-start !important;
+        }
+        .go-tools-hub .gth-featured .go-hub-card .go-hub-title,
+        .go-tools-hub .gth-featured .go-hub-title {
+          justify-content: flex-start !important;
+        }
+        .go-tools-hub .gth-featured .go-hub-desc {
+          display: block !important;
+          font-size: 12px !important;
+          color: #64748b !important;
+          font-weight: 500 !important;
+          margin-top: 4px !important;
+        }
+        [data-theme="dark"] .go-tools-hub .gth-featured .go-hub-desc {
+          color: #94a3b8 !important;
+        }
       `}</style>
 
-      {/* ─── HERO HEADER with decorative hexagons ─── */}
+      {/* ─── HERO HEADER ─── */}
       <div className="go-hub-header">
-        {/* Floating decorative hexagons */}
         <div style={{
           position: "absolute", top: 20, right: 30,
-          width: 80, height: 80, opacity: 0.15,
+          width: 70, height: 70, opacity: 0.18,
           animation: "gth-float 4s ease-in-out infinite",
         }}>
           <svg viewBox="0 0 100 100">
@@ -318,26 +343,14 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
           </svg>
         </div>
         <div style={{
-          position: "absolute", bottom: 10, right: 120,
-          width: 50, height: 50, opacity: 0.08,
+          position: "absolute", bottom: 12, right: 110,
+          width: 44, height: 44, opacity: 0.1,
           animation: "gth-float 5s ease-in-out infinite 1.5s",
         }}>
           <svg viewBox="0 0 100 100">
-            <polygon points="50,8 87,30 87,70 50,92 13,70 13,30"
-              fill="white" />
+            <polygon points="50,8 87,30 87,70 50,92 13,70 13,30" fill="white" />
           </svg>
         </div>
-        <div style={{
-          position: "absolute", top: 50, left: 35,
-          width: 35, height: 35, opacity: 0.12,
-          animation: "gth-float 6s ease-in-out infinite 0.8s",
-        }}>
-          <svg viewBox="0 0 100 100">
-            <polygon points="50,8 87,30 87,70 50,92 13,70 13,30"
-              fill="none" stroke="white" strokeWidth="3" strokeLinejoin="round" />
-          </svg>
-        </div>
-        {/* Subtle dot pattern */}
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
@@ -350,28 +363,23 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
             🎯 {lang === "th" ? "Pokémon GO Tools" : lang === "ja" ? "ポケモンGOツール" : "Pokémon GO Tools"}
           </h2>
           <p className="go-hub-subtitle">
-            {lang === "th" ? "เครื่องมือสำหรับ Pokémon GO · ข้อมูล real-time จาก LeekDuck"
-              : lang === "ja" ? "ポケモンGO用のツール · LeekDuckからのリアルタイムデータ"
-              : "Tools for Pokémon GO · Real-time data from LeekDuck"}
+            {lang === "th" ? "ข้อมูล real-time จาก LeekDuck"
+              : lang === "ja" ? "LeekDuckからのリアルタイムデータ"
+              : "Real-time data from LeekDuck"}
           </p>
 
-          {/* Quick stats row */}
-          <div style={{
-            display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap",
-          }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
             {[
-              { icon: "🔴", label: lang === "th" ? "6 ฟีเจอร์ LIVE" : lang === "ja" ? "6 LIVE機能" : "6 LIVE features", glow: "#ef4444" },
-              { icon: "⚡", label: lang === "th" ? "อัปเดตทุก 1 ชม." : lang === "ja" ? "1時間ごと更新" : "Updated hourly", glow: "#fbbf24" },
-              { icon: "📸", label: lang === "th" ? "เซฟรูปได้"        : lang === "ja" ? "画像保存可"   : "Saveable image", glow: "#06b6d4" },
+              { icon: "🔴", label: lang === "th" ? "6 LIVE" : lang === "ja" ? "6 LIVE" : "6 LIVE", glow: "#ef4444" },
+              { icon: "⚡", label: lang === "th" ? "อัปเดต 1ชม." : lang === "ja" ? "1時間更新" : "1h refresh", glow: "#fbbf24" },
+              { icon: "📸", label: lang === "th" ? "เซฟรูปได้" : lang === "ja" ? "画像保存" : "Image save", glow: "#06b6d4" },
             ].map((s, i) => (
               <div key={i} style={{
                 background: "rgba(255,255,255,0.12)",
                 backdropFilter: "blur(10px)",
                 border: "1px solid rgba(255,255,255,0.18)",
-                padding: "6px 12px",
-                borderRadius: 999,
-                fontSize: 11, fontWeight: 700,
-                color: "white",
+                padding: "5px 11px", borderRadius: 999,
+                fontSize: 11, fontWeight: 700, color: "white",
                 display: "inline-flex", alignItems: "center", gap: 6,
                 boxShadow: `0 4px 14px ${s.glow}22`,
               }}>
@@ -384,9 +392,8 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
       </div>
 
       {TOOL_CATEGORIES.map((cat, catIdx) => (
-        <div key={cat.id} className="go-category">
+        <div key={cat.id} data-cat={cat.id} className={`go-category ${cat.id === "summary" ? "gth-featured" : ""}`}>
           <div className="go-category-header">
-            {/* Subtle stripe pattern overlay */}
             <div style={{
               position: "absolute", inset: 0,
               background: "repeating-linear-gradient(45deg, transparent, transparent 14px, rgba(255,255,255,0.06) 14px, rgba(255,255,255,0.06) 16px)",
@@ -397,18 +404,18 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
               <span style={{
                 marginLeft: "auto",
                 background: "rgba(255,255,255,0.22)",
-                padding: "2px 10px",
-                borderRadius: 999,
+                padding: "2px 10px", borderRadius: 999,
                 fontSize: 10, fontWeight: 900,
                 backdropFilter: "blur(6px)",
               }}>
-                {cat.tools.length} {lang === "th" ? "เครื่องมือ" : lang === "ja" ? "ツール" : "tools"}
+                {cat.tools.length}
               </span>
             </div>
           </div>
           <div className="go-hub-grid">
             {cat.tools.map((t, i) => (
-              <button key={t.id} className="go-hub-card"
+              <button key={t.id}
+                className={`go-hub-card ${t.featured || cat.id === "summary" ? "gth-featured" : ""}`}
                 onClick={() => setActive(t.id)}
                 style={{
                   "--tool-color": t.color,
@@ -425,7 +432,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 4,
-                        padding: "2px 8px",
+                        padding: "2px 7px",
                         borderRadius: 999,
                         background: "linear-gradient(135deg, #ef4444, #dc2626)",
                         color: "white",

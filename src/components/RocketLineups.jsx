@@ -88,7 +88,7 @@ const GRUNT_COUNTERS = [
 const LEEKDUCK_URL = "https://leekduck.com/rocket-lineups";
 
 export default function RocketLineups({ lang = "en", onClose }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
 
   const t = (th, en, ja) => lang === "th" ? th : lang === "ja" ? (ja ?? en) : en;
   const pickLang = (obj) => obj[lang] ?? obj.en;

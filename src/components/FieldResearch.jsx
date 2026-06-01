@@ -23,7 +23,7 @@ const CATEGORY_META = {
 };
 
 export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, allList = [] }) {
-  useModalLifecycle();
+  useModalLifecycle(onClose);
   const [research,    setResearch]    = useState(null);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
