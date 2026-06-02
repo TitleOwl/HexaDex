@@ -119,17 +119,50 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
     lang==="th" ? (TYPE_NAMES_TH[tn]??tn) : lang==="ja" ? (TYPE_NAMES_JA[tn]??tn) : tn;
 
   return (
-    <div className="game-overlay" onClick={onClose}>
-      <div className="game-content go-tool-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close game-close" onClick={onClose}>✕</button>
-
-        <div className="game-header">
-          <h1 className="game-title">🎯 Raid Counter Finder</h1>
-          <p className="game-sub">
-            {lang==="th" ? "หาตัวสู้ที่ดีที่สุดสำหรับ Raid Boss"
-             : lang==="ja" ? "レイドボス対策"
-             : "Find optimal counters for any raid boss"}
-          </p>
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, zIndex: 9000,
+      background: "radial-gradient(ellipse at top, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.95))",
+      backdropFilter: "blur(10px)",
+      overflowY: "auto", padding: "20px 12px",
+    }}>
+      <style>{`
+        :root { --rcf-bg: #fff; --rcf-fg: #1e293b; --rcf-muted: #64748b; }
+        [data-theme="dark"] { --rcf-bg: #0f172a; --rcf-fg: #f1f5f9; --rcf-muted: #94a3b8; }
+      `}</style>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        maxWidth: 1100, margin: "0 auto",
+        background: "var(--rcf-bg, #fff)",
+        borderRadius: 22, padding: 18,
+        boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+        position: "relative",
+      }}>
+        {/* Sticky top bar with close button */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          marginBottom: 14, padding: "4px",
+          position: "sticky", top: 0, zIndex: 10,
+          background: "var(--rcf-bg, #fff)",
+        }}>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0,
+                         color: "var(--rcf-fg, #1e293b)", letterSpacing: "-0.01em" }}>
+              🎯 Raid Counter Finder
+            </h1>
+            <div style={{ fontSize: 12, color: "var(--rcf-muted, #64748b)", marginTop: 4, fontWeight: 600 }}>
+              {lang==="th" ? "หาตัวสู้ที่ดีที่สุดสำหรับ Raid Boss"
+               : lang==="ja" ? "レイドボス対策"
+               : "Find optimal counters for any raid boss"}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            padding: "9px 16px", borderRadius: 12, border: "none",
+            background: "linear-gradient(135deg, #ef4444, #b91c1c)",
+            color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer",
+            flexShrink: 0,
+            boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)",
+          }}>
+            ✕ {lang==="th" ? "ปิด" : lang==="ja" ? "閉じる" : "Close"}
+          </button>
         </div>
 
         {picking ? (

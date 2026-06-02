@@ -619,6 +619,123 @@ export default function PokemonModal({
           background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
           color: #cbd5e1 !important;
         }
+
+        /* ─── Button + Tab polish (consistent w/ HexaDex pattern) ─── */
+        .modal-overlay .modal-close {
+          position: absolute !important;
+          top: 14px !important; right: 14px !important;
+          width: 38px !important; height: 38px !important;
+          border-radius: 50% !important;
+          background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+          border: 2px solid rgba(255,255,255,0.4) !important;
+          color: white !important;
+          font-size: 15px !important; font-weight: 900 !important;
+          cursor: pointer !important;
+          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.5), 0 0 0 1px rgba(255,255,255,0.1) inset !important;
+          transition: transform 0.2s, box-shadow 0.2s !important;
+          z-index: 5 !important;
+          display: flex !important; align-items: center !important; justify-content: center !important;
+        }
+        .modal-overlay .modal-close:hover {
+          transform: scale(1.1) rotate(90deg) !important;
+          box-shadow: 0 8px 22px rgba(220, 38, 38, 0.7) !important;
+        }
+
+        .modal-overlay .hero-view-controls {
+          position: absolute !important;
+          top: 14px !important; left: 14px !important;
+          display: flex !important; align-items: center !important; gap: 8px !important;
+          z-index: 4 !important;
+        }
+        .modal-overlay .hero-shiny-btn,
+        .modal-overlay .hero-card-btn {
+          width: 38px !important; height: 38px !important;
+          border-radius: 50% !important;
+          background: rgba(255, 255, 255, 0.18) !important;
+          backdrop-filter: blur(14px) !important;
+          border: 2px solid rgba(255, 255, 255, 0.4) !important;
+          color: white !important;
+          font-size: 17px !important;
+          cursor: pointer !important;
+          transition: transform 0.2s, background 0.2s !important;
+          display: flex !important; align-items: center !important; justify-content: center !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+        }
+        .modal-overlay .hero-shiny-btn:hover,
+        .modal-overlay .hero-card-btn:hover {
+          background: rgba(255, 255, 255, 0.3) !important;
+          transform: scale(1.1) !important;
+        }
+        .modal-overlay .hero-shiny-btn.active {
+          background: linear-gradient(135deg, #fbbf24, #f97316) !important;
+          box-shadow: 0 0 16px rgba(251, 191, 36, 0.7) !important;
+          border-color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        .modal-overlay .hero-view-toggle {
+          display: inline-flex !important;
+          background: rgba(255, 255, 255, 0.18) !important;
+          backdrop-filter: blur(14px) !important;
+          border: 2px solid rgba(255, 255, 255, 0.4) !important;
+          border-radius: 999px !important;
+          padding: 3px !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+        }
+        .modal-overlay .hv-btn {
+          padding: 6px 12px !important;
+          border-radius: 999px !important;
+          background: transparent !important;
+          color: rgba(255, 255, 255, 0.85) !important;
+          border: none !important;
+          font-size: 11px !important; font-weight: 800 !important;
+          cursor: pointer !important;
+          letter-spacing: 0.5px !important;
+          transition: background 0.2s, color 0.2s !important;
+        }
+        .modal-overlay .hv-btn.active {
+          background: white !important;
+          color: #1e293b !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+        }
+
+        /* Tabs — modern pill design */
+        .modal-overlay .modal-tabs {
+          display: flex !important;
+          gap: 4px !important;
+          padding: 4px !important;
+          background: var(--md-tabs-bg, #f1f5f9) !important;
+          border-radius: 14px !important;
+          margin-bottom: 14px !important;
+          overflow-x: auto !important;
+          scrollbar-width: thin !important;
+        }
+        [data-theme="dark"] .modal-overlay .modal-tabs {
+          --md-tabs-bg: #1e293b !important;
+        }
+        .modal-overlay .modal-tab {
+          flex-shrink: 0 !important;
+          padding: 8px 14px !important;
+          border-radius: 11px !important;
+          background: transparent !important;
+          color: var(--md-tab-fg, #64748b) !important;
+          border: none !important;
+          font-size: 12px !important; font-weight: 700 !important;
+          cursor: pointer !important;
+          transition: all 0.2s !important;
+          white-space: nowrap !important;
+        }
+        [data-theme="dark"] .modal-overlay .modal-tab {
+          --md-tab-fg: #94a3b8 !important;
+        }
+        .modal-overlay .modal-tab:hover {
+          background: rgba(99, 102, 241, 0.08) !important;
+          color: #6366f1 !important;
+        }
+        .modal-overlay .modal-tab.active {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+          color: white !important;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+        }
       `}</style>
 
       <div className="modal" onClick={(e) => e.stopPropagation()}>

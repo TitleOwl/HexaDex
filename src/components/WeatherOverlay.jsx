@@ -1,9 +1,5 @@
-// ─── WeatherOverlay — Visual effects with adaptive performance ───
-//
-// Adapts particle count to device:
-//   - Desktop: full effect (100+ drops)
-//   - Mobile: reduced (50 drops)
-//   - Reduced-motion / slow connection / hidden tab: disabled
+// ─── WeatherOverlay — MINIMAL effects (only rain + snow + storm) ─────
+// Cloud + fog overlays REMOVED at user request (was blocking content view)
 
 import { useMemo } from "react";
 import { useReducedMotion, useIsMobile, useSlowConnection, usePageVisible } from "../perfUtils.js";
@@ -14,7 +10,7 @@ export default function WeatherOverlay({ condition, isDay = true }) {
   const slow     = useSlowConnection();
   const visible  = usePageVisible();
 
-  // Stable drop generation - MUST be called before any early returns (rules of hooks)
+  // Generate particles
   const isMobileNum = isMobile ? 1 : 0;
   const drops = useMemo(() => {
     const counts = {
@@ -35,33 +31,18 @@ export default function WeatherOverlay({ condition, isDay = true }) {
     }));
   }, [condition, isMobileNum]);
 
-  // Early exits AFTER hooks
+  // Early exits
   if (!visible) return null;
   if (reduced || slow) return null;
-  if (!condition || condition === "mostly-clear") return null;
+  if (!condition) return null;
 
-  // Clear day: gentle sun glow (cheap, no animation)
-  if (condition === "clear") {
-    if (!isDay) return null;
-    return (
-      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9998, overflow: "hidden" }}>
-        <div style={{
-          position: "absolute",
-          top: "-15%",
-          right: "-15%",
-          width: "55vw",
-          height: "55vw",
-          background: "radial-gradient(circle, rgba(255, 220, 130, 0.22) 0%, rgba(255, 220, 130, 0) 60%)",
-        }} />
-      </div>
-    );
-  }
+  // Only render for: rain, drizzle, thunderstorm, snow
+  // SKIP: clear, mostly-clear, partly-cloudy, cloudy, fog (no overlay = no visual block)
+  const isRain  = condition === "rain" || condition === "drizzle" || condition === "thunderstorm";
+  const isSnow  = condition === "snow";
+  const isStorm = condition === "thunderstorm";
 
-  const isRain   = condition === "rain" || condition === "drizzle" || condition === "thunderstorm";
-  const isSnow   = condition === "snow";
-  const isStorm  = condition === "thunderstorm";
-  const isCloudy = condition === "cloudy" || condition === "partly-cloudy";
-  const isFog    = condition === "fog";
+  if (!isRain && !isSnow) return null;
 
   return (
     <div style={{
@@ -72,21 +53,19 @@ export default function WeatherOverlay({ condition, isDay = true }) {
       overflow: "hidden",
       contain: "strict",
     }}>
-      {/* Color tint */}
+      {/* Subtle color tint (much lighter than before) */}
       <div style={{
         position: "absolute",
         inset: 0,
         background:
-          isStorm  ? "linear-gradient(180deg, rgba(15, 20, 40, 0.42) 0%, rgba(25, 35, 60, 0.32) 100%)"
-          : isRain ? "linear-gradient(180deg, rgba(40, 55, 85, 0.22) 0%, rgba(50, 70, 100, 0.16) 100%)"
-          : isSnow ? "linear-gradient(180deg, rgba(200, 220, 240, 0.18) 0%, rgba(220, 230, 245, 0.12) 100%)"
-          : isFog  ? "rgba(220, 230, 240, 0.42)"
-          : isCloudy ? "rgba(120, 130, 145, 0.14)"
+          isStorm  ? "linear-gradient(180deg, rgba(15, 20, 40, 0.20) 0%, rgba(25, 35, 60, 0.12) 100%)"
+          : isRain ? "linear-gradient(180deg, rgba(40, 55, 85, 0.08) 0%, rgba(50, 70, 100, 0.05) 100%)"
+          : isSnow ? "linear-gradient(180deg, rgba(200, 220, 240, 0.06) 0%, rgba(220, 230, 245, 0.04) 100%)"
           : "transparent",
         transition: "background 1.5s ease",
       }} />
 
-      {/* Rain (GPU translate3d) */}
+      {/* Rain drops */}
       {isRain && (
         <>
           <style>{`
@@ -116,7 +95,7 @@ export default function WeatherOverlay({ condition, isDay = true }) {
         </>
       )}
 
-      {/* Snow */}
+      {/* Snow flakes */}
       {isSnow && (
         <>
           <style>{`
@@ -147,7 +126,7 @@ export default function WeatherOverlay({ condition, isDay = true }) {
         </>
       )}
 
-      {/* Lightning */}
+      {/* Lightning flash (storm only) */}
       {isStorm && (
         <>
           <style>{`
@@ -160,55 +139,6 @@ export default function WeatherOverlay({ condition, isDay = true }) {
             }
           `}</style>
           <div style={{ position: "absolute", inset: 0, animation: "wt-lightning 10s ease-in-out infinite", willChange: "background" }} />
-        </>
-      )}
-
-      {/* Fog */}
-      {isFog && (
-        <>
-          <style>{`
-            @keyframes wt-fog-drift {
-              0%, 100% { transform: translate3d(-30px, 0, 0); }
-              50%      { transform: translate3d(30px, 0, 0); }
-            }
-          `}</style>
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(ellipse 60% 40% at 20% 35%, rgba(235, 240, 248, 0.7), transparent 65%), " +
-              "radial-gradient(ellipse 70% 35% at 75% 65%, rgba(225, 235, 245, 0.6), transparent 65%), " +
-              "radial-gradient(ellipse 60% 40% at 50% 85%, rgba(220, 230, 245, 0.55), transparent 60%)",
-            animation: "wt-fog-drift 16s ease-in-out infinite",
-            willChange: "transform",
-          }} />
-        </>
-      )}
-
-      {/* Clouds drift (mobile: 2 clouds, desktop: 4) */}
-      {isCloudy && (
-        <>
-          <style>{`
-            @keyframes wt-cloud-drift {
-              0%   { transform: translate3d(-50vw, 0, 0); opacity: 0; }
-              10%  { opacity: 0.7; }
-              90%  { opacity: 0.7; }
-              100% { transform: translate3d(150vw, 0, 0); opacity: 0; }
-            }
-          `}</style>
-          {(isMobile ? [0, 1] : [0, 1, 2, 3]).map(i => (
-            <div key={i} style={{
-              position: "absolute",
-              top: `${5 + i * 16}%`,
-              left: 0,
-              width: "260px",
-              height: "70px",
-              background: "radial-gradient(ellipse at 30% 50%, rgba(255,255,255,0.78) 0%, transparent 65%), radial-gradient(ellipse at 70% 50%, rgba(255,255,255,0.7) 0%, transparent 70%)",
-              animation: `wt-cloud-drift ${45 + i * 9}s linear ${-i * 14}s infinite`,
-              filter: "blur(1px)",
-              willChange: "transform, opacity",
-            }} />
-          ))}
         </>
       )}
     </div>

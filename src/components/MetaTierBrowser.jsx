@@ -140,13 +140,39 @@ export default function MetaTierBrowser({ loaded, allList, thaiArr, jpArr, lang,
   };
 
   return (
-    <div className="game-overlay" onClick={onClose}>
+    <div className="game-overlay tier-overlay" onClick={onClose}>
+      <style>{`
+        @keyframes mt-float { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-8px) rotate(3deg)} }
+        .tier-overlay .tier-hero {
+          background: linear-gradient(135deg, #ca8a04 0%, #ea580c 50%, #b91c1c 100%) !important;
+          color: white !important;
+          padding: 22px 24px !important;
+          border-radius: 22px !important;
+          margin-bottom: 18px !important;
+          position: relative !important;
+          overflow: hidden !important;
+          box-shadow: 0 20px 50px rgba(202, 138, 4, 0.3), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+        }
+        .tier-overlay .tier-hero h1 {
+          font-size: 26px !important; font-weight: 900 !important;
+          margin: 0 0 4px 0 !important; letter-spacing: -0.02em !important;
+          background: linear-gradient(135deg, #fff, #fde68a) !important;
+          -webkit-background-clip: text !important; background-clip: text !important;
+          -webkit-text-fill-color: transparent !important; color: transparent !important;
+        }
+        .tier-overlay .tier-hero p {
+          font-size: 12px !important; color: rgba(254, 230, 138, 0.85) !important;
+          font-weight: 600 !important; margin: 0 !important;
+        }
+      `}</style>
       <div className="game-content tier-content" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close game-close" onClick={onClose}>✕</button>
 
-        <div className="game-header">
-          <h1 className="game-title">📊 {lang==="th"?"ระบบ Tier":lang==="ja"?"ティアリスト":"Meta Tier List"}</h1>
-          <p className="game-sub">
+        <div className="tier-hero">
+          <div style={{ position: "absolute", top: 16, right: 24, fontSize: 48, opacity: 0.18,
+                        animation: "mt-float 4s ease-in-out infinite", pointerEvents: "none" }}>📊</div>
+          <h1>📊 {lang==="th"?"ระบบ Tier":lang==="ja"?"ティアリスト":"Meta Tier List"}</h1>
+          <p>
             {lang==="th"?"ดู tier อัตโนมัติ หรือสร้างเอง (ลากมาใส่ได้)":
              lang==="ja"?"自動ティア / カスタムティア":
              "Auto tier ranking · or build your own (drag & drop)"}

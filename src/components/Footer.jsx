@@ -15,7 +15,7 @@ export default function Footer({ lang }) {
       <div className="footer-inner">
         <div className="footer-logo">
           <div className="logo-ball" style={{ width: 24, height: 24 }} />
-          <span>Pokédex</span>
+          <span>HexaDex</span>
         </div>
         <p className="footer-credits">{credits}</p>
         <p className="footer-disclaimer">{disclaimer}</p>

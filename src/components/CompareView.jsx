@@ -192,10 +192,36 @@ export default function CompareView({ allList, thaiArr, jpArr, lang, cachedFetch
   const colorB = slotB ? typeColor(slotB.types[0]?.type.name) : "#f59e0b";
 
   return (
-    <main className="grid-wrap">
-      <div className="compare-header">
-        <h1 className="compare-title">⚖️ {s.compareTitle}</h1>
-        <p className="compare-sub">{s.compareSub}</p>
+    <main className="grid-wrap compare-page" style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 20px" }}>
+      <style>{`
+        @keyframes cmp-float { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-8px) rotate(3deg)} }
+        .compare-page .compare-hero {
+          background: linear-gradient(135deg, #ea580c 0%, #dc2626 50%, #be185d 100%) !important;
+          color: white !important;
+          padding: 22px 24px !important;
+          border-radius: 22px !important;
+          margin-bottom: 22px !important;
+          position: relative !important;
+          overflow: hidden !important;
+          box-shadow: 0 20px 50px rgba(220, 38, 38, 0.3), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+        }
+        .compare-page .compare-hero h1 {
+          font-size: 26px !important; font-weight: 900 !important;
+          margin: 0 0 4px 0 !important; letter-spacing: -0.02em !important;
+          background: linear-gradient(135deg, #fff, #fed7aa) !important;
+          -webkit-background-clip: text !important; background-clip: text !important;
+          -webkit-text-fill-color: transparent !important; color: transparent !important;
+        }
+        .compare-page .compare-hero p {
+          font-size: 12px !important; color: rgba(254, 215, 170, 0.85) !important;
+          font-weight: 600 !important; margin: 0 !important;
+        }
+      `}</style>
+      <div className="compare-hero">
+        <div style={{ position: "absolute", top: 16, right: 24, fontSize: 48, opacity: 0.18,
+                      animation: "cmp-float 4s ease-in-out infinite", pointerEvents: "none" }}>⚖️</div>
+        <h1>⚖️ {s.compareTitle}</h1>
+        <p>{s.compareSub}</p>
       </div>
 
       <div className="compare-wrap">
