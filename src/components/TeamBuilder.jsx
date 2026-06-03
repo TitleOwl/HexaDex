@@ -64,23 +64,19 @@ function calcAppraise(ivAtk, ivDef, ivHp, lang = "en") {
   return { stars, label, color, gradient, total, pct, bestStats, maxIV, statTier };
 }
 
-// ─── Pokémon GO IV Bar (3-section orange bars) ─────────────────────────────
+// ─── Pokémon GO IV Bar (clean 3-row appraise style) ──────────────────────────
 function IVBar({ label, value, onChange }) {
-  const safeValue = Math.max(0, Math.min(15, Number(value) || 0));
-  const pct = (safeValue / 15) * 100;
+  const pct = Math.max(0, Math.min(100, (value / 15) * 100));
 
   return (
-    <div className="pgo-appraise-row">
-      <div className="pgo-appraise-label">{label}</div>
+    <div className="pgo-iv-row">
+      <div className="pgo-iv-label">{label}</div>
 
-      <div className="pgo-appraise-bar-wrap">
-        <div className="pgo-appraise-bar-bg">
-          <div
-            className="pgo-appraise-bar-fill"
-            style={{ width: `${pct}%` }}
-          />
-          <span className="pgo-appraise-divider d1" />
-          <span className="pgo-appraise-divider d2" />
+      <div className="pgo-iv-bar-wrap">
+        <div className="pgo-iv-track">
+          <div className="pgo-iv-fill" style={{ width: `${pct}%` }} />
+          <span className="pgo-iv-cut c1" />
+          <span className="pgo-iv-cut c2" />
         </div>
 
         <input
@@ -88,9 +84,9 @@ function IVBar({ label, value, onChange }) {
           min="0"
           max="15"
           step="1"
-          value={safeValue}
+          value={value}
           onChange={(e) => onChange(parseInt(e.target.value, 10))}
-          className="pgo-appraise-slider"
+          className="pgo-iv-slider"
           aria-label={`${label} IV`}
         />
       </div>
@@ -98,64 +94,35 @@ function IVBar({ label, value, onChange }) {
   );
 }
 
-// ─── Pokémon GO Appraise Display (medal + 3 bars) ───────────────────────────
+// ─── Appraise Display (stars + ATK/DEF/HP only) ─────────────────────────────
 function AppraiseDisplay({ ivAtk, ivDef, ivHp, onChange, lang }) {
   const apr = calcAppraise(ivAtk, ivDef, ivHp, lang);
-  const cleanLabel = apr.label.replace(/[💯🌟⭐👍📊]/g, "").trim();
-
   return (
-    <div className="pgo-appraise-card" style={{ "--pgo-appraise-color": apr.color }}>
-      <div className="pgo-appraise-medal" aria-hidden="true">
-        <div className="pgo-medal-inner">
-          <div className="pgo-medal-ball top" />
-          <div className="pgo-medal-stars">
-            {[1, 2, 3].map((i) => (
-              <span key={i} className={`pgo-medal-star${i <= apr.stars ? " filled" : ""}`}>
-                ★
-              </span>
-            ))}
-          </div>
-          <div className="pgo-medal-ball bottom" />
-        </div>
-      </div>
-
-      <div className="pgo-appraise-summary">
-        <div className="pgo-appraise-summary-stars">
-          {[1, 2, 3].map((i) => (
-            <span key={i} className={`pgo-summary-star${i <= apr.stars ? " filled" : ""}`}>
+    <div className="pgo-appraise-card">
+      <div className="pgo-appraise-top">
+        <div className="pgo-appraise-medal">
+          {[1, 2, 3].map(i => (
+            <span key={i} className={`pgo-medal-star${i <= apr.stars ? " filled" : ""}`}>
               ★
             </span>
           ))}
         </div>
-        <div className="pgo-appraise-summary-text">
-          {cleanLabel || (lang === "th" ? "ประเมิน IV" : "Appraise")}
-        </div>
-        <div className="pgo-appraise-summary-percent">
-          {apr.total}/45 · {apr.pct.toFixed(0)}%
+
+        <div className="pgo-appraise-summary">
+          <div className="pgo-appraise-stars">
+            {[1, 2, 3].map(i => (
+              <span key={i} className={`pgo-star${i <= apr.stars ? " filled" : ""}`}>
+                ★
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="pgo-appraise-bars">
-        <IVBar label="Attack" value={ivAtk} onChange={(v) => onChange({ ivAtk: v })} />
-        <IVBar label="Defense" value={ivDef} onChange={(v) => onChange({ ivDef: v })} />
-        <IVBar label="HP" value={ivHp} onChange={(v) => onChange({ ivHp: v })} />
-      </div>
-
-      <div className="pgo-appraise-presets">
-        <button type="button" className="pgo-appraise-preset hundo"
-          onClick={() => onChange({ ivAtk: 15, ivDef: 15, ivHp: 15 })}>💯</button>
-        <button type="button" className="pgo-appraise-preset"
-          onClick={() => onChange({ ivAtk: 14, ivDef: 14, ivHp: 14 })}>3★</button>
-        <button type="button" className="pgo-appraise-preset"
-          onClick={() => onChange({ ivAtk: 11, ivDef: 11, ivHp: 11 })}>2★</button>
-        <button type="button" className="pgo-appraise-preset"
-          onClick={() => onChange({ ivAtk: 7, ivDef: 7, ivHp: 7 })}>1★</button>
-        <button type="button" className="pgo-appraise-preset"
-          onClick={() => onChange({
-            ivAtk: Math.floor(Math.random() * 16),
-            ivDef: Math.floor(Math.random() * 16),
-            ivHp: Math.floor(Math.random() * 16),
-          })}>🎲</button>
+        <IVBar label="ATK" value={ivAtk} onChange={(v) => onChange({ ivAtk: v })} />
+        <IVBar label="DEF" value={ivDef} onChange={(v) => onChange({ ivDef: v })} />
+        <IVBar label="HP"  value={ivHp}  onChange={(v) => onChange({ ivHp: v })} />
       </div>
     </div>
   );
@@ -405,11 +372,9 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
   // ─── Team size limit (GO mode = 3, Normal mode = 6) ──────────────────
   const maxTeamSize = mode === "go" ? 3 : 6;
   useEffect(() => {
-    // Trim team if switching to a mode with smaller limit (e.g. normal→go)
-    if (team.length > maxTeamSize) {
-      setTeam(team.slice(0, maxTeamSize));
-    }
-  }, [mode, maxTeamSize]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Trim team using functional setState (avoids stale closure)
+    setTeam(prev => prev.length > maxTeamSize ? prev.slice(0, maxTeamSize) : prev);
+  }, [mode, maxTeamSize]);
 
   const getGoData = useCallback((id) => {
     const d = teamData[id] ?? {};
@@ -464,8 +429,6 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
   // UI state
   const [picking, setPicking] = useState(false);
   const [pickingSlot, setPickingSlot] = useState(null);
-  const [selectedMember, setSelectedMember] = useState(null);
-  const [expandedCardId, setExpandedCardId] = useState(null);
   const [generating, setGenerating] = useState(false);
 
   const allWithMeta = useMemo(() => allList.map(p => {
@@ -491,13 +454,17 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
   const addToTeam = useCallback(async (entry) => {
     const full = await cachedFetch(entry.url);
     if (pickingSlot !== null) {
-      setTeam(prev => { const next = [...prev]; next[pickingSlot] = full; return next; });
+      setTeam(prev => {
+        const next = [...prev].slice(0, maxTeamSize);
+        next[pickingSlot] = full;
+        return next.slice(0, maxTeamSize);
+      });
       setPickingSlot(null);
-    } else if (!team.some(p => p.id === full.id)) {
-      setTeam(prev => [...prev, full]);
+    } else if (!team.some(p => p.id === full.id) && team.length < maxTeamSize) {
+      setTeam(prev => [...prev, full].slice(0, maxTeamSize));
     }
     setPicking(false);
-  }, [team, pickingSlot, cachedFetch]);
+  }, [team, pickingSlot, cachedFetch, maxTeamSize]);
 
   const removeMember = (id) => {
     setTeam(team.filter(p => p.id !== id));
@@ -523,19 +490,19 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
     let result = [];
     try {
       if (modeId === "starters") {
-        result = (await Promise.all(pickRandom(STARTERS, 6).map(fetchById))).filter(Boolean);
+        result = (await Promise.all(pickRandom(STARTERS, maxTeamSize).map(fetchById))).filter(Boolean);
       } else if (modeId === "legendary") {
-        result = (await Promise.all(pickRandom(LEGENDARY_IDS, 6).map(fetchById))).filter(Boolean);
+        result = (await Promise.all(pickRandom(LEGENDARY_IDS, maxTeamSize).map(fetchById))).filter(Boolean);
       } else if (modeId === "chaos") {
-        result = (await Promise.all(pickRandom(allWithMeta, 30).map(c => fetchById(c.id)))).filter(Boolean).slice(0, 6);
+        result = (await Promise.all(pickRandom(allWithMeta, 30).map(c => fetchById(c.id)))).filter(Boolean).slice(0, maxTeamSize);
       } else if (modeId === "powerhouse") {
         const picks = pickRandom(allWithMeta, 50);
         const fetched = (await Promise.all(picks.map(c => fetchById(c.id)))).filter(Boolean);
-        result = fetched.filter(p => p.stats.reduce((s, st) => s + st.base_stat, 0) >= 500).slice(0, 6);
+        result = fetched.filter(p => p.stats.reduce((s, st) => s + st.base_stat, 0) >= 500).slice(0, maxTeamSize);
       } else if (modeId === "speedy") {
         const picks = pickRandom(allWithMeta, 50);
         const fetched = (await Promise.all(picks.map(c => fetchById(c.id)))).filter(Boolean);
-        result = fetched.filter(p => (p.stats.find(st => st.stat.name === "speed")?.base_stat ?? 0) >= 90).slice(0, 6);
+        result = fetched.filter(p => (p.stats.find(st => st.stat.name === "speed")?.base_stat ?? 0) >= 90).slice(0, maxTeamSize);
       } else if (modeId === "tanky") {
         const picks = pickRandom(allWithMeta, 50);
         const fetched = (await Promise.all(picks.map(c => fetchById(c.id)))).filter(Boolean);
@@ -544,7 +511,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
           const def = p.stats.find(st => st.stat.name === "defense")?.base_stat ?? 0;
           const spdef = p.stats.find(st => st.stat.name === "special-defense")?.base_stat ?? 0;
           return hp + def + spdef >= 300;
-        }).slice(0, 6);
+        }).slice(0, maxTeamSize);
       } else {
         // balanced
         const picks = pickRandom(allWithMeta, 50);
@@ -565,20 +532,21 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
       }
 
       if (result.length > 0) {
-        setTeam(result);
+        setTeam(result.slice(0, maxTeamSize));
         // In GO mode, seed random GO data
+        // FIX: Always ensure cp/iv* are defined (don't skip if Pokemon has partial data)
         if (mode === "go") {
           setTeamData(prev => {
             const next = { ...prev };
-            result.forEach(p => {
-              if (!next[p.id]) {
-                next[p.id] = {
-                  cp: 1000 + Math.floor(Math.random() * 1500),
-                  ivAtk: Math.floor(Math.random() * 16),
-                  ivDef: Math.floor(Math.random() * 16),
-                  ivHp: Math.floor(Math.random() * 16),
-                };
-              }
+            result.slice(0, maxTeamSize).forEach(p => {
+              const cur = next[p.id] ?? {};
+              next[p.id] = {
+                ...cur,
+                cp: cur.cp ?? (1000 + Math.floor(Math.random() * 1500)),
+                ivAtk: cur.ivAtk ?? Math.floor(Math.random() * 16),
+                ivDef: cur.ivDef ?? Math.floor(Math.random() * 16),
+                ivHp: cur.ivHp ?? Math.floor(Math.random() * 16),
+              };
             });
             return next;
           });
@@ -596,695 +564,941 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
   return (
     <main className="grid-wrap team-builder-wrap team-page" data-tb-mode={mode} style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 20px" }}>
       <style>{`
-        @keyframes tm-float { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-8px) rotate(-3deg)} }
-        .team-page .team-hero {
-          background: linear-gradient(135deg, #0d9488 0%, #16a34a 50%, #65a30d 100%) !important;
-          color: white !important;
-          padding: 22px 24px !important;
-          border-radius: 22px !important;
-          margin-bottom: 22px !important;
-          position: relative !important;
-          overflow: hidden !important;
-          box-shadow: 0 20px 50px rgba(13, 148, 136, 0.3), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+        /* ─── Design Tokens (scoped to .team-page) ───────────────────────── */
+        .team-page {
+          --tb-ease: cubic-bezier(0.16, 1, 0.3, 1);
+          --tb-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+          --tb-radius-sm: 14px;
+          --tb-radius-md: 20px;
+          --tb-radius-lg: 28px;
+          --tb-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+          --tb-shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.06);
+          --tb-shadow-lg: 0 24px 60px rgba(15, 23, 42, 0.18), 0 8px 20px rgba(15, 23, 42, 0.08);
+          --tb-shadow-glow-indigo: 0 0 40px rgba(99, 102, 241, 0.35);
+          --tb-shadow-glow-orange: 0 0 40px rgba(251, 146, 60, 0.35);
         }
-        .team-page .team-hero h1 {
-          font-size: 26px !important; font-weight: 900 !important;
-          margin: 0 0 4px 0 !important; letter-spacing: -0.02em !important;
-          background: linear-gradient(135deg, #fff, #bbf7d0) !important;
-          -webkit-background-clip: text !important; background-clip: text !important;
-          -webkit-text-fill-color: transparent !important; color: transparent !important;
+        
+        /* ─── Keyframes ──────────────────────────────────────────────────── */
+        @keyframes tb-float-soft {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50%      { transform: translateY(-8px) rotate(3deg); }
         }
-        .team-page .team-hero p {
-          font-size: 12px !important; color: rgba(187, 247, 208, 0.85) !important;
-          font-weight: 600 !important; margin: 0 !important;
+        @keyframes tb-shimmer {
+          0%   { background-position: -200% 50%; }
+          100% { background-position: 200% 50%; }
         }
-
-        /* ═══════════════════════════════════════════════════════════ */
-        /* Pokemon GO Style Card (.pgo-card) — Image 1 inspiration      */
-        /* ═══════════════════════════════════════════════════════════ */
-        @keyframes pgo-leaf-fall-1 {
+        @keyframes tb-pulse-ring {
+          0%   { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+          100% { box-shadow: 0 0 0 18px rgba(99, 102, 241, 0); }
+        }
+        @keyframes tb-fade-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes tb-leaf-fall-1 {
           0%   { transform: translate(0, -10px) rotate(0deg); opacity: 0; }
-          10%  { opacity: 0.5; }
-          50%  { transform: translate(-12px, 50px) rotate(180deg); opacity: 0.7; }
-          90%  { opacity: 0.4; }
-          100% { transform: translate(0, 110px) rotate(360deg); opacity: 0; }
+          10%  { opacity: 0.6; }
+          50%  { transform: translate(-12px, 60px) rotate(180deg); opacity: 0.85; }
+          100% { transform: translate(0, 130px) rotate(360deg); opacity: 0; }
         }
-        @keyframes pgo-leaf-fall-2 {
+        @keyframes tb-leaf-fall-2 {
           0%   { transform: translate(0, -10px) rotate(0deg); opacity: 0; }
           10%  { opacity: 0.4; }
-          50%  { transform: translate(15px, 60px) rotate(-180deg); opacity: 0.6; }
-          90%  { opacity: 0.3; }
-          100% { transform: translate(5px, 130px) rotate(-360deg); opacity: 0; }
+          50%  { transform: translate(16px, 70px) rotate(-180deg); opacity: 0.7; }
+          100% { transform: translate(6px, 140px) rotate(-360deg); opacity: 0; }
         }
-        @keyframes pgo-img-bob {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-6px); }
+        @keyframes tb-img-bob {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50%      { transform: translateY(-8px) scale(1.02); }
         }
-
+        @keyframes tb-spin-slow { to { transform: rotate(360deg); } }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           1. HERO HEADER — Dark mesh gradient with shimmer
+           ═══════════════════════════════════════════════════════════════════ */
+        .team-page .team-hero {
+          position: relative !important;
+          margin-bottom: 26px !important;
+          padding: 36px 32px 32px !important;
+          border-radius: var(--tb-radius-lg) !important;
+          background:
+            radial-gradient(circle at 15% 20%, rgba(251, 191, 36, 0.32), transparent 45%),
+            radial-gradient(circle at 88% 75%, rgba(244, 63, 94, 0.28), transparent 45%),
+            radial-gradient(circle at 50% 100%, rgba(168, 85, 247, 0.30), transparent 50%),
+            linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #4c1d95 80%, #6b21a8 100%) !important;
+          color: white !important;
+          overflow: hidden !important;
+          box-shadow: var(--tb-shadow-lg), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+          animation: tb-fade-up 0.6s var(--tb-ease) !important;
+        }
+        .team-page .team-hero::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.10) 50%, transparent 70%),
+            radial-gradient(circle at 50% 50%, transparent 70%, rgba(0,0,0,0.20) 100%);
+          background-size: 250% 100%, 100% 100%;
+          animation: tb-shimmer 10s linear infinite;
+          pointer-events: none;
+        }
+        .team-page .team-hero h1 {
+          position: relative !important;
+          z-index: 2 !important;
+          font-size: 30px !important;
+          font-weight: 950 !important;
+          margin: 0 0 8px 0 !important;
+          letter-spacing: -0.035em !important;
+          background: linear-gradient(135deg, #fff 0%, #fde68a 45%, #fb923c 100%) !important;
+          -webkit-background-clip: text !important; background-clip: text !important;
+          -webkit-text-fill-color: transparent !important; color: transparent !important;
+          line-height: 1.1 !important;
+          text-shadow: 0 2px 30px rgba(251, 191, 36, 0.3) !important;
+        }
+        .team-page .team-hero p {
+          position: relative !important; z-index: 2 !important;
+          font-size: 13px !important;
+          color: rgba(241, 245, 249, 0.78) !important;
+          font-weight: 600 !important;
+          margin: 0 !important;
+          letter-spacing: 0.02em !important;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           2. MODE TOGGLE — Glass segmented control
+           ═══════════════════════════════════════════════════════════════════ */
+        .tb-mode-toggle {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 8px !important;
+          margin: 0 auto 22px !important;
+          max-width: 640px !important;
+          padding: 8px !important;
+          background: rgba(255, 255, 255, 0.65) !important;
+          backdrop-filter: blur(20px) saturate(180%) !important;
+          -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+          border: 1px solid rgba(255, 255, 255, 0.4) !important;
+          border-radius: var(--tb-radius-md) !important;
+          box-shadow: var(--tb-shadow-sm) !important;
+        }
+        :root[data-theme="dark"] .tb-mode-toggle,
+        [data-theme="dark"] .tb-mode-toggle {
+          background: rgba(30, 41, 59, 0.55) !important;
+          border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+        .tb-mode-btn {
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+          padding: 12px 18px !important;
+          background: transparent !important;
+          border: none !important;
+          border-radius: var(--tb-radius-sm) !important;
+          cursor: pointer !important;
+          transition: all 0.4s var(--tb-ease) !important;
+          color: rgba(71, 85, 105, 0.85) !important;
+          position: relative !important;
+          overflow: hidden !important;
+        }
+        :root[data-theme="dark"] .tb-mode-btn,
+        [data-theme="dark"] .tb-mode-btn { color: rgba(203, 213, 225, 0.7) !important; }
+        .tb-mode-btn:hover:not(.active) {
+          background: rgba(99, 102, 241, 0.06) !important;
+          color: #4f46e5 !important;
+          transform: translateY(-1px) !important;
+        }
+        .tb-mode-btn.active {
+          color: white !important;
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%) !important;
+          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+          transform: translateY(-2px) !important;
+        }
+        .tb-mode-btn.tb-mode-go.active {
+          background: linear-gradient(135deg, #ef4444 0%, #f97316 50%, #fb923c 100%) !important;
+          box-shadow: 0 8px 24px rgba(239, 68, 68, 0.45), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+        }
+        .tb-mode-icon { font-size: 26px !important; flex-shrink: 0 !important; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15)) !important; }
+        .tb-mode-text { display: flex !important; flex-direction: column !important; align-items: flex-start !important; gap: 2px !important; }
+        .tb-mode-title-text { font-weight: 800 !important; font-size: 14px !important; letter-spacing: -0.01em !important; }
+        .tb-mode-desc { font-size: 10.5px !important; opacity: 0.85 !important; font-weight: 600 !important; letter-spacing: 0.04em !important; }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           3. ACTIONS BAR — Modern buttons with neon hover
+           ═══════════════════════════════════════════════════════════════════ */
+        .tb-actions-bar {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          gap: 12px !important;
+          justify-content: center !important;
+          align-items: center !important;
+          margin-bottom: 24px !important;
+        }
+        .tb-action-btn {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          padding: 12px 22px !important;
+          font-size: 13.5px !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.01em !important;
+          border: none !important;
+          border-radius: 999px !important;
+          cursor: pointer !important;
+          transition: all 0.3s var(--tb-ease) !important;
+          position: relative !important;
+          overflow: hidden !important;
+        }
+        .tb-action-btn.primary {
+          background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+          color: white !important;
+          box-shadow: 0 10px 24px rgba(79, 70, 229, 0.4), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+        }
+        .tb-action-btn.primary:hover:not(:disabled) {
+          transform: translateY(-3px) scale(1.02) !important;
+          box-shadow: 0 14px 32px rgba(79, 70, 229, 0.55), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+        }
+        .tb-action-btn.primary:disabled {
+          opacity: 0.45 !important; cursor: not-allowed !important;
+          background: linear-gradient(135deg, #64748b, #475569) !important;
+          box-shadow: none !important;
+        }
+        .tb-action-btn.ghost {
+          background: rgba(248, 113, 113, 0.10) !important;
+          color: #dc2626 !important;
+          border: 1.5px solid rgba(248, 113, 113, 0.35) !important;
+        }
+        .tb-action-btn.ghost:hover {
+          background: rgba(248, 113, 113, 0.18) !important;
+          border-color: rgba(248, 113, 113, 0.6) !important;
+          transform: translateY(-2px) !important;
+        }
+        .random-btn-main {
+          background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+          color: white !important;
+          box-shadow: 0 10px 24px rgba(245, 158, 11, 0.4), inset 0 1px 0 rgba(255,255,255,0.2) !important;
+        }
+        .random-btn-main:hover:not(:disabled) {
+          transform: translateY(-3px) scale(1.02) !important;
+          box-shadow: 0 14px 32px rgba(245, 158, 11, 0.55) !important;
+        }
+        .random-dropdown { position: relative !important; }
+        .random-dropdown-arrow {
+          font-size: 11px !important; margin-left: 4px !important;
+          transition: transform 0.3s var(--tb-ease) !important;
+        }
+        
+        /* Dropdown Menu */
+        .random-menu {
+          position: absolute !important;
+          top: calc(100% + 8px) !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          min-width: 280px !important;
+          padding: 8px !important;
+          background: rgba(255, 255, 255, 0.92) !important;
+          backdrop-filter: blur(24px) saturate(180%) !important;
+          -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+          border: 1px solid rgba(255,255,255,0.6) !important;
+          border-radius: var(--tb-radius-md) !important;
+          box-shadow: var(--tb-shadow-lg) !important;
+          z-index: 100 !important;
+          animation: tb-fade-up 0.25s var(--tb-ease) !important;
+        }
+        :root[data-theme="dark"] .random-menu,
+        [data-theme="dark"] .random-menu {
+          background: rgba(30, 41, 59, 0.92) !important;
+          border-color: rgba(148, 163, 184, 0.25) !important;
+        }
+        .random-menu-item {
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+          width: 100% !important;
+          padding: 10px 12px !important;
+          background: transparent !important;
+          border: none !important;
+          border-radius: var(--tb-radius-sm) !important;
+          cursor: pointer !important;
+          text-align: left !important;
+          transition: all 0.2s var(--tb-ease) !important;
+        }
+        .random-menu-item:hover {
+          background: linear-gradient(90deg, rgba(99,102,241,0.10), rgba(168,85,247,0.06)) !important;
+          transform: translateX(2px) !important;
+        }
+        .random-menu-icon { font-size: 22px !important; flex-shrink: 0 !important; }
+        .random-menu-text { display: flex !important; flex-direction: column !important; gap: 2px !important; }
+        .random-menu-name { font-weight: 800 !important; font-size: 13px !important; color: #1e293b !important; }
+        :root[data-theme="dark"] .random-menu-name,
+        [data-theme="dark"] .random-menu-name { color: #f1f5f9 !important; }
+        .random-menu-desc { font-size: 10.5px !important; color: #64748b !important; font-weight: 600 !important; }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           4. CP OVERVIEW — Bento glass cards
+           ═══════════════════════════════════════════════════════════════════ */
+        .go-team-overview-modern {
+          position: relative !important;
+          display: grid !important;
+          grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+          gap: 14px !important;
+          margin: 22px 0 28px !important;
+          padding: 18px !important;
+          border-radius: var(--tb-radius-lg) !important;
+          background:
+            radial-gradient(circle at 10% 0%, rgba(96,165,250,0.18), transparent 40%),
+            radial-gradient(circle at 90% 100%, rgba(251,191,36,0.16), transparent 40%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.94) 0%, rgba(30, 64, 175, 0.86) 100%) !important;
+          border: 1px solid rgba(255, 255, 255, 0.14) !important;
+          box-shadow: var(--tb-shadow-lg), inset 0 1px 0 rgba(255,255,255,0.16) !important;
+          overflow: hidden !important;
+          animation: tb-fade-up 0.5s var(--tb-ease) 0.1s both !important;
+        }
+        .go-team-overview-modern .go-overview-item {
+          position: relative !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 14px !important;
+          min-height: 88px !important;
+          padding: 18px !important;
+          border-radius: var(--tb-radius-md) !important;
+          background: rgba(255, 255, 255, 0.95) !important;
+          border: 1px solid rgba(255,255,255,0.6) !important;
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+          backdrop-filter: blur(14px) !important;
+          transition: all 0.35s var(--tb-ease) !important;
+          overflow: hidden !important;
+        }
+        .go-team-overview-modern .go-overview-item::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, transparent 50%, rgba(99,102,241,0.06) 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+        }
+        .go-team-overview-modern .go-overview-item:hover {
+          transform: translateY(-5px) !important;
+          box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+        }
+        .go-team-overview-modern .go-overview-item:hover::before { opacity: 1; }
+        .go-team-overview-modern .go-overview-icon {
+          width: 52px !important;
+          height: 52px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border-radius: 18px !important;
+          font-size: 24px !important;
+          background: linear-gradient(135deg, #dbeafe, #bfdbfe) !important;
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+          flex: 0 0 52px !important;
+        }
+        .go-team-overview-modern .total-cp .go-overview-icon {
+          background: linear-gradient(135deg, #fef3c7, #fbbf24) !important;
+          box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+        }
+        .go-team-overview-modern .avg-cp .go-overview-icon {
+          background: linear-gradient(135deg, #dcfce7, #4ade80) !important;
+          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3), inset 0 1px 0 rgba(255,255,255,0.9) !important;
+        }
+        .go-team-overview-modern .league .go-overview-icon {
+          background: color-mix(in srgb, var(--league-color, #3b82f6) 25%, white) !important;
+          box-shadow: 0 4px 12px color-mix(in srgb, var(--league-color, #3b82f6) 30%, transparent) !important;
+        }
+        .go-team-overview-modern .go-overview-copy { display: grid !important; gap: 3px !important; min-width: 0 !important; flex: 1 !important; }
+        .go-team-overview-modern .go-overview-label {
+          display: block !important;
+          font-size: 10px !important;
+          line-height: 1.1 !important;
+          font-weight: 900 !important;
+          color: #64748b !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.18em !important;
+        }
+        .go-team-overview-modern .go-overview-val {
+          display: block !important;
+          font-size: 26px !important;
+          line-height: 1 !important;
+          font-weight: 950 !important;
+          color: #172554 !important;
+          letter-spacing: -0.04em !important;
+          white-space: nowrap !important;
+        }
+        .go-team-overview-modern .league .go-overview-val { color: var(--league-color) !important; }
+        :root[data-theme="dark"] .go-team-overview-modern .go-overview-item,
+        [data-theme="dark"] .go-team-overview-modern .go-overview-item {
+          background: rgba(30, 41, 59, 0.92) !important;
+          border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+        :root[data-theme="dark"] .go-team-overview-modern .go-overview-val,
+        [data-theme="dark"] .go-team-overview-modern .go-overview-val { color: #e0f2fe !important; }
+        :root[data-theme="dark"] .go-team-overview-modern .go-overview-label,
+        [data-theme="dark"] .go-team-overview-modern .go-overview-label { color: #94a3b8 !important; }
+        
+        @media (max-width: 860px) { .go-team-overview-modern { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 520px) { .go-team-overview-modern { grid-template-columns: 1fr !important; } }
+        
+        /* Hundo banner */
+        .go-team-hundo-banner {
+          margin: 0 0 22px !important;
+          padding: 16px 22px !important;
+          border-radius: var(--tb-radius-md) !important;
+          background:
+            linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%),
+            linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #ec4899 100%) !important;
+          background-size: 250% 100%, 100% 100% !important;
+          animation: tb-shimmer 3s linear infinite !important;
+          color: white !important;
+          text-align: center !important;
+          font-weight: 900 !important;
+          font-size: 16px !important;
+          letter-spacing: 0.04em !important;
+          box-shadow: 0 14px 34px rgba(239, 68, 68, 0.4) !important;
+          text-shadow: 0 2px 6px rgba(0,0,0,0.25) !important;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           5. EMPTY STATE
+           ═══════════════════════════════════════════════════════════════════ */
+        .empty-state {
+          text-align: center !important;
+          padding: 60px 30px !important;
+          border-radius: var(--tb-radius-lg) !important;
+          background:
+            radial-gradient(circle at 50% 30%, rgba(99,102,241,0.10), transparent 50%),
+            linear-gradient(135deg, rgba(255,255,255,0.8), rgba(241,245,249,0.9)) !important;
+          backdrop-filter: blur(12px) !important;
+          border: 2px dashed rgba(99,102,241,0.25) !important;
+          box-shadow: var(--tb-shadow-sm) !important;
+        }
+        :root[data-theme="dark"] .empty-state,
+        [data-theme="dark"] .empty-state {
+          background:
+            radial-gradient(circle at 50% 30%, rgba(99,102,241,0.18), transparent 50%),
+            linear-gradient(135deg, rgba(15,23,42,0.6), rgba(30,41,59,0.7)) !important;
+          border-color: rgba(99,102,241,0.35) !important;
+        }
+        .empty-icon {
+          display: block !important;
+          font-size: 72px !important;
+          margin-bottom: 16px !important;
+          animation: tb-float-soft 4s ease-in-out infinite !important;
+          filter: drop-shadow(0 8px 20px rgba(99,102,241,0.25)) !important;
+        }
+        .empty-title {
+          font-size: 22px !important;
+          font-weight: 900 !important;
+          color: #1e293b !important;
+          margin-bottom: 8px !important;
+          letter-spacing: -0.02em !important;
+        }
+        :root[data-theme="dark"] .empty-title,
+        [data-theme="dark"] .empty-title { color: #f1f5f9 !important; }
+        .empty-sub {
+          font-size: 14px !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           6. TEAM GRID
+           ═══════════════════════════════════════════════════════════════════ */
+        .go-team-grid {
+          display: grid !important;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+          gap: 18px !important;
+          margin-bottom: 28px !important;
+        }
+        .go-team-grid > * { animation: tb-fade-up 0.5s var(--tb-ease) both !important; }
+        .go-team-grid > *:nth-child(1) { animation-delay: 0.05s !important; }
+        .go-team-grid > *:nth-child(2) { animation-delay: 0.10s !important; }
+        .go-team-grid > *:nth-child(3) { animation-delay: 0.15s !important; }
+        .go-team-grid > *:nth-child(4) { animation-delay: 0.20s !important; }
+        .go-team-grid > *:nth-child(5) { animation-delay: 0.25s !important; }
+        .go-team-grid > *:nth-child(6) { animation-delay: 0.30s !important; }
+        
+        /* Empty slot placeholder */
+        .empty-slot {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          min-height: 480px !important;
+          border-radius: var(--tb-radius-lg) !important;
+          background: rgba(255,255,255,0.5) !important;
+          border: 2px dashed rgba(99,102,241,0.3) !important;
+          cursor: pointer !important;
+          transition: all 0.3s var(--tb-ease) !important;
+        }
+        .empty-slot:hover {
+          background: rgba(99,102,241,0.08) !important;
+          border-color: rgba(99,102,241,0.5) !important;
+          transform: translateY(-4px) !important;
+        }
+        :root[data-theme="dark"] .empty-slot,
+        [data-theme="dark"] .empty-slot {
+          background: rgba(30,41,59,0.4) !important;
+          border-color: rgba(148,163,184,0.3) !important;
+        }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           7. POKEMON GO CARD — Premium stage + glass info panel
+           ═══════════════════════════════════════════════════════════════════ */
         .pgo-card {
           position: relative !important;
           border: none !important;
           padding: 0 !important;
           overflow: hidden !important;
-          border-radius: 22px !important;
-          box-shadow: 0 14px 36px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+          border-radius: var(--tb-radius-lg) !important;
+          background: white !important;
+          box-shadow: var(--tb-shadow-md), 0 0 0 1px rgba(255,255,255,0.1) inset !important;
           display: flex !important;
           flex-direction: column !important;
+          transition: all 0.4s var(--tb-ease) !important;
         }
-        /* Stage (top half) - gradient based on type */
+        .pgo-card:hover {
+          transform: translateY(-6px) !important;
+          box-shadow: var(--tb-shadow-lg), 0 0 0 1px rgba(255,255,255,0.1) inset !important;
+        }
+        :root[data-theme="dark"] .pgo-card,
+        [data-theme="dark"] .pgo-card { background: #1f2937 !important; }
+        
+        /* Stage */
         .pgo-stage {
           position: relative;
-          padding: 18px 14px 56px;
-          min-height: 280px;
+          padding: 20px 16px 50px;
+          min-height: 320px;
           overflow: hidden;
-          /* gradient set inline via style={{}} for type tint */
         }
-        .pgo-stage::before,
-        .pgo-stage::after {
+        .pgo-stage::before {
           content: "🍃";
           position: absolute;
           font-size: 22px;
-          pointer-events: none;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-        }
-        .pgo-stage::before {
           top: 60px; right: 12px;
-          animation: pgo-leaf-fall-1 7s ease-in-out infinite;
+          animation: tb-leaf-fall-1 7s ease-in-out infinite;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          pointer-events: none;
         }
         .pgo-stage::after {
           content: "🍂";
+          position: absolute;
+          font-size: 20px;
           top: 100px; left: 18px;
-          animation: pgo-leaf-fall-2 9s ease-in-out 1.5s infinite;
+          animation: tb-leaf-fall-2 9s ease-in-out 1.5s infinite;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          pointer-events: none;
         }
-
-        /* Remove/Swap buttons in stage */
+        /* Subtle spotlight on Pokemon */
+        .pgo-stage > img.go-card-img {
+          position: relative !important;
+          z-index: 2 !important;
+        }
+        
+        /* Remove + Swap buttons */
         .pgo-card .go-card-remove,
         .pgo-card .go-card-swap {
+          position: absolute !important;
+          top: 12px !important;
+          width: 32px !important; height: 32px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          border-radius: 50% !important;
           z-index: 5 !important;
-          background: rgba(255,255,255,0.85) !important;
-          backdrop-filter: blur(6px) !important;
+          background: rgba(255,255,255,0.92) !important;
+          backdrop-filter: blur(8px) !important;
           border: none !important;
           color: #1f2937 !important;
           font-weight: 800 !important;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+          font-size: 14px !important;
+          cursor: pointer !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.18) !important;
+          transition: all 0.25s var(--tb-ease) !important;
         }
-        .pgo-card .go-card-remove {
-          background: rgba(239, 68, 68, 0.9) !important;
-          color: white !important;
-        }
-
-        /* CP big text at top */
+        .pgo-card .go-card-remove { right: 12px !important; background: rgba(239, 68, 68, 0.92) !important; color: white !important; }
+        .pgo-card .go-card-swap { left: 12px !important; }
+        .pgo-card .go-card-remove:hover,
+        .pgo-card .go-card-swap:hover { transform: scale(1.1) rotate(8deg) !important; }
+        
+        /* CP big at top */
         .pgo-cp-top {
           text-align: center;
           color: white;
-          margin: 4px 0 14px;
-          text-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          letter-spacing: 0.05em;
+          margin: 2px 0 12px;
+          text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+          letter-spacing: 0.04em;
           position: relative;
           z-index: 2;
         }
-        .pgo-cp-top-label {
-          font-size: 13px;
-          font-weight: 700;
-          opacity: 0.95;
-          letter-spacing: 0.18em;
+        .pgo-cp-top-label { font-size: 14px !important; font-weight: 800 !important; opacity: 0.95 !important; letter-spacing: 0.2em !important; }
+        .pgo-cp-top-value { font-size: 36px !important; font-weight: 950 !important; letter-spacing: -0.03em !important; margin-left: 8px !important; }
+        
+        /* CP slider in stage */
+        .pgo-cp-slider-wrap { position: relative !important; z-index: 3 !important; padding: 0 8px !important; margin: 0 0 16px !important; }
+        .pgo-cp-slider {
+          -webkit-appearance: none !important; appearance: none !important;
+          width: 100% !important; height: 8px !important;
+          border-radius: 999px !important;
+          outline: none !important;
+          cursor: pointer !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.18) inset !important;
         }
-        .pgo-cp-top-value {
-          font-size: 32px;
-          font-weight: 900;
-          letter-spacing: -0.02em;
-          line-height: 1;
-          margin-left: 6px;
+        .pgo-cp-slider::-webkit-slider-thumb {
+          -webkit-appearance: none !important; appearance: none !important;
+          width: 24px !important; height: 24px !important;
+          border-radius: 50% !important;
+          background: white !important;
+          border: 3px solid var(--league-color, #3b82f6) !important;
+          cursor: grab !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+          transition: transform 0.2s var(--tb-ease-bounce) !important;
         }
-
-        /* Half-circle arc above pokemon */
+        .pgo-cp-slider::-webkit-slider-thumb:hover { transform: scale(1.2) !important; }
+        .pgo-cp-slider::-webkit-slider-thumb:active { cursor: grabbing !important; transform: scale(1.25) !important; }
+        .pgo-cp-slider::-moz-range-thumb {
+          width: 24px !important; height: 24px !important;
+          border-radius: 50% !important;
+          background: white !important;
+          border: 3px solid var(--league-color, #3b82f6) !important;
+          cursor: grab !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        }
+        .pgo-cp-slider-info {
+          display: flex !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          margin-top: 10px !important;
+          gap: 8px !important;
+        }
+        .pgo-cp-slider-min,
+        .pgo-cp-slider-max {
+          font-size: 10px !important; font-weight: 800 !important;
+          color: rgba(255,255,255,0.85) !important;
+          letter-spacing: 0.08em !important;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+        }
+        .pgo-cp-league-pill {
+          font-size: 11px !important; font-weight: 900 !important;
+          color: white !important;
+          padding: 5px 14px !important;
+          border-radius: 999px !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+          letter-spacing: 0.05em !important;
+          white-space: nowrap !important;
+          backdrop-filter: blur(8px) !important;
+        }
+        
+        /* Arc decoration */
         .pgo-arc {
-          width: 80%;
-          margin: 0 auto -28px;
-          display: block;
-          position: relative;
-          z-index: 1;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+          width: 80% !important;
+          margin: 0 auto -32px !important;
+          display: block !important;
+          position: relative !important; z-index: 1 !important;
+          filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2)) !important;
         }
-
+        
         /* Pokemon image floating */
         .pgo-card .go-card-img {
           background: transparent !important;
-          border: none !important;
-          padding: 0 !important;
-          max-width: 65% !important;
+          border: none !important; padding: 0 !important;
+          max-width: 68% !important;
           margin: 0 auto !important;
-          filter: drop-shadow(0 10px 18px rgba(0,0,0,0.3)) !important;
-          animation: pgo-img-bob 4s ease-in-out infinite !important;
+          filter: drop-shadow(0 12px 24px rgba(0,0,0,0.35)) !important;
+          animation: tb-img-bob 4s ease-in-out infinite !important;
           display: block !important;
           position: relative !important;
           z-index: 2 !important;
         }
-
-        /* Types row centered */
+        
+        /* Types row */
         .pgo-card .go-card-types {
+          display: flex !important;
           justify-content: center !important;
-          margin: 8px 0 0 !important;
-          gap: 6px !important;
+          margin: 10px 0 0 !important;
+          gap: 8px !important;
           position: relative !important;
           z-index: 3 !important;
         }
         .pgo-card .type-tag-mini {
-          padding: 4px 12px !important;
-          font-size: 10.5px !important;
-          font-weight: 800 !important;
-          letter-spacing: 0.05em !important;
-          box-shadow: 0 3px 8px rgba(0,0,0,0.25) !important;
+          padding: 5px 14px !important;
+          font-size: 11px !important;
+          font-weight: 900 !important;
+          letter-spacing: 0.08em !important;
+          text-transform: uppercase !important;
+          color: white !important;
+          border-radius: 999px !important;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.3) !important;
           border: 1.5px solid rgba(255,255,255,0.4) !important;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.2) !important;
         }
-
-        /* Info panel (bottom white card with rounded top) */
+        
+        /* Info panel */
         .pgo-info-panel {
-          background: white;
-          margin-top: -20px;
-          border-radius: 22px 22px 0 0;
-          padding: 16px 14px 14px;
-          position: relative;
-          z-index: 4;
-          box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+          background: white !important;
+          margin-top: -24px !important;
+          border-radius: var(--tb-radius-lg) var(--tb-radius-lg) 0 0 !important;
+          padding: 20px 18px 18px !important;
+          position: relative !important;
+          z-index: 4 !important;
+          box-shadow: 0 -6px 20px rgba(0,0,0,0.08) !important;
         }
         :root[data-theme="dark"] .pgo-info-panel,
-        [data-theme="dark"] .pgo-info-panel {
-          background: #1f2937;
-        }
-
-        /* Name row */
+        [data-theme="dark"] .pgo-info-panel { background: #1f2937 !important; }
+        
         .pgo-name-row {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          margin-bottom: 10px;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 8px !important;
+          margin-bottom: 4px !important;
         }
         .pgo-card .go-card-name {
-          font-size: 22px !important;
-          font-weight: 800 !important;
-          color: #374151 !important;
+          font-size: 24px !important;
+          font-weight: 900 !important;
+          color: #1e293b !important;
           text-align: center !important;
           margin: 0 !important;
-          letter-spacing: -0.01em !important;
+          letter-spacing: -0.02em !important;
         }
         :root[data-theme="dark"] .pgo-card .go-card-name,
-        [data-theme="dark"] .pgo-card .go-card-name {
-          color: #f3f4f6 !important;
-        }
-        .pgo-edit-pencil {
-          font-size: 13px;
-          opacity: 0.55;
-          cursor: pointer;
-          transition: opacity 0.2s, transform 0.2s;
-        }
-        .pgo-edit-pencil:hover { opacity: 1; transform: rotate(15deg); }
+        [data-theme="dark"] .pgo-card .go-card-name { color: #f1f5f9 !important; }
         .pgo-card .go-card-id {
-          font-size: 10.5px !important;
-          font-weight: 700 !important;
-          opacity: 0.55 !important;
-          letter-spacing: 0.1em !important;
-          text-align: center !important;
-          margin: 0 0 12px !important;
-        }
-
-        /* IV bars override to ORANGE Pokemon GO theme */
-        .pgo-card .iv-bar-segments .iv-bar-segment {
-          background: rgba(0,0,0,0.06) !important;
-        }
-        .pgo-card .iv-bar-segments .iv-bar-segment.filled {
-          background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%) !important;
-          box-shadow: 0 1px 2px rgba(234, 88, 12, 0.4) !important;
-        }
-        .pgo-card .iv-bar.best .iv-bar-segments .iv-bar-segment.filled {
-          background: linear-gradient(180deg, #facc15 0%, #d97706 100%) !important;
-          box-shadow: 0 1px 2px rgba(217, 119, 6, 0.4) !important;
-        }
-        .pgo-card .iv-bar.perfect .iv-bar-segments .iv-bar-segment.filled {
-          background: linear-gradient(180deg, #fde047 0%, #facc15 100%) !important;
-          box-shadow: 0 0 6px rgba(250, 204, 21, 0.6) !important;
-        }
-        .pgo-card .iv-bar-num {
-          color: #ea580c !important;
-          font-weight: 800 !important;
-        }
-        :root[data-theme="dark"] .pgo-card .iv-bar-num,
-        [data-theme="dark"] .pgo-card .iv-bar-num {
-          color: #fb923c !important;
-        }
-        .pgo-card .iv-bar-label {
-          color: #6b7280 !important;
-          font-weight: 700 !important;
-        }
-        :root[data-theme="dark"] .pgo-card .iv-bar-label,
-        [data-theme="dark"] .pgo-card .iv-bar-label {
-          color: #d1d5db !important;
-        }
-
-        /* Appraise header (stars row + rating) */
-        .pgo-card .appraise-header {
-          background: linear-gradient(135deg, #fb923c, #ea580c) !important;
-          color: white !important;
-          border: none !important;
-          padding: 8px 12px !important;
-          border-radius: 12px !important;
-          margin-bottom: 10px !important;
-          box-shadow: 0 3px 10px rgba(234, 88, 12, 0.3) !important;
-        }
-        .pgo-card .appraise-stars-row,
-        .pgo-card .appraise-label,
-        .pgo-card .appraise-total {
-          color: white !important;
-        }
-
-        /* CP Input row — make it pill-shaped */
-        .pgo-card .cp-input-row {
-          background: linear-gradient(135deg, #fef9c3, #fef08a) !important;
-          border: 2px solid #facc15 !important;
-          border-radius: 999px !important;
-          padding: 4px 8px !important;
-          margin: 10px 0 !important;
-        }
-        :root[data-theme="dark"] .pgo-card .cp-input-row,
-        [data-theme="dark"] .pgo-card .cp-input-row {
-          background: linear-gradient(135deg, #422006, #713f12) !important;
-        }
-        .pgo-card .cp-input-label {
-          color: #ca8a04 !important;
-          font-weight: 800 !important;
-        }
-        .pgo-card .cp-input {
-          color: #1f2937 !important;
-          font-weight: 900 !important;
-        }
-
-        /* Customize Base Stats toggle */
-        .pgo-card .card-edit-toggle {
-          background: rgba(99, 102, 241, 0.08) !important;
-          border: 1px dashed rgba(99, 102, 241, 0.35) !important;
-          color: #4f46e5 !important;
-          border-radius: 12px !important;
-          padding: 8px 12px !important;
-          margin: 8px 0 !important;
-          font-weight: 700 !important;
-          font-size: 12px !important;
-        }
-        :root[data-theme="dark"] .pgo-card .card-edit-toggle,
-        [data-theme="dark"] .pgo-card .card-edit-toggle {
-          color: #a5b4fc !important;
-          background: rgba(99, 102, 241, 0.15) !important;
-        }
-
-        /* Details button (full width pill) */
-        .pgo-card .go-card-action {
-          width: 100% !important;
-          background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
-          color: white !important;
-          border: none !important;
-          border-radius: 999px !important;
-          padding: 10px 18px !important;
-          font-weight: 800 !important;
-          font-size: 13px !important;
-          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35) !important;
-          transition: all 0.2s !important;
-        }
-        .pgo-card .go-card-action:hover {
-          transform: translateY(-2px) !important;
-          box-shadow: 0 8px 22px rgba(99, 102, 241, 0.5) !important;
-        }
-
-        /* ═══════════════════════════════════════════════════════════ */
-        /* CP Slider (in stage, replaces CP number input)              */
-        /* ═══════════════════════════════════════════════════════════ */
-        .pgo-cp-slider-wrap {
-          position: relative;
-          z-index: 3;
-          padding: 0 8px;
-          margin: 0 0 14px;
-        }
-        .pgo-cp-slider {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 100%;
-          height: 8px;
-          border-radius: 999px;
-          outline: none;
-          cursor: pointer;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.15) inset;
-        }
-        .pgo-cp-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          background: white;
-          border: 3px solid var(--league-color, #3b82f6);
-          cursor: grab;
-          box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-          transition: transform 0.15s;
-        }
-        .pgo-cp-slider::-webkit-slider-thumb:hover {
-          transform: scale(1.15);
-        }
-        .pgo-cp-slider::-webkit-slider-thumb:active {
-          cursor: grabbing;
-          transform: scale(1.2);
-        }
-        .pgo-cp-slider::-moz-range-thumb {
-          width: 22px;
-          height: 22px;
-          border-radius: 50%;
-          background: white;
-          border: 3px solid var(--league-color, #3b82f6);
-          cursor: grab;
-          box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-          transition: transform 0.15s;
-        }
-        .pgo-cp-slider::-moz-range-thumb:hover {
-          transform: scale(1.15);
-        }
-        .pgo-cp-slider-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 8px;
-          gap: 8px;
-        }
-        .pgo-cp-slider-min,
-        .pgo-cp-slider-max {
-          font-size: 10px;
-          font-weight: 700;
-          color: rgba(255,255,255,0.85);
-          letter-spacing: 0.05em;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-        }
-        .pgo-cp-league-pill {
-          font-size: 11px;
-          font-weight: 800;
-          color: white;
-          padding: 4px 12px;
-          border-radius: 999px;
-          box-shadow: 0 3px 10px rgba(0,0,0,0.25);
-          letter-spacing: 0.02em;
-          white-space: nowrap;
-        }
-
-        /* ═══════════════════════════════════════════════════════════ */
-        /* IV Bars → Continuous Orange Bars (Pokemon GO image 2 style) */
-        /* ═══════════════════════════════════════════════════════════ */
-        /* Make all segments blend into one continuous bar */
-        .pgo-card .iv-bar-segments {
-          display: flex !important;
-          gap: 0 !important;
-          height: 12px !important;
-          background: rgba(0,0,0,0.08) !important;
-          border-radius: 999px !important;
-          overflow: hidden !important;
-          padding: 0 !important;
-          border: none !important;
-          position: relative !important;
-          width: 100% !important;
-        }
-        :root[data-theme="dark"] .pgo-card .iv-bar-segments,
-        [data-theme="dark"] .pgo-card .iv-bar-segments {
-          background: rgba(255,255,255,0.08) !important;
-        }
-        /* Individual segment cells - blend together (no gaps, no borders) */
-        .pgo-card .iv-bar-segments .iv-bar-segment {
-          flex: 1 !important;
-          background: transparent !important;
-          border-radius: 0 !important;
-          border: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          min-width: 0 !important;
-          height: 100% !important;
-          box-shadow: none !important;
-        }
-        /* Filled segments - solid orange gradient */
-        .pgo-card .iv-bar-segments .iv-bar-segment.filled {
-          background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%) !important;
-          border-radius: 0 !important;
-        }
-        /* Best stat - yellow-orange */
-        .pgo-card .iv-bar.best .iv-bar-segments .iv-bar-segment.filled {
-          background: linear-gradient(180deg, #facc15 0%, #d97706 100%) !important;
-        }
-        /* Perfect 15/15 - glowing yellow */
-        .pgo-card .iv-bar.perfect .iv-bar-segments .iv-bar-segment.filled {
-          background: linear-gradient(180deg, #fde047 0%, #facc15 100%) !important;
-          box-shadow: 0 0 8px rgba(250, 204, 21, 0.6) !important;
-        }
-
-        /* Hide /15 number, crown emoji, sparkle (Pokemon GO doesn't show these) */
-        .pgo-card .iv-bar-val,
-        .pgo-card .iv-bar-crown,
-        .pgo-card .iv-bar-sparkle {
-          display: none !important;
-        }
-
-        /* Bar label (ATK/DEF/HP) - keep label clean and clear */
-        .pgo-card .iv-bar-label {
           font-size: 11px !important;
           font-weight: 800 !important;
-          letter-spacing: 0.08em !important;
-          color: #6b7280 !important;
-          min-width: 36px !important;
-          padding: 0 !important;
+          opacity: 0.5 !important;
+          letter-spacing: 0.15em !important;
+          text-align: center !important;
+          margin: 0 0 14px !important;
         }
-        :root[data-theme="dark"] .pgo-card .iv-bar-label,
-        [data-theme="dark"] .pgo-card .iv-bar-label {
-          color: #d1d5db !important;
-        }
-
-        /* Make iv-bar row tighter */
-        .pgo-card .iv-bar {
-          display: flex !important;
-          align-items: center !important;
-          gap: 10px !important;
-          margin-bottom: 8px !important;
-          padding: 0 !important;
-          background: transparent !important;
-          border: none !important;
-        }
-        .pgo-card .iv-bar-control {
-          flex: 1 !important;
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           8. APPRAISE CARD (medal + stars + 3 IV bars)
+           ═══════════════════════════════════════════════════════════════════ */
+        .pgo-appraise-card {
           position: relative !important;
+          margin: 12px 0 0 !important;
+          padding: 16px !important;
+          border-radius: var(--tb-radius-md) !important;
+          background:
+            radial-gradient(circle at 0% 0%, rgba(251,191,36,0.18), transparent 50%),
+            linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,237,0.92)) !important;
+          border: 1px solid rgba(251, 146, 60, 0.25) !important;
+          box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.9) !important;
         }
-        /* Invisible slider on top for click+drag editing */
-        .pgo-card .iv-bar-slider {
-          position: absolute !important;
-          inset: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
-          opacity: 0 !important;
-          cursor: pointer !important;
-          margin: 0 !important;
-          z-index: 5 !important;
+        :root[data-theme="dark"] .pgo-appraise-card,
+        [data-theme="dark"] .pgo-appraise-card {
+          background:
+            radial-gradient(circle at 0% 0%, rgba(251,191,36,0.15), transparent 50%),
+            linear-gradient(180deg, rgba(31,41,55,0.98), rgba(42,31,24,0.95)) !important;
+          border-color: rgba(251, 146, 60, 0.22) !important;
         }
-
-
-        /* ═══════════════════════════════════════════════════════════ */
-        /* Pokémon GO Appraise Card — medal + 3 orange bars            */
-        /* ═══════════════════════════════════════════════════════════ */
-        .pgo-card .pgo-appraise-card {
-          position: relative !important;
-          background: #ffffff !important;
-          border-radius: 14px !important;
-          padding: 18px 18px 14px !important;
-          margin: 16px 0 12px !important;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.14) !important;
-          border: 1px solid rgba(251, 146, 60, 0.18) !important;
-          overflow: visible !important;
-        }
-        :root[data-theme="dark"] .pgo-card .pgo-appraise-card,
-        [data-theme="dark"] .pgo-card .pgo-appraise-card {
-          background: #111827 !important;
-          border-color: rgba(251, 146, 60, 0.25) !important;
-        }
-
-        .pgo-card .pgo-appraise-medal {
-          position: absolute !important;
-          top: -44px !important;
-          left: -26px !important;
-          width: 92px !important;
-          height: 92px !important;
-          border-radius: 50% !important;
-          background: radial-gradient(circle at 35% 30%, #fff7ed 0%, #fed7aa 45%, #fb923c 100%) !important;
-          border: 4px solid rgba(255,255,255,0.92) !important;
-          box-shadow: 0 8px 18px rgba(0,0,0,0.2) !important;
+        
+        .pgo-appraise-top {
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          z-index: 4 !important;
+          gap: 14px !important;
+          margin-bottom: 14px !important;
         }
-
-        .pgo-card .pgo-medal-inner {
-          position: relative !important;
-          width: 76px !important;
-          height: 76px !important;
+        
+        /* Medal */
+        .pgo-appraise-medal {
+          width: 56px !important; height: 56px !important;
           border-radius: 50% !important;
-          border: 2px dashed rgba(255,255,255,0.75) !important;
+          flex: 0 0 56px !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
+          background:
+            radial-gradient(circle at 30% 25%, #fff7ed 0%, #fed7aa 35%, #fb923c 100%) !important;
+          border: 3px solid rgba(255,255,255,0.85) !important;
+          box-shadow: 0 8px 20px rgba(234, 88, 12, 0.3), inset 0 -2px 6px rgba(124, 45, 18, 0.25) !important;
+          position: relative !important;
         }
-
-        .pgo-card .pgo-medal-ball {
-          position: absolute !important;
-          left: 50% !important;
-          width: 14px !important;
-          height: 14px !important;
-          border-radius: 50% !important;
-          transform: translateX(-50%) !important;
-          border: 2px solid rgba(255,255,255,0.72) !important;
+        .pgo-appraise-medal::after {
+          content: "";
+          position: absolute;
+          top: 6px; left: 12px;
+          width: 16px; height: 16px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.5);
+          filter: blur(4px);
         }
-        .pgo-card .pgo-medal-ball.top { top: 7px !important; }
-        .pgo-card .pgo-medal-ball.bottom { bottom: 7px !important; }
-
-        .pgo-card .pgo-medal-stars {
+        .pgo-medal-star {
+          font-size: 14px !important;
+          color: rgba(255,255,255,0.45) !important;
+          margin-left: -2px !important;
+          text-shadow: 0 1px 2px rgba(124,45,18,0.3) !important;
+        }
+        .pgo-medal-star:first-child { margin-left: 0 !important; }
+        .pgo-medal-star.filled { color: #fff7ed !important; }
+        
+        .pgo-appraise-summary { flex: 0 0 auto !important; min-width: 0 !important; }
+        .pgo-appraise-stars {
           display: flex !important;
-          gap: 2px !important;
-          transform: rotate(-8deg) !important;
-        }
-        .pgo-card .pgo-medal-star {
-          color: #d1d5db !important;
-          font-size: 22px !important;
-          text-shadow: 0 2px 0 rgba(255,255,255,0.85), 0 2px 4px rgba(0,0,0,0.12) !important;
-        }
-        .pgo-card .pgo-medal-star.filled {
-          color: #f97316 !important;
-        }
-
-        .pgo-card .pgo-appraise-summary {
-          min-height: 34px !important;
-          margin-left: 42px !important;
-          margin-bottom: 12px !important;
-          display: flex !important;
-          align-items: center !important;
-          gap: 8px !important;
-          flex-wrap: wrap !important;
-        }
-        .pgo-card .pgo-appraise-summary-stars {
-          display: inline-flex !important;
-          gap: 1px !important;
-        }
-        .pgo-card .pgo-summary-star {
-          color: #d1d5db !important;
-          font-size: 17px !important;
+          justify-content: center !important;
+          gap: 3px !important;
           line-height: 1 !important;
         }
-        .pgo-card .pgo-summary-star.filled {
-          color: #fb923c !important;
+        .pgo-star {
+          font-size: 28px !important;
+          color: #d1d5db !important;
+          text-shadow: 0 1px 0 rgba(255,255,255,0.6) !important;
+          transition: all 0.2s var(--tb-ease) !important;
         }
-        .pgo-card .pgo-appraise-summary-text {
-          color: #fb923c !important;
-          font-size: 15px !important;
-          font-weight: 900 !important;
+        .pgo-star.filled {
+          color: #f59e0b !important;
+          filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6)) !important;
         }
-        .pgo-card .pgo-appraise-summary-percent {
-          color: #9ca3af !important;
-          font-size: 11px !important;
-          font-weight: 800 !important;
-        }
-
-        .pgo-card .pgo-appraise-bars {
-          display: flex !important;
-          flex-direction: column !important;
-          gap: 10px !important;
-        }
-        .pgo-card .pgo-appraise-row {
+        
+        /* IV Bars (3 rows) */
+        .pgo-appraise-bars { display: grid !important; gap: 10px !important; margin-top: 4px !important; }
+        .pgo-iv-row {
           position: relative !important;
           display: grid !important;
-          grid-template-columns: 78px 1fr !important;
+          grid-template-columns: 42px 1fr !important;
           align-items: center !important;
-          gap: 10px !important;
+          gap: 12px !important;
         }
-        .pgo-card .pgo-appraise-label {
-          color: #fb923c !important;
-          font-size: 15px !important;
+        .pgo-iv-label {
+          font-size: 12px !important;
           font-weight: 900 !important;
-          line-height: 1 !important;
+          color: #ea580c !important;
+          letter-spacing: 0.12em !important;
         }
-
-        .pgo-card .pgo-appraise-bar-wrap {
+        :root[data-theme="dark"] .pgo-iv-label,
+        [data-theme="dark"] .pgo-iv-label { color: #fdba74 !important; }
+        
+        .pgo-iv-bar-wrap { position: relative !important; height: 16px !important; }
+        .pgo-iv-track {
           position: relative !important;
-          height: 19px !important;
-        }
-        .pgo-card .pgo-appraise-bar-bg {
-          position: relative !important;
-          height: 19px !important;
-          background: #dedede !important;
-          border-radius: 5px !important;
+          height: 16px !important;
           overflow: hidden !important;
-          box-shadow: inset 0 1px 2px rgba(0,0,0,0.08) !important;
+          border-radius: 8px !important;
+          background: rgba(15, 23, 42, 0.08) !important;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.12) !important;
         }
-        :root[data-theme="dark"] .pgo-card .pgo-appraise-bar-bg,
-        [data-theme="dark"] .pgo-card .pgo-appraise-bar-bg {
-          background: rgba(255,255,255,0.13) !important;
+        :root[data-theme="dark"] .pgo-iv-track,
+        [data-theme="dark"] .pgo-iv-track { background: rgba(255,255,255,0.10) !important; }
+        .pgo-iv-fill {
+          height: 100% !important;
+          background:
+            linear-gradient(90deg, rgba(255,255,255,0.25) 0%, transparent 50%),
+            linear-gradient(180deg, #fbbf24 0%, #fb923c 50%, #ea580c 100%) !important;
+          border-radius: 8px !important;
+          transition: width 0.4s var(--tb-ease) !important;
+          box-shadow: 0 0 8px rgba(251, 146, 60, 0.45) !important;
         }
-        .pgo-card .pgo-appraise-bar-fill {
+        .pgo-iv-cut {
           position: absolute !important;
-          left: 0 !important;
-          top: 0 !important;
-          bottom: 0 !important;
-          background: linear-gradient(180deg, #ffb45f 0%, #fb923c 52%, #f97316 100%) !important;
-          border-radius: 5px 0 0 5px !important;
-          transition: width 0.22s ease !important;
+          top: 0 !important; bottom: 0 !important;
+          width: 2px !important;
+          background: rgba(255,255,255,0.85) !important;
+          z-index: 2 !important;
         }
-        .pgo-card .pgo-appraise-divider {
-          position: absolute !important;
-          top: 0 !important;
-          bottom: 0 !important;
-          width: 3px !important;
-          background: rgba(255,255,255,0.96) !important;
-          z-index: 3 !important;
-        }
-        .pgo-card .pgo-appraise-divider.d1 { left: 33.333% !important; }
-        .pgo-card .pgo-appraise-divider.d2 { left: 66.666% !important; }
-
-        .pgo-card .pgo-appraise-slider {
+        .pgo-iv-cut.c1 { left: 33.333% !important; }
+        .pgo-iv-cut.c2 { left: 66.666% !important; }
+        .pgo-iv-slider {
           position: absolute !important;
           inset: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
+          width: 100% !important; height: 100% !important;
           opacity: 0 !important;
           cursor: pointer !important;
-          z-index: 8 !important;
+          z-index: 10 !important;
           margin: 0 !important;
         }
-
-        .pgo-card .pgo-appraise-presets {
-          display: flex !important;
-          gap: 6px !important;
-          margin-top: 13px !important;
-          flex-wrap: wrap !important;
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           9. TEAM ANALYSIS (weaknesses/resists bento)
+           ═══════════════════════════════════════════════════════════════════ */
+        .go-analysis {
+          display: grid !important;
+          grid-template-columns: 1fr 1fr !important;
+          gap: 16px !important;
+          margin-top: 24px !important;
         }
-        .pgo-card .pgo-appraise-preset {
-          border: none !important;
-          border-radius: 999px !important;
-          background: #fff7ed !important;
-          color: #c2410c !important;
-          font-size: 11px !important;
+        @media (max-width: 700px) { .go-analysis { grid-template-columns: 1fr !important; } }
+        .go-analysis-block {
+          padding: 20px !important;
+          border-radius: var(--tb-radius-md) !important;
+          background: rgba(255,255,255,0.85) !important;
+          backdrop-filter: blur(14px) !important;
+          border: 1px solid rgba(255,255,255,0.6) !important;
+          box-shadow: var(--tb-shadow-sm) !important;
+        }
+        :root[data-theme="dark"] .go-analysis-block,
+        [data-theme="dark"] .go-analysis-block {
+          background: rgba(30,41,59,0.7) !important;
+          border-color: rgba(148,163,184,0.2) !important;
+        }
+        .go-analysis-title {
           font-weight: 900 !important;
-          padding: 6px 10px !important;
-          cursor: pointer !important;
-          transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+          font-size: 14px !important;
+          color: #1e293b !important;
+          margin-bottom: 12px !important;
+          letter-spacing: -0.01em !important;
         }
-        .pgo-card .pgo-appraise-preset:hover {
-          transform: translateY(-1px) !important;
-          box-shadow: 0 4px 10px rgba(249, 115, 22, 0.22) !important;
+        :root[data-theme="dark"] .go-analysis-title,
+        [data-theme="dark"] .go-analysis-title { color: #f1f5f9 !important; }
+        .go-analysis-types {
+          display: flex !important;
+          flex-wrap: wrap !important;
+          gap: 6px !important;
         }
-        .pgo-card .pgo-appraise-preset.hundo {
-          background: linear-gradient(135deg, #facc15, #fb923c) !important;
+        .go-analysis-pill {
+          padding: 5px 12px !important;
+          border-radius: 999px !important;
           color: white !important;
+          font-weight: 800 !important;
+          font-size: 11px !important;
+          letter-spacing: 0.05em !important;
+          text-transform: uppercase !important;
+          box-shadow: 0 3px 8px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.25) !important;
         }
-        :root[data-theme="dark"] .pgo-card .pgo-appraise-preset,
-        [data-theme="dark"] .pgo-card .pgo-appraise-preset {
-          background: rgba(251,146,60,0.16) !important;
-          color: #fdba74 !important;
+        .go-analysis-good {
+          color: #16a34a !important;
+          font-weight: 800 !important;
+          font-size: 13px !important;
+        }
+        :root[data-theme="dark"] .go-analysis-good,
+        [data-theme="dark"] .go-analysis-good { color: #4ade80 !important; }
+        
+        /* ═══════════════════════════════════════════════════════════════════
+           10. NORMAL MODE CARD (basic style if used)
+           ═══════════════════════════════════════════════════════════════════ */
+        .go-card-normal {
+          background: white !important;
+          border: 3px solid !important;
+          border-radius: var(--tb-radius-md) !important;
+          padding: 18px !important;
+          box-shadow: var(--tb-shadow-sm) !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          gap: 8px !important;
+          position: relative !important;
+          transition: all 0.3s var(--tb-ease) !important;
+        }
+        .go-card-normal:hover {
+          transform: translateY(-4px) !important;
+          box-shadow: var(--tb-shadow-md) !important;
+        }
+        :root[data-theme="dark"] .go-card-normal,
+        [data-theme="dark"] .go-card-normal { background: #1f2937 !important; }
+        .go-card-normal .go-card-img { max-width: 70% !important; }
+        .go-card-normal .go-card-name { font-weight: 900 !important; font-size: 18px !important; color: #1e293b !important; }
+        :root[data-theme="dark"] .go-card-normal .go-card-name,
+        [data-theme="dark"] .go-card-normal .go-card-name { color: #f1f5f9 !important; }
+        
+        /* Reduce-motion respect */
+        @media (prefers-reduced-motion: reduce) {
+          .pgo-stage::before,
+          .pgo-stage::after,
+          .pgo-card .go-card-img,
+          .empty-icon,
+          .team-page .team-hero::before,
+          .go-team-hundo-banner { animation: none !important; }
         }
       `}</style>
       <div className="team-hero">
@@ -1293,12 +1507,12 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         <h1>⚔️ {lang==="th"?"สร้างทีมโปเกม่อน":lang==="ja"?"チーム作成":"Build Your Team"}</h1>
         <p>
           {mode === "go"
-            ? (lang==="th" ? "Pokémon GO Mode · กำหนด CP/IV · ระบบ Appraise · ปรับ Stats ได้"
-              : lang==="ja" ? "Pokémon GO モード · CP/IV · 評価機能 · ステータス編集"
-              : "Pokémon GO Mode · CP/IV · Appraise · Custom Stats")
-            : (lang==="th" ? "Normal Mode · Stats พื้นฐาน · ปรับ Stats ได้"
-              : lang==="ja" ? "通常モード · 基本ステータス · 編集可"
-              : "Normal Mode · Base Stats · Editable Stats")}
+            ? (lang==="th" ? "Pokémon GO Mode · กำหนด CP/IV · ระบบ Appraise"
+              : lang==="ja" ? "Pokémon GO モード · CP/IV · 評価機能"
+              : "Pokémon GO Mode · CP/IV · Appraise")
+            : (lang==="th" ? "Normal Mode · Stats พื้นฐาน"
+              : lang==="ja" ? "通常モード · 基本ステータス"
+              : "Normal Mode · Base Stats")}
         </p>
       </div>
 
@@ -1339,23 +1553,33 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
 
       {/* CP OVERVIEW — GO MODE ONLY */}
       {mode === "go" && team.length > 0 && teamCPOverview && (
-        <div className="go-team-overview">
-          <div className="go-overview-item">
-            <span className="go-overview-label">{lang==="th"?"ทีม":"Team"}</span>
-            <span className="go-overview-val">{team.length}/{maxTeamSize}</span>
+        <div className="go-team-overview go-team-overview-modern">
+          <div className="go-overview-item team-count">
+            <span className="go-overview-icon">👥</span>
+            <span className="go-overview-copy">
+              <span className="go-overview-label">{lang==="th"?"ทีม":"Team"}</span>
+              <span className="go-overview-val">{team.length}/{maxTeamSize}</span>
+            </span>
           </div>
-          <div className="go-overview-item">
-            <span className="go-overview-label">Total CP</span>
-            <span className="go-overview-val">{teamCPOverview.total.toLocaleString()}</span>
+          <div className="go-overview-item total-cp">
+            <span className="go-overview-icon">⚡</span>
+            <span className="go-overview-copy">
+              <span className="go-overview-label">Total CP</span>
+              <span className="go-overview-val">{teamCPOverview.total.toLocaleString()}</span>
+            </span>
           </div>
-          <div className="go-overview-item">
-            <span className="go-overview-label">Avg CP</span>
-            <span className="go-overview-val">{teamCPOverview.avg.toLocaleString()}</span>
+          <div className="go-overview-item avg-cp">
+            <span className="go-overview-icon">📈</span>
+            <span className="go-overview-copy">
+              <span className="go-overview-label">Avg CP</span>
+              <span className="go-overview-val">{teamCPOverview.avg.toLocaleString()}</span>
+            </span>
           </div>
-          <div className="go-overview-item go-league" style={{ borderColor: teamCPOverview.league.color }}>
-            <span className="go-overview-label">League</span>
-            <span className="go-overview-val" style={{ color: teamCPOverview.league.color }}>
-              {teamCPOverview.league.icon} {teamCPOverview.league.name}
+          <div className="go-overview-item league" style={{ "--league-color": teamCPOverview.league.color }}>
+            <span className="go-overview-icon">{teamCPOverview.league.icon}</span>
+            <span className="go-overview-copy">
+              <span className="go-overview-label">League</span>
+              <span className="go-overview-val">{teamCPOverview.league.name}</span>
             </span>
           </div>
         </div>
@@ -1380,11 +1604,9 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         <>
           {/* TEAM GRID */}
           <div className={`go-team-grid${mode === "go" ? " mode-go" : " mode-normal"}`}>
-            {team.map((p, i) => {
+            {team.slice(0, maxTeamSize).map((p, i) => {
               const color = typeColor(p.types[0]?.type.name);
               const name = getLocalName(p.id, lang, thaiArr, jpArr) ?? p.name;
-              const customStats = getCustomStats(p);
-              const isExpanded = expandedCardId === p.id;
 
               if (mode === "go") {
                 const data = getGoData(p.id);
@@ -1463,8 +1685,6 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                     <div className="pgo-info-panel">
                       <div className="pgo-name-row">
                         <div className="go-card-name">{name}</div>
-                        <span className="pgo-edit-pencil" title="Edit"
-                          onClick={() => setExpandedCardId(isExpanded ? null : p.id)}>✏️</span>
                       </div>
                       <div className="go-card-id">#{padId(p.id)}</div>
 
@@ -1473,26 +1693,6 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                         ivAtk={data.ivAtk} ivDef={data.ivDef} ivHp={data.ivHp}
                         onChange={(updates) => updateData(p.id, updates)}
                         lang={lang} />
-
-                      {/* Customize Stats toggle */}
-                      <button className="card-edit-toggle"
-                        onClick={() => setExpandedCardId(isExpanded ? null : p.id)}>
-                        {isExpanded ? "▴ " : "▾ "}
-                        ⚙️ {lang==="th"?"ปรับ Stats พื้นฐาน":"Customize Base Stats"}
-                        {isCustomized(p.id) && <span className="card-edit-badge">●</span>}
-                      </button>
-
-                      {isExpanded && (
-                        <CustomStatsEditor
-                          pokemon={p} stats={customStats}
-                          onChange={(name, val) => updateStat(p, name, val)}
-                          onReset={() => resetStats(p.id)}
-                          isCustom={isCustomized(p.id)} lang={lang} />
-                      )}
-
-                      <button className="go-card-action" onClick={() => setSelectedMember(p)}>
-                        📊 {lang==="th"?"รายละเอียด":"Details"}
-                      </button>
                     </div>
                   </div>
                 );
@@ -1516,17 +1716,6 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                       </span>
                     ))}
                   </div>
-
-                  {/* Editable Stats (always shown in normal mode) */}
-                  <CustomStatsEditor
-                    pokemon={p} stats={customStats}
-                    onChange={(name, val) => updateStat(p, name, val)}
-                    onReset={() => resetStats(p.id)}
-                    isCustom={isCustomized(p.id)} lang={lang} />
-
-                  <button className="go-card-action" onClick={() => setSelectedMember(p)}>
-                    📊 {lang==="th"?"รายละเอียด":"Details"}
-                  </button>
                 </div>
               );
             })}
@@ -1549,7 +1738,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                 <div className="go-analysis-title">⚠️ {lang==="th"?"จุดอ่อนร่วม":"Shared Weaknesses"}</div>
                 <div className="go-analysis-types">
                   {Object.entries(teamAnalysis.weak)
-                    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6)
+                    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, maxTeamSize)
                     .map(([type, count]) => (
                       <span key={type} className="go-analysis-pill"
                         style={{ background: typeColor(type) }}>
@@ -1565,7 +1754,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                 <div className="go-analysis-title">🛡️ {lang==="th"?"ต้านธาตุ":"Team Resists"}</div>
                 <div className="go-analysis-types">
                   {Object.entries(teamAnalysis.resist)
-                    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 6)
+                    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, maxTeamSize)
                     .map(([type, count]) => (
                       <span key={type} className="go-analysis-pill"
                         style={{ background: typeColor(type) }}>
@@ -1585,42 +1774,6 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
           onPick={addToTeam} onClose={() => { setPicking(false); setPickingSlot(null); }}
           excludeIds={pickingSlot === null ? team.map(p => p.id) : []}
           title={lang==="th"?"เลือก Pokémon":"Select Pokémon"} />
-      )}
-
-      {selectedMember && (
-        <div className="modal-overlay" onClick={() => setSelectedMember(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
-            <button className="modal-close" onClick={() => setSelectedMember(null)}>✕</button>
-            <div className="modal-body">
-              {(() => {
-                const p = selectedMember;
-                const name = getLocalName(p.id, lang, thaiArr, jpArr) ?? p.name;
-                return (
-                  <>
-                    <h2 style={{ fontFamily:"var(--font-display)", color:"var(--blue-deep)", marginTop:0 }}>{name}</h2>
-                    <div style={{ textAlign: "center" }}>
-                      <img src={getArt(p)} alt={name} style={{ width: 180, height: 180 }} />
-                    </div>
-                    <div className="go-card-types" style={{ justifyContent: "center", marginBottom: 14 }}>
-                      {p.types.map(t => (
-                        <span key={t.type.name} className="modal-type-tag"
-                          style={{ background: typeColor(t.type.name) }}>{typeName(t.type.name)}</span>
-                      ))}
-                    </div>
-                    <div className="go-detail-stats">
-                      {p.stats.map(st => (
-                        <div key={st.stat.name} className="go-detail-stat">
-                          <span>{statLabel(st.stat.name, lang)}</span>
-                          <strong>{st.base_stat}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
       )}
     </main>
   );
