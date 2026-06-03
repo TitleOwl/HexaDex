@@ -404,6 +404,15 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
 
   const getData = useCallback((id) => teamData[id] ?? {}, [teamData]);
 
+  // ─── Team size limit (GO mode = 3, Normal mode = 6) ──────────────────
+  const maxTeamSize = mode === "go" ? 3 : 6;
+  useEffect(() => {
+    // Trim team if switching to a mode with smaller limit (e.g. normal→go)
+    if (team.length > maxTeamSize) {
+      setTeam(team.slice(0, maxTeamSize));
+    }
+  }, [mode, maxTeamSize]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const getGoData = useCallback((id) => {
     const d = teamData[id] ?? {};
     return {
@@ -544,7 +553,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         const fetched = (await Promise.all(picks.map(c => fetchById(c.id)))).filter(Boolean);
         const selected = fetched[0] ? [fetched[0]] : [];
         const usedTypes = new Set(fetched[0]?.types.map(t => t.type.name) ?? []);
-        while (selected.length < 6 && fetched.length > selected.length) {
+        while (selected.length < maxTeamSize && fetched.length > selected.length) {
           let best = null, bestScore = -Infinity;
           for (const cand of fetched) {
             if (selected.includes(cand)) continue;
@@ -611,6 +620,472 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
           font-size: 12px !important; color: rgba(187, 247, 208, 0.85) !important;
           font-weight: 600 !important; margin: 0 !important;
         }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* Pokemon GO Style Card (.pgo-card) — Image 1 inspiration      */
+        /* ═══════════════════════════════════════════════════════════ */
+        @keyframes pgo-leaf-fall-1 {
+          0%   { transform: translate(0, -10px) rotate(0deg); opacity: 0; }
+          10%  { opacity: 0.5; }
+          50%  { transform: translate(-12px, 50px) rotate(180deg); opacity: 0.7; }
+          90%  { opacity: 0.4; }
+          100% { transform: translate(0, 110px) rotate(360deg); opacity: 0; }
+        }
+        @keyframes pgo-leaf-fall-2 {
+          0%   { transform: translate(0, -10px) rotate(0deg); opacity: 0; }
+          10%  { opacity: 0.4; }
+          50%  { transform: translate(15px, 60px) rotate(-180deg); opacity: 0.6; }
+          90%  { opacity: 0.3; }
+          100% { transform: translate(5px, 130px) rotate(-360deg); opacity: 0; }
+        }
+        @keyframes pgo-img-bob {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-6px); }
+        }
+
+        .pgo-card {
+          position: relative !important;
+          border: none !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          border-radius: 22px !important;
+          box-shadow: 0 14px 36px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        /* Stage (top half) - gradient based on type */
+        .pgo-stage {
+          position: relative;
+          padding: 18px 14px 56px;
+          min-height: 280px;
+          overflow: hidden;
+          /* gradient set inline via style={{}} for type tint */
+        }
+        .pgo-stage::before,
+        .pgo-stage::after {
+          content: "🍃";
+          position: absolute;
+          font-size: 22px;
+          pointer-events: none;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+        .pgo-stage::before {
+          top: 60px; right: 12px;
+          animation: pgo-leaf-fall-1 7s ease-in-out infinite;
+        }
+        .pgo-stage::after {
+          content: "🍂";
+          top: 100px; left: 18px;
+          animation: pgo-leaf-fall-2 9s ease-in-out 1.5s infinite;
+        }
+
+        /* Remove/Swap buttons in stage */
+        .pgo-card .go-card-remove,
+        .pgo-card .go-card-swap {
+          z-index: 5 !important;
+          background: rgba(255,255,255,0.85) !important;
+          backdrop-filter: blur(6px) !important;
+          border: none !important;
+          color: #1f2937 !important;
+          font-weight: 800 !important;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+        }
+        .pgo-card .go-card-remove {
+          background: rgba(239, 68, 68, 0.9) !important;
+          color: white !important;
+        }
+
+        /* CP big text at top */
+        .pgo-cp-top {
+          text-align: center;
+          color: white;
+          margin: 4px 0 14px;
+          text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          letter-spacing: 0.05em;
+          position: relative;
+          z-index: 2;
+        }
+        .pgo-cp-top-label {
+          font-size: 13px;
+          font-weight: 700;
+          opacity: 0.95;
+          letter-spacing: 0.18em;
+        }
+        .pgo-cp-top-value {
+          font-size: 32px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          line-height: 1;
+          margin-left: 6px;
+        }
+
+        /* Half-circle arc above pokemon */
+        .pgo-arc {
+          width: 80%;
+          margin: 0 auto -28px;
+          display: block;
+          position: relative;
+          z-index: 1;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+        }
+
+        /* Pokemon image floating */
+        .pgo-card .go-card-img {
+          background: transparent !important;
+          border: none !important;
+          padding: 0 !important;
+          max-width: 65% !important;
+          margin: 0 auto !important;
+          filter: drop-shadow(0 10px 18px rgba(0,0,0,0.3)) !important;
+          animation: pgo-img-bob 4s ease-in-out infinite !important;
+          display: block !important;
+          position: relative !important;
+          z-index: 2 !important;
+        }
+
+        /* Types row centered */
+        .pgo-card .go-card-types {
+          justify-content: center !important;
+          margin: 8px 0 0 !important;
+          gap: 6px !important;
+          position: relative !important;
+          z-index: 3 !important;
+        }
+        .pgo-card .type-tag-mini {
+          padding: 4px 12px !important;
+          font-size: 10.5px !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.05em !important;
+          box-shadow: 0 3px 8px rgba(0,0,0,0.25) !important;
+          border: 1.5px solid rgba(255,255,255,0.4) !important;
+        }
+
+        /* Info panel (bottom white card with rounded top) */
+        .pgo-info-panel {
+          background: white;
+          margin-top: -20px;
+          border-radius: 22px 22px 0 0;
+          padding: 16px 14px 14px;
+          position: relative;
+          z-index: 4;
+          box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+        }
+        :root[data-theme="dark"] .pgo-info-panel,
+        [data-theme="dark"] .pgo-info-panel {
+          background: #1f2937;
+        }
+
+        /* Name row */
+        .pgo-name-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+        .pgo-card .go-card-name {
+          font-size: 22px !important;
+          font-weight: 800 !important;
+          color: #374151 !important;
+          text-align: center !important;
+          margin: 0 !important;
+          letter-spacing: -0.01em !important;
+        }
+        :root[data-theme="dark"] .pgo-card .go-card-name,
+        [data-theme="dark"] .pgo-card .go-card-name {
+          color: #f3f4f6 !important;
+        }
+        .pgo-edit-pencil {
+          font-size: 13px;
+          opacity: 0.55;
+          cursor: pointer;
+          transition: opacity 0.2s, transform 0.2s;
+        }
+        .pgo-edit-pencil:hover { opacity: 1; transform: rotate(15deg); }
+        .pgo-card .go-card-id {
+          font-size: 10.5px !important;
+          font-weight: 700 !important;
+          opacity: 0.55 !important;
+          letter-spacing: 0.1em !important;
+          text-align: center !important;
+          margin: 0 0 12px !important;
+        }
+
+        /* IV bars override to ORANGE Pokemon GO theme */
+        .pgo-card .iv-bar-segments .iv-bar-segment {
+          background: rgba(0,0,0,0.06) !important;
+        }
+        .pgo-card .iv-bar-segments .iv-bar-segment.filled {
+          background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%) !important;
+          box-shadow: 0 1px 2px rgba(234, 88, 12, 0.4) !important;
+        }
+        .pgo-card .iv-bar.best .iv-bar-segments .iv-bar-segment.filled {
+          background: linear-gradient(180deg, #facc15 0%, #d97706 100%) !important;
+          box-shadow: 0 1px 2px rgba(217, 119, 6, 0.4) !important;
+        }
+        .pgo-card .iv-bar.perfect .iv-bar-segments .iv-bar-segment.filled {
+          background: linear-gradient(180deg, #fde047 0%, #facc15 100%) !important;
+          box-shadow: 0 0 6px rgba(250, 204, 21, 0.6) !important;
+        }
+        .pgo-card .iv-bar-num {
+          color: #ea580c !important;
+          font-weight: 800 !important;
+        }
+        :root[data-theme="dark"] .pgo-card .iv-bar-num,
+        [data-theme="dark"] .pgo-card .iv-bar-num {
+          color: #fb923c !important;
+        }
+        .pgo-card .iv-bar-label {
+          color: #6b7280 !important;
+          font-weight: 700 !important;
+        }
+        :root[data-theme="dark"] .pgo-card .iv-bar-label,
+        [data-theme="dark"] .pgo-card .iv-bar-label {
+          color: #d1d5db !important;
+        }
+
+        /* Appraise header (stars row + rating) */
+        .pgo-card .appraise-header {
+          background: linear-gradient(135deg, #fb923c, #ea580c) !important;
+          color: white !important;
+          border: none !important;
+          padding: 8px 12px !important;
+          border-radius: 12px !important;
+          margin-bottom: 10px !important;
+          box-shadow: 0 3px 10px rgba(234, 88, 12, 0.3) !important;
+        }
+        .pgo-card .appraise-stars-row,
+        .pgo-card .appraise-label,
+        .pgo-card .appraise-total {
+          color: white !important;
+        }
+
+        /* CP Input row — make it pill-shaped */
+        .pgo-card .cp-input-row {
+          background: linear-gradient(135deg, #fef9c3, #fef08a) !important;
+          border: 2px solid #facc15 !important;
+          border-radius: 999px !important;
+          padding: 4px 8px !important;
+          margin: 10px 0 !important;
+        }
+        :root[data-theme="dark"] .pgo-card .cp-input-row,
+        [data-theme="dark"] .pgo-card .cp-input-row {
+          background: linear-gradient(135deg, #422006, #713f12) !important;
+        }
+        .pgo-card .cp-input-label {
+          color: #ca8a04 !important;
+          font-weight: 800 !important;
+        }
+        .pgo-card .cp-input {
+          color: #1f2937 !important;
+          font-weight: 900 !important;
+        }
+
+        /* Customize Base Stats toggle */
+        .pgo-card .card-edit-toggle {
+          background: rgba(99, 102, 241, 0.08) !important;
+          border: 1px dashed rgba(99, 102, 241, 0.35) !important;
+          color: #4f46e5 !important;
+          border-radius: 12px !important;
+          padding: 8px 12px !important;
+          margin: 8px 0 !important;
+          font-weight: 700 !important;
+          font-size: 12px !important;
+        }
+        :root[data-theme="dark"] .pgo-card .card-edit-toggle,
+        [data-theme="dark"] .pgo-card .card-edit-toggle {
+          color: #a5b4fc !important;
+          background: rgba(99, 102, 241, 0.15) !important;
+        }
+
+        /* Details button (full width pill) */
+        .pgo-card .go-card-action {
+          width: 100% !important;
+          background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+          color: white !important;
+          border: none !important;
+          border-radius: 999px !important;
+          padding: 10px 18px !important;
+          font-weight: 800 !important;
+          font-size: 13px !important;
+          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35) !important;
+          transition: all 0.2s !important;
+        }
+        .pgo-card .go-card-action:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 8px 22px rgba(99, 102, 241, 0.5) !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* CP Slider (in stage, replaces CP number input)              */
+        /* ═══════════════════════════════════════════════════════════ */
+        .pgo-cp-slider-wrap {
+          position: relative;
+          z-index: 3;
+          padding: 0 8px;
+          margin: 0 0 14px;
+        }
+        .pgo-cp-slider {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 100%;
+          height: 8px;
+          border-radius: 999px;
+          outline: none;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15) inset;
+        }
+        .pgo-cp-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: white;
+          border: 3px solid var(--league-color, #3b82f6);
+          cursor: grab;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+          transition: transform 0.15s;
+        }
+        .pgo-cp-slider::-webkit-slider-thumb:hover {
+          transform: scale(1.15);
+        }
+        .pgo-cp-slider::-webkit-slider-thumb:active {
+          cursor: grabbing;
+          transform: scale(1.2);
+        }
+        .pgo-cp-slider::-moz-range-thumb {
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: white;
+          border: 3px solid var(--league-color, #3b82f6);
+          cursor: grab;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+          transition: transform 0.15s;
+        }
+        .pgo-cp-slider::-moz-range-thumb:hover {
+          transform: scale(1.15);
+        }
+        .pgo-cp-slider-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 8px;
+          gap: 8px;
+        }
+        .pgo-cp-slider-min,
+        .pgo-cp-slider-max {
+          font-size: 10px;
+          font-weight: 700;
+          color: rgba(255,255,255,0.85);
+          letter-spacing: 0.05em;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .pgo-cp-league-pill {
+          font-size: 11px;
+          font-weight: 800;
+          color: white;
+          padding: 4px 12px;
+          border-radius: 999px;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+          letter-spacing: 0.02em;
+          white-space: nowrap;
+        }
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* IV Bars → Continuous Orange Bars (Pokemon GO image 2 style) */
+        /* ═══════════════════════════════════════════════════════════ */
+        /* Make all segments blend into one continuous bar */
+        .pgo-card .iv-bar-segments {
+          display: flex !important;
+          gap: 0 !important;
+          height: 12px !important;
+          background: rgba(0,0,0,0.08) !important;
+          border-radius: 999px !important;
+          overflow: hidden !important;
+          padding: 0 !important;
+          border: none !important;
+          position: relative !important;
+          width: 100% !important;
+        }
+        :root[data-theme="dark"] .pgo-card .iv-bar-segments,
+        [data-theme="dark"] .pgo-card .iv-bar-segments {
+          background: rgba(255,255,255,0.08) !important;
+        }
+        /* Individual segment cells - blend together (no gaps, no borders) */
+        .pgo-card .iv-bar-segments .iv-bar-segment {
+          flex: 1 !important;
+          background: transparent !important;
+          border-radius: 0 !important;
+          border: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          min-width: 0 !important;
+          height: 100% !important;
+          box-shadow: none !important;
+        }
+        /* Filled segments - solid orange gradient */
+        .pgo-card .iv-bar-segments .iv-bar-segment.filled {
+          background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%) !important;
+          border-radius: 0 !important;
+        }
+        /* Best stat - yellow-orange */
+        .pgo-card .iv-bar.best .iv-bar-segments .iv-bar-segment.filled {
+          background: linear-gradient(180deg, #facc15 0%, #d97706 100%) !important;
+        }
+        /* Perfect 15/15 - glowing yellow */
+        .pgo-card .iv-bar.perfect .iv-bar-segments .iv-bar-segment.filled {
+          background: linear-gradient(180deg, #fde047 0%, #facc15 100%) !important;
+          box-shadow: 0 0 8px rgba(250, 204, 21, 0.6) !important;
+        }
+
+        /* Hide /15 number, crown emoji, sparkle (Pokemon GO doesn't show these) */
+        .pgo-card .iv-bar-val,
+        .pgo-card .iv-bar-crown,
+        .pgo-card .iv-bar-sparkle {
+          display: none !important;
+        }
+
+        /* Bar label (ATK/DEF/HP) - keep label clean and clear */
+        .pgo-card .iv-bar-label {
+          font-size: 11px !important;
+          font-weight: 800 !important;
+          letter-spacing: 0.08em !important;
+          color: #6b7280 !important;
+          min-width: 36px !important;
+          padding: 0 !important;
+        }
+        :root[data-theme="dark"] .pgo-card .iv-bar-label,
+        [data-theme="dark"] .pgo-card .iv-bar-label {
+          color: #d1d5db !important;
+        }
+
+        /* Make iv-bar row tighter */
+        .pgo-card .iv-bar {
+          display: flex !important;
+          align-items: center !important;
+          gap: 10px !important;
+          margin-bottom: 8px !important;
+          padding: 0 !important;
+          background: transparent !important;
+          border: none !important;
+        }
+        .pgo-card .iv-bar-control {
+          flex: 1 !important;
+          position: relative !important;
+        }
+        /* Invisible slider on top for click+drag editing */
+        .pgo-card .iv-bar-slider {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          opacity: 0 !important;
+          cursor: pointer !important;
+          margin: 0 !important;
+          z-index: 5 !important;
+        }
       `}</style>
       <div className="team-hero">
         <div style={{ position: "absolute", top: 16, right: 24, fontSize: 48, opacity: 0.18,
@@ -651,8 +1126,8 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
       <div className="tb-actions-bar">
         <button className="tb-action-btn primary"
           onClick={() => { setPicking(true); setPickingSlot(null); }}
-          disabled={team.length >= 6}>
-          ➕ {lang==="th"?"เพิ่ม Pokémon":"Add Pokémon"} ({team.length}/6)
+          disabled={team.length >= maxTeamSize}>
+          ➕ {lang==="th"?"เพิ่ม Pokémon":"Add Pokémon"} ({team.length}/{maxTeamSize})
         </button>
         <RandomMenu onGenerate={generateRandomTeam} generating={generating} lang={lang} />
         {team.length > 0 && (
@@ -667,7 +1142,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         <div className="go-team-overview">
           <div className="go-overview-item">
             <span className="go-overview-label">{lang==="th"?"ทีม":"Team"}</span>
-            <span className="go-overview-val">{team.length}/6</span>
+            <span className="go-overview-val">{team.length}/{maxTeamSize}</span>
           </div>
           <div className="go-overview-item">
             <span className="go-overview-label">Total CP</span>
@@ -715,63 +1190,110 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                 const data = getGoData(p.id);
                 const league = getLeague(data.cp);
 
+                // Pokemon GO style: gradient based on first type + green tint at top
+                const t1Color = typeColor(p.types[0]?.type.name);
+                const t2Color = typeColor(p.types[1]?.type.name || p.types[0]?.type.name);
+                const stageGradient =
+                  `linear-gradient(180deg, ${t1Color}f0 0%, ${t2Color}c8 55%, ${t1Color}88 100%)`;
+
                 return (
-                  <div key={p.id} className="go-card go-card-go" style={{ borderColor: color }}>
-                    <button className="go-card-remove" onClick={() => removeMember(p.id)}>✕</button>
-                    <button className="go-card-swap"
-                      onClick={() => { setPicking(true); setPickingSlot(i); }}>🔄</button>
+                  <div key={p.id} className="go-card go-card-go pgo-card">
+                    {/* ─── STAGE: gradient background + pokemon + CP + types ─── */}
+                    <div className="pgo-stage" style={{ background: stageGradient }}>
+                      <button className="go-card-remove" onClick={() => removeMember(p.id)}>✕</button>
+                      <button className="go-card-swap"
+                        onClick={() => { setPicking(true); setPickingSlot(i); }}>🔄</button>
 
-                    <img src={getArt(p)} alt={name} className="go-card-img" />
-                    <div className="go-card-name">{name}</div>
-                    <div className="go-card-id">#{padId(p.id)}</div>
-                    <div className="go-card-types">
-                      {p.types.map(t => (
-                        <span key={t.type.name} className="type-tag-mini"
-                          style={{ background: typeColor(t.type.name) }}>
-                          {typeName(t.type.name)}
-                        </span>
-                      ))}
+                      {/* CP big at top */}
+                      <div className="pgo-cp-top">
+                        <span className="pgo-cp-top-label">CP</span>
+                        <span className="pgo-cp-top-value">{data.cp}</span>
+                      </div>
+
+                      {/* CP slider — drag to change CP (10-4000) */}
+                      <div className="pgo-cp-slider-wrap">
+                        <input
+                          type="range"
+                          min="10"
+                          max="4000"
+                          step="10"
+                          value={data.cp}
+                          onChange={(e) => updateData(p.id, { cp: parseInt(e.target.value) })}
+                          className="pgo-cp-slider"
+                          style={{
+                            background: `linear-gradient(to right, ${league.color} 0%, ${league.color} ${(data.cp / 4000) * 100}%, rgba(255,255,255,0.25) ${(data.cp / 4000) * 100}%, rgba(255,255,255,0.25) 100%)`,
+                            "--league-color": league.color,
+                          }}
+                        />
+                        <div className="pgo-cp-slider-info">
+                          <span className="pgo-cp-slider-min">10</span>
+                          <span
+                            className="pgo-cp-league-pill"
+                            style={{
+                              background: `linear-gradient(135deg, ${league.color}, ${league.color}cc)`,
+                            }}
+                          >
+                            {league.icon} {league.name}
+                          </span>
+                          <span className="pgo-cp-slider-max">4000</span>
+                        </div>
+                      </div>
+
+                      {/* Decorative half-arc above pokemon */}
+                      <svg className="pgo-arc" viewBox="0 0 200 60" preserveAspectRatio="none">
+                        <path d="M 6 56 A 94 94 0 0 1 194 56"
+                          stroke="rgba(255,255,255,0.85)" strokeWidth="3"
+                          fill="none" strokeLinecap="round" />
+                        <circle cx="194" cy="56" r="4.5" fill="white" />
+                      </svg>
+
+                      <img src={getArt(p)} alt={name} className="go-card-img" />
+
+                      <div className="go-card-types">
+                        {p.types.map(t => (
+                          <span key={t.type.name} className="type-tag-mini"
+                            style={{ background: typeColor(t.type.name) }}>
+                            {typeName(t.type.name)}
+                          </span>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* ⚡ CP Input */}
-                    <div className="cp-input-row" style={{ borderColor: league.color }}>
-                      <label className="cp-input-label">⚡ CP</label>
-                      <input type="number" min="10" max="9999" value={data.cp}
-                        onChange={(e) => updateData(p.id, {
-                          cp: Math.max(10, Math.min(9999, parseInt(e.target.value) || 10))
-                        })}
-                        className="cp-input" />
-                      <span className="cp-league-badge"
-                        style={{ background: `linear-gradient(135deg, ${league.color}, ${league.color}cc)` }}>
-                        {league.icon} {league.name}
-                      </span>
+                    {/* ─── INFO PANEL: white rounded-top with all controls ─── */}
+                    <div className="pgo-info-panel">
+                      <div className="pgo-name-row">
+                        <div className="go-card-name">{name}</div>
+                        <span className="pgo-edit-pencil" title="Edit"
+                          onClick={() => setExpandedCardId(isExpanded ? null : p.id)}>✏️</span>
+                      </div>
+                      <div className="go-card-id">#{padId(p.id)}</div>
+
+                      {/* IV bars (Appraise) — now orange themed */}
+                      <AppraiseDisplay
+                        ivAtk={data.ivAtk} ivDef={data.ivDef} ivHp={data.ivHp}
+                        onChange={(updates) => updateData(p.id, updates)}
+                        lang={lang} />
+
+                      {/* Customize Stats toggle */}
+                      <button className="card-edit-toggle"
+                        onClick={() => setExpandedCardId(isExpanded ? null : p.id)}>
+                        {isExpanded ? "▴ " : "▾ "}
+                        ⚙️ {lang==="th"?"ปรับ Stats พื้นฐาน":"Customize Base Stats"}
+                        {isCustomized(p.id) && <span className="card-edit-badge">●</span>}
+                      </button>
+
+                      {isExpanded && (
+                        <CustomStatsEditor
+                          pokemon={p} stats={customStats}
+                          onChange={(name, val) => updateStat(p, name, val)}
+                          onReset={() => resetStats(p.id)}
+                          isCustom={isCustomized(p.id)} lang={lang} />
+                      )}
+
+                      <button className="go-card-action" onClick={() => setSelectedMember(p)}>
+                        📊 {lang==="th"?"รายละเอียด":"Details"}
+                      </button>
                     </div>
-
-                    {/* 🌟 Appraise (3 IV bars) */}
-                    <AppraiseDisplay
-                      ivAtk={data.ivAtk} ivDef={data.ivDef} ivHp={data.ivHp}
-                      onChange={(updates) => updateData(p.id, updates)}
-                      lang={lang} />
-
-                    {/* ⚙️ Customize Stats button (collapsible panel) */}
-                    <button className="card-edit-toggle"
-                      onClick={() => setExpandedCardId(isExpanded ? null : p.id)}>
-                      {isExpanded ? "▴ " : "▾ "}
-                      ⚙️ {lang==="th"?"ปรับ Stats พื้นฐาน":"Customize Base Stats"}
-                      {isCustomized(p.id) && <span className="card-edit-badge">●</span>}
-                    </button>
-
-                    {isExpanded && (
-                      <CustomStatsEditor
-                        pokemon={p} stats={customStats}
-                        onChange={(name, val) => updateStat(p, name, val)}
-                        onReset={() => resetStats(p.id)}
-                        isCustom={isCustomized(p.id)} lang={lang} />
-                    )}
-
-                    <button className="go-card-action" onClick={() => setSelectedMember(p)}>
-                      📊 {lang==="th"?"รายละเอียด":"Details"}
-                    </button>
                   </div>
                 );
               }
@@ -809,7 +1331,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
               );
             })}
 
-            {team.length < 6 && (
+            {team.length < maxTeamSize && (
               <div className="go-card empty-slot"
                 onClick={() => { setPicking(true); setPickingSlot(null); }}>
                 <span style={{ fontSize: 44, opacity: 0.4 }}>➕</span>
