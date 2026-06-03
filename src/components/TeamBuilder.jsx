@@ -64,100 +64,98 @@ function calcAppraise(ivAtk, ivDef, ivHp, lang = "en") {
   return { stars, label, color, gradient, total, pct, bestStats, maxIV, statTier };
 }
 
-// ─── IV Bar (clickable + draggable) ─────────────────────────────────────────
-function IVBar({ label, value, isBest, onChange }) {
-  const isPerfect = value === 15;
-  let tierColor = "#94a3b8";
-  if (value === 15)      tierColor = "#dc2626";
-  else if (value >= 13)  tierColor = "#f59e0b";
-  else if (value >= 8)   tierColor = "#3b82f6";
+// ─── Pokémon GO IV Bar (3-section orange bars) ─────────────────────────────
+function IVBar({ label, value, onChange }) {
+  const safeValue = Math.max(0, Math.min(15, Number(value) || 0));
+  const pct = (safeValue / 15) * 100;
 
   return (
-    <div className={`iv-bar${isBest ? " best" : ""}${isPerfect ? " perfect" : ""}`}
-      style={{ "--iv-color": tierColor }}>
-      <div className="iv-bar-label">
-        {isBest && <span className="iv-bar-crown">👑</span>}{label}
-      </div>
-      <div className="iv-bar-control">
-        <div className="iv-bar-segments">
-          {Array.from({ length: 15 }).map((_, i) => (
-            <button key={i} type="button"
-              className={`iv-segment${i < value ? " filled" : ""}`}
-              onClick={() => onChange(i + 1)}
-              aria-label={`Set ${label} IV to ${i + 1}`} />
-          ))}
+    <div className="pgo-appraise-row">
+      <div className="pgo-appraise-label">{label}</div>
+
+      <div className="pgo-appraise-bar-wrap">
+        <div className="pgo-appraise-bar-bg">
+          <div
+            className="pgo-appraise-bar-fill"
+            style={{ width: `${pct}%` }}
+          />
+          <span className="pgo-appraise-divider d1" />
+          <span className="pgo-appraise-divider d2" />
         </div>
-        <input type="range" min="0" max="15" step="1" value={value}
-          onChange={(e) => onChange(parseInt(e.target.value))}
-          className="iv-bar-slider" aria-label={`${label} IV`} />
-      </div>
-      <div className="iv-bar-val">
-        <span className="iv-bar-num">{value}</span>
-        <span className="iv-bar-max">/15</span>
-        {isPerfect && <span className="iv-bar-sparkle">✨</span>}
+
+        <input
+          type="range"
+          min="0"
+          max="15"
+          step="1"
+          value={safeValue}
+          onChange={(e) => onChange(parseInt(e.target.value, 10))}
+          className="pgo-appraise-slider"
+          aria-label={`${label} IV`}
+        />
       </div>
     </div>
   );
 }
 
-// ─── Appraise Display (3 stars + 3 IV bars) ─────────────────────────────────
+// ─── Pokémon GO Appraise Display (medal + 3 bars) ───────────────────────────
 function AppraiseDisplay({ ivAtk, ivDef, ivHp, onChange, lang }) {
   const apr = calcAppraise(ivAtk, ivDef, ivHp, lang);
+  const cleanLabel = apr.label.replace(/[💯🌟⭐👍📊]/g, "").trim();
 
   return (
-    <div className="appraise-section">
-      <div className="appraise-header" style={{ background: apr.gradient }}>
-        <div className="appraise-stars-row">
-          <div className="appraise-stars">
-            {[1, 2, 3].map(i => (
-              <span key={i} className={`appraise-star${i <= apr.stars ? " filled" : ""}`}>
-                {i <= apr.stars ? "★" : "☆"}
+    <div className="pgo-appraise-card" style={{ "--pgo-appraise-color": apr.color }}>
+      <div className="pgo-appraise-medal" aria-hidden="true">
+        <div className="pgo-medal-inner">
+          <div className="pgo-medal-ball top" />
+          <div className="pgo-medal-stars">
+            {[1, 2, 3].map((i) => (
+              <span key={i} className={`pgo-medal-star${i <= apr.stars ? " filled" : ""}`}>
+                ★
               </span>
             ))}
           </div>
-          <div className="appraise-label">{apr.label}</div>
-        </div>
-        <div className="appraise-total">
-          {apr.total}/45 · <strong>{apr.pct.toFixed(0)}%</strong>
+          <div className="pgo-medal-ball bottom" />
         </div>
       </div>
 
-      <div className="appraise-bars">
-        <IVBar label="ATK" value={ivAtk}
-          isBest={apr.bestStats.some(s => s === "Attack" || s === "โจมตี")}
-          onChange={(v) => onChange({ ivAtk: v })} />
-        <IVBar label="DEF" value={ivDef}
-          isBest={apr.bestStats.some(s => s === "Defense" || s === "ป้องกัน")}
-          onChange={(v) => onChange({ ivDef: v })} />
-        <IVBar label="HP" value={ivHp}
-          isBest={apr.bestStats.includes("HP")}
-          onChange={(v) => onChange({ ivHp: v })} />
+      <div className="pgo-appraise-summary">
+        <div className="pgo-appraise-summary-stars">
+          {[1, 2, 3].map((i) => (
+            <span key={i} className={`pgo-summary-star${i <= apr.stars ? " filled" : ""}`}>
+              ★
+            </span>
+          ))}
+        </div>
+        <div className="pgo-appraise-summary-text">
+          {cleanLabel || (lang === "th" ? "ประเมิน IV" : "Appraise")}
+        </div>
+        <div className="pgo-appraise-summary-percent">
+          {apr.total}/45 · {apr.pct.toFixed(0)}%
+        </div>
       </div>
 
-      {apr.maxIV >= 13 && (
-        <div className="appraise-best-stat" style={{ background: apr.gradient }}>
-          <span className="appraise-best-icon">🏆</span>
-          <span className="appraise-best-text">
-            <strong>{apr.bestStats.join(" / ")}</strong>: {apr.statTier}
-          </span>
-        </div>
-      )}
+      <div className="pgo-appraise-bars">
+        <IVBar label="Attack" value={ivAtk} onChange={(v) => onChange({ ivAtk: v })} />
+        <IVBar label="Defense" value={ivDef} onChange={(v) => onChange({ ivDef: v })} />
+        <IVBar label="HP" value={ivHp} onChange={(v) => onChange({ ivHp: v })} />
+      </div>
 
-      <div className="appraise-presets">
-        <button className="appraise-preset appraise-preset-hundo"
-          onClick={() => onChange({ ivAtk: 15, ivDef: 15, ivHp: 15 })}>💯 Hundo</button>
-        <button className="appraise-preset"
-          onClick={() => onChange({ ivAtk: 14, ivDef: 14, ivHp: 14 })}>🌟 3★</button>
-        <button className="appraise-preset"
-          onClick={() => onChange({ ivAtk: 11, ivDef: 11, ivHp: 11 })}>⭐ 2★</button>
-        <button className="appraise-preset"
-          onClick={() => onChange({ ivAtk: 7, ivDef: 7, ivHp: 7 })}>👍 1★</button>
-        <button className="appraise-preset"
+      <div className="pgo-appraise-presets">
+        <button type="button" className="pgo-appraise-preset hundo"
+          onClick={() => onChange({ ivAtk: 15, ivDef: 15, ivHp: 15 })}>💯</button>
+        <button type="button" className="pgo-appraise-preset"
+          onClick={() => onChange({ ivAtk: 14, ivDef: 14, ivHp: 14 })}>3★</button>
+        <button type="button" className="pgo-appraise-preset"
+          onClick={() => onChange({ ivAtk: 11, ivDef: 11, ivHp: 11 })}>2★</button>
+        <button type="button" className="pgo-appraise-preset"
+          onClick={() => onChange({ ivAtk: 7, ivDef: 7, ivHp: 7 })}>1★</button>
+        <button type="button" className="pgo-appraise-preset"
           onClick={() => onChange({
             ivAtk: Math.floor(Math.random() * 16),
             ivDef: Math.floor(Math.random() * 16),
             ivHp: Math.floor(Math.random() * 16),
-          })}>🎲 Random</button>
+          })}>🎲</button>
       </div>
     </div>
   );
@@ -1085,6 +1083,208 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
           cursor: pointer !important;
           margin: 0 !important;
           z-index: 5 !important;
+        }
+
+
+        /* ═══════════════════════════════════════════════════════════ */
+        /* Pokémon GO Appraise Card — medal + 3 orange bars            */
+        /* ═══════════════════════════════════════════════════════════ */
+        .pgo-card .pgo-appraise-card {
+          position: relative !important;
+          background: #ffffff !important;
+          border-radius: 14px !important;
+          padding: 18px 18px 14px !important;
+          margin: 16px 0 12px !important;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.14) !important;
+          border: 1px solid rgba(251, 146, 60, 0.18) !important;
+          overflow: visible !important;
+        }
+        :root[data-theme="dark"] .pgo-card .pgo-appraise-card,
+        [data-theme="dark"] .pgo-card .pgo-appraise-card {
+          background: #111827 !important;
+          border-color: rgba(251, 146, 60, 0.25) !important;
+        }
+
+        .pgo-card .pgo-appraise-medal {
+          position: absolute !important;
+          top: -44px !important;
+          left: -26px !important;
+          width: 92px !important;
+          height: 92px !important;
+          border-radius: 50% !important;
+          background: radial-gradient(circle at 35% 30%, #fff7ed 0%, #fed7aa 45%, #fb923c 100%) !important;
+          border: 4px solid rgba(255,255,255,0.92) !important;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.2) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          z-index: 4 !important;
+        }
+
+        .pgo-card .pgo-medal-inner {
+          position: relative !important;
+          width: 76px !important;
+          height: 76px !important;
+          border-radius: 50% !important;
+          border: 2px dashed rgba(255,255,255,0.75) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+
+        .pgo-card .pgo-medal-ball {
+          position: absolute !important;
+          left: 50% !important;
+          width: 14px !important;
+          height: 14px !important;
+          border-radius: 50% !important;
+          transform: translateX(-50%) !important;
+          border: 2px solid rgba(255,255,255,0.72) !important;
+        }
+        .pgo-card .pgo-medal-ball.top { top: 7px !important; }
+        .pgo-card .pgo-medal-ball.bottom { bottom: 7px !important; }
+
+        .pgo-card .pgo-medal-stars {
+          display: flex !important;
+          gap: 2px !important;
+          transform: rotate(-8deg) !important;
+        }
+        .pgo-card .pgo-medal-star {
+          color: #d1d5db !important;
+          font-size: 22px !important;
+          text-shadow: 0 2px 0 rgba(255,255,255,0.85), 0 2px 4px rgba(0,0,0,0.12) !important;
+        }
+        .pgo-card .pgo-medal-star.filled {
+          color: #f97316 !important;
+        }
+
+        .pgo-card .pgo-appraise-summary {
+          min-height: 34px !important;
+          margin-left: 42px !important;
+          margin-bottom: 12px !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          flex-wrap: wrap !important;
+        }
+        .pgo-card .pgo-appraise-summary-stars {
+          display: inline-flex !important;
+          gap: 1px !important;
+        }
+        .pgo-card .pgo-summary-star {
+          color: #d1d5db !important;
+          font-size: 17px !important;
+          line-height: 1 !important;
+        }
+        .pgo-card .pgo-summary-star.filled {
+          color: #fb923c !important;
+        }
+        .pgo-card .pgo-appraise-summary-text {
+          color: #fb923c !important;
+          font-size: 15px !important;
+          font-weight: 900 !important;
+        }
+        .pgo-card .pgo-appraise-summary-percent {
+          color: #9ca3af !important;
+          font-size: 11px !important;
+          font-weight: 800 !important;
+        }
+
+        .pgo-card .pgo-appraise-bars {
+          display: flex !important;
+          flex-direction: column !important;
+          gap: 10px !important;
+        }
+        .pgo-card .pgo-appraise-row {
+          position: relative !important;
+          display: grid !important;
+          grid-template-columns: 78px 1fr !important;
+          align-items: center !important;
+          gap: 10px !important;
+        }
+        .pgo-card .pgo-appraise-label {
+          color: #fb923c !important;
+          font-size: 15px !important;
+          font-weight: 900 !important;
+          line-height: 1 !important;
+        }
+
+        .pgo-card .pgo-appraise-bar-wrap {
+          position: relative !important;
+          height: 19px !important;
+        }
+        .pgo-card .pgo-appraise-bar-bg {
+          position: relative !important;
+          height: 19px !important;
+          background: #dedede !important;
+          border-radius: 5px !important;
+          overflow: hidden !important;
+          box-shadow: inset 0 1px 2px rgba(0,0,0,0.08) !important;
+        }
+        :root[data-theme="dark"] .pgo-card .pgo-appraise-bar-bg,
+        [data-theme="dark"] .pgo-card .pgo-appraise-bar-bg {
+          background: rgba(255,255,255,0.13) !important;
+        }
+        .pgo-card .pgo-appraise-bar-fill {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          bottom: 0 !important;
+          background: linear-gradient(180deg, #ffb45f 0%, #fb923c 52%, #f97316 100%) !important;
+          border-radius: 5px 0 0 5px !important;
+          transition: width 0.22s ease !important;
+        }
+        .pgo-card .pgo-appraise-divider {
+          position: absolute !important;
+          top: 0 !important;
+          bottom: 0 !important;
+          width: 3px !important;
+          background: rgba(255,255,255,0.96) !important;
+          z-index: 3 !important;
+        }
+        .pgo-card .pgo-appraise-divider.d1 { left: 33.333% !important; }
+        .pgo-card .pgo-appraise-divider.d2 { left: 66.666% !important; }
+
+        .pgo-card .pgo-appraise-slider {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          opacity: 0 !important;
+          cursor: pointer !important;
+          z-index: 8 !important;
+          margin: 0 !important;
+        }
+
+        .pgo-card .pgo-appraise-presets {
+          display: flex !important;
+          gap: 6px !important;
+          margin-top: 13px !important;
+          flex-wrap: wrap !important;
+        }
+        .pgo-card .pgo-appraise-preset {
+          border: none !important;
+          border-radius: 999px !important;
+          background: #fff7ed !important;
+          color: #c2410c !important;
+          font-size: 11px !important;
+          font-weight: 900 !important;
+          padding: 6px 10px !important;
+          cursor: pointer !important;
+          transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+        }
+        .pgo-card .pgo-appraise-preset:hover {
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 10px rgba(249, 115, 22, 0.22) !important;
+        }
+        .pgo-card .pgo-appraise-preset.hundo {
+          background: linear-gradient(135deg, #facc15, #fb923c) !important;
+          color: white !important;
+        }
+        :root[data-theme="dark"] .pgo-card .pgo-appraise-preset,
+        [data-theme="dark"] .pgo-card .pgo-appraise-preset {
+          background: rgba(251,146,60,0.16) !important;
+          color: #fdba74 !important;
         }
       `}</style>
       <div className="team-hero">
