@@ -80,10 +80,8 @@ export default function App() {
     window.addEventListener("ui:modal:close", onModalClose);
     window.addEventListener("popstate", onPopstate);
     return () => {
-      window.removeEventListener("ui:modal:open",  onModalOpen);
-      window.removeEventListener("ui:modal:close", onModalClose);
-      window.removeEventListener("popstate", onPopstate);
-    };
+  window.removeEventListener("popstate", onPopstate);
+};
   }, []);
 
   // 🏷️ Update document title with HexaDex branding
@@ -284,12 +282,29 @@ export default function App() {
     />
   ) : null;
 
-  const snapSearchEl = !initializing ? (
-    <SnapSearch
-      loaded={loaded} thaiArr={thaiArr} jpArr={jpArr} lang={lang}
-      onOpen={handleSelect}
-    />
-  ) : null;
+const snapSearchEl = !initializing ? (
+  <SnapSearch
+    loaded={loaded}
+    thaiArr={thaiArr}
+    jpArr={jpArr}
+    lang={lang}
+    onOpen={async (pokemonId) => {
+      let pokemon = loaded.find(
+        (p) => Number(p.id) === Number(pokemonId)
+      );
+
+      if (!pokemon) {
+        const res = await fetch(
+          `https://pokeapi.co/api/v2/pokemon/${pokemonId}`
+        );
+        const data = await res.json();
+        pokemon = compactPokemon(data);
+      }
+
+      setSelected(pokemon);
+    }}
+  />
+) : null;
 
   return (
     <>

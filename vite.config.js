@@ -1,60 +1,69 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import detectPokemonHandler from "./src/api/detect-pokemon.js";
 
-// ─── HexaDex production build config ─────────────────────
-// Optimizes:
-//   • Bundle splitting (vendor / app chunks for better caching)
-//   • Minification (esbuild — fast)
-//   • Asset inlining (small images → base64)
-//   • Source maps OFF in production (smaller, faster)
-//   • Removes console.log in prod (cleaner DevTools, slight perf)
-// https://vitejs.dev/config/
+function geminiDevApiPlugin() {
+  return {
+    name: "gemini-dev-api",
+    configureServer(server) {
+      server.middlewares.use("/api/detect-pokemon", async (req, res) => {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Method not allowed" }));
+          return;
+        }
 
-export default defineConfig({
-  plugins: [react()],
+        let body = "";
 
-  build: {
-    target: "es2020",
-    minify: "esbuild",
-    cssMinify: true,
-    sourcemap: false,        // disable source maps in prod (smaller bundles)
-    assetsInlineLimit: 4096, // inline assets <4KB as base64
-    chunkSizeWarningLimit: 1500, // suppress warnings for large chunks
+        req.on("data", (chunk) => {
+          body += chunk;
+        });
 
-    rollupOptions: {
-      output: {
-        // Split vendor code into separate chunks for better browser caching
-        // (vendor changes rarely → cached across deploys)
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("scheduler")) return "vendor-react";
-            return "vendor";
+        req.on("end", async () => {
+          try {
+            req.body = body ? JSON.parse(body) : {};
+
+            const mockRes = {
+              status(code) {
+                res.statusCode = code;
+                return this;
+              },
+              json(data) {
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify(data));
+              },
+            };
+
+            await detectPokemonHandler(req, mockRes);
+          } catch (err) {
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(
+              JSON.stringify({
+                error: err.message || "Dev API error",
+              })
+            );
           }
-        },
-        // Use content hash so cache busts when content changes
-        chunkFileNames: "assets/[name]-[hash].js",
-        entryFileNames: "assets/[name]-[hash].js",
-        assetFileNames: "assets/[name]-[hash].[ext]",
-      },
+        });
+      });
     },
-  },
+  };
+}
 
-  // Strip console.* and debugger statements in production builds
-  esbuild: {
-    drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
-    legalComments: "none",
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
 
-  // Dev server
-  server: {
-    port: 5173,
-    host: true,        // expose on LAN (useful for mobile testing)
-    strictPort: false,
-  },
+  process.env.GEMINI_API_KEY = env.GEMINI_API_KEY;
 
-  // Preview server (after `npm run build && npm run preview`)
-  preview: {
-    port: 4173,
-    host: true,
-  },
+  console.log(
+    "[Gemini]",
+    env.GEMINI_API_KEY
+      ? "GEMINI_API_KEY loaded"
+      : "GEMINI_API_KEY missing"
+  );
+
+  return {
+    plugins: [react(), geminiDevApiPlugin()],
+  };
 });

@@ -736,6 +736,102 @@ export default function PokemonModal({
           color: white !important;
           box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
         }
+
+        /* ─── Catch FAB — small Pokeball that expands on hover ─── */
+        .modal-overlay .catch-fab {
+          position: absolute !important;
+          bottom: 16px !important;
+          right: 16px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 0 !important;
+          padding: 6px !important;
+          padding-right: 6px !important;
+          height: 56px !important;
+          width: 56px !important;
+          border-radius: 999px !important;
+          background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%) !important;
+          border: 2px solid rgba(255, 255, 255, 0.5) !important;
+          color: white !important;
+          cursor: pointer !important;
+          overflow: hidden !important;
+          transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                      padding 0.35s, transform 0.2s,
+                      box-shadow 0.35s !important;
+          box-shadow: 0 8px 24px rgba(14, 165, 233, 0.5),
+                      0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
+          z-index: 4 !important;
+          white-space: nowrap !important;
+        }
+        .modal-overlay .catch-fab:hover {
+          width: 170px !important;
+          padding-right: 18px !important;
+          transform: scale(1.04) !important;
+          box-shadow: 0 14px 36px rgba(14, 165, 233, 0.65),
+                      0 0 0 1px rgba(255, 255, 255, 0.3) inset !important;
+        }
+        .modal-overlay .catch-fab-ball {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 42px !important;
+          height: 42px !important;
+          border-radius: 50% !important;
+          background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 60%, transparent 100%) !important;
+          flex-shrink: 0 !important;
+        }
+        .modal-overlay .catch-fab-label {
+          font-size: 13px !important;
+          font-weight: 900 !important;
+          letter-spacing: 0.5px !important;
+          opacity: 0 !important;
+          max-width: 0 !important;
+          overflow: hidden !important;
+          transition: opacity 0.25s 0.05s, max-width 0.35s, margin-left 0.35s !important;
+          margin-left: 0 !important;
+        }
+        .modal-overlay .catch-fab:hover .catch-fab-label {
+          opacity: 1 !important;
+          max-width: 120px !important;
+          margin-left: 6px !important;
+        }
+        /* Pulse animation when idle */
+        .modal-overlay .catch-fab::before {
+          content: "" !important;
+          position: absolute !important;
+          inset: -4px !important;
+          border-radius: 999px !important;
+          background: linear-gradient(135deg, #06b6d4, #2563eb) !important;
+          opacity: 0.5 !important;
+          z-index: -1 !important;
+          animation: catch-fab-pulse 2.2s ease-in-out infinite !important;
+        }
+        @keyframes catch-fab-pulse {
+          0%, 100% { transform: scale(0.92); opacity: 0; }
+          50%      { transform: scale(1.08); opacity: 0.5; }
+        }
+        .modal-overlay .catch-fab:hover::before { animation: none !important; opacity: 0 !important; }
+
+        /* Mobile: ensure FAB doesn't get cut off */
+        @media (max-width: 480px) {
+          .modal-overlay .catch-fab { bottom: 12px !important; right: 12px !important; }
+          .modal-overlay .catch-fab:hover { width: 150px !important; }
+        }
+
+        /* DEFENSIVE: hide any leftover old catch button (App.css frozen) */
+        .modal-overlay .catch-try-it-cta,
+        .modal-overlay .catch-try-below3d {
+          display: none !important;
+        }
+
+        /* 3D-mode FAB variant: relative positioning (not absolute) */
+        .modal-overlay .catch-fab-3d {
+          position: relative !important;
+          bottom: auto !important;
+          right: auto !important;
+          margin: 12px auto !important;
+          display: flex !important;
+        }
       `}</style>
 
       <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -768,43 +864,33 @@ export default function PokemonModal({
             </div>
           </div>
 
-          {/* ⭐ Try It! Catch CTA — only shown in 2D mode (3D has its own button) */}
+          {/* ⭐ Catch FAB — small Pokeball by default, expands to show text on hover */}
           {!view3d && (
-            <button className="catch-try-it-cta" onClick={() => setCatchOpen(true)}
-              style={{
-                background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%)",
-                backgroundSize: "200% 200%",
-                boxShadow: "0 6px 22px rgba(14, 165, 233, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-              }}>
-              <span style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "44px",
-                height: "44px",
-                borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 60%, transparent 100%)",
-                flexShrink: 0,
-              }}>
+            <button
+              className="catch-fab"
+              onClick={() => setCatchOpen(true)}
+              title={lang==="th" ? "ลองจับโปเกม่อนนี้!"
+                   : lang==="ja" ? "捕まえてみよう！"
+                   : "Try catching this Pokémon!"}>
+              <span className="catch-fab-ball">
                 <img
                   src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
-                  width="36"
-                  height="36"
-                  alt="Poké Ball"
+                  width="32"
+                  height="32"
+                  alt=""
                   draggable={false}
                   style={{
                     imageRendering: "pixelated",
                     animation: "catch-cta-ball-spin 4s linear infinite",
-                    filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4)) drop-shadow(0 0 8px rgba(255,255,255,0.5))",
+                    filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4))",
                   }}
                 />
               </span>
-              <span className="try-it-text">
-                {lang==="th" ? "ลองจับโปเกม่อนนี้!"
-                 : lang==="ja" ? "捕まえてみよう！"
-                 : "Try catching this Pokémon!"}
+              <span className="catch-fab-label">
+                {lang==="th" ? "ลองจับ!"
+                 : lang==="ja" ? "捕まえる！"
+                 : "Try Catch!"}
               </span>
-              <span className="try-it-cta-arrow">▶</span>
             </button>
           )}
 
@@ -994,42 +1080,32 @@ export default function PokemonModal({
   );
 }
 
-/* Small helper: catch CTA shown below the 3D viewer */
+/* Small helper: catch FAB for 3D mode (placed in 3D viewer area) */
 function CatchHintBelow3D({ setCatchOpen, lang }) {
   return (
-    <button className="catch-try-it-cta catch-try-below3d" onClick={() => setCatchOpen(true)}
-      style={{
-        background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%)",
-        backgroundSize: "200% 200%",
-        boxShadow: "0 6px 22px rgba(14, 165, 233, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.3)",
-      }}>
-      <span style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: "40px",
-        height: "40px",
-        borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 60%, transparent 100%)",
-        flexShrink: 0,
-      }}>
+    <button className="catch-fab catch-fab-3d" onClick={() => setCatchOpen(true)}
+      title={lang==="th" ? "ลองจับโปเกม่อนนี้!"
+           : lang==="ja" ? "捕まえてみよう！"
+           : "Try catching this Pokémon!"}>
+      <span className="catch-fab-ball">
         <img
           src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
           width="32"
           height="32"
-          alt="Poké Ball"
+          alt=""
           draggable={false}
           style={{
             imageRendering: "pixelated",
             animation: "catch-cta-ball-spin 4s linear infinite",
-            filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4)) drop-shadow(0 0 8px rgba(255,255,255,0.5))",
+            filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4))",
           }}
         />
       </span>
-      <span className="try-it-text">
-        {lang==="th" ? "ลองจับเลย!" : lang==="ja" ? "捕まえる！" : "Try It!"}
+      <span className="catch-fab-label">
+        {lang==="th" ? "ลองจับ!"
+         : lang==="ja" ? "捕まえる！"
+         : "Try Catch!"}
       </span>
-      <span className="try-it-cta-arrow">▶</span>
     </button>
   );
 }
