@@ -85,7 +85,18 @@
     font-size: 12px !important;
   }
 
-  /* Pokemon grid — 3 COLS, CHUBBY SQUARE CARDS */
+  /* ━━━ NUCLEAR OPTION ━━━ 
+     Use :has() to target ANY parent containing .poke-card
+     Works in Safari 15.4+ (iOS 15.4+) and Chrome 105+ */
+  *:has(> .poke-card),
+  *:has(> .pokemon-card),
+  *:has(> [class*="poke-card"]:not([class*="grid"])) {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  /* Original class names — fallback */
   .poke-card-grid,
   .pokemon-grid,
   .card-grid,
@@ -100,48 +111,54 @@
     gap: 10px !important;
   }
 
-  /* CHUBBY square cards — not tall thin */
+  /* CHUBBY square cards */
   .poke-card,
   .pokemon-card,
-  [class*="poke-card"]:not([class*="grid"]) {
+  [class*="poke-card"]:not([class*="grid"]):not([class*="wrap"]) {
     aspect-ratio: 1 / 1.15 !important;
     padding: 10px 8px !important;
     border-radius: 14px !important;
     min-height: unset !important;
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: space-between !important;
+    box-sizing: border-box !important;
   }
 
-  /* Pokemon image takes most of the card */
+  /* Pokemon image */
   .poke-card img,
   .pokemon-card img,
   .card-pokemon-img,
-  .card-img-wrap img {
+  .card-img-wrap img,
+  [class*="poke-card"] img {
     max-width: 100% !important;
     width: auto !important;
     height: auto !important;
-    max-height: 90px !important;
+    max-height: 80px !important;
     object-fit: contain !important;
   }
 
   /* Smaller text — fits 3 cols */
   .poke-card .poke-name,
   .pokemon-card .poke-name,
-  .poke-card [class*="name"] {
+  [class*="poke-card"] [class*="name"] {
     font-size: 11px !important;
     font-weight: 800 !important;
     line-height: 1.2 !important;
     text-align: center !important;
   }
   .poke-card .poke-id,
-  .pokemon-card .poke-id {
+  .pokemon-card .poke-id,
+  [class*="poke-card"] [class*="id"] {
     font-size: 9px !important;
     line-height: 1 !important;
   }
   .poke-card .type-pill,
-  .poke-card [class*="type-"] {
+  [class*="poke-card"] [class*="type-"] {
     font-size: 8px !important;
     padding: 2px 6px !important;
   }
