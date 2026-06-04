@@ -1,81 +1,47 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   HexaDex Responsive Web Design
-   ───────────────────────────────────────────────────────────────────────
-   Mobile-first overrides for all components
-   
-   Breakpoints:
-   - Phone:        max-width: 640px (iPhone SE 375 → iPhone Pro Max 430)
-   - Tablet:       max-width: 900px (iPad Mini, small tablets)
-   - Touch device: pointer: coarse
+   HexaDex Responsive Web Design — v2
+   Stronger selectors + Bigger cards on mobile + Compact buttons
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ─── 1. GLOBAL BASE FIXES ──────────────────────────────────────────── */
+/* ─── 1. GLOBAL BASE ──────────────────────────────────────────────── */
 @media (max-width: 640px) {
   html, body {
     overflow-x: hidden !important;
     -webkit-text-size-adjust: 100% !important;
   }
-
-  /* Page wrappers — reduce side padding */
-  .grid-wrap,
-  main.grid-wrap,
-  .pokedex-page,
-  .team-page,
-  .go-tools-hub,
-  .games-hub {
-    padding-left: 10px !important;
-    padding-right: 10px !important;
+  .grid-wrap, main.grid-wrap,
+  .pokedex-page, .team-page, .go-tools-hub, .games-hub, main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
   }
 }
 
-/* iOS-specific safe area */
 @supports (-webkit-touch-callout: none) {
-  .modal-overlay,
-  .rg-overlay,
-  .pokemon-modal-overlay {
-    overscroll-behavior: contain;
-  }
-  .music-fab,
-  .footer-fab,
-  .catch-fab,
-  .voice-search-fab {
+  .music-fab, .footer-fab, .catch-fab,
+  .voice-search-fab, .weather-status, .weather-pill {
     bottom: env(safe-area-inset-bottom, 12px) !important;
   }
 }
 
-/* Touch-friendly button sizes (Apple guidelines: min 44px) */
 @media (pointer: coarse) {
-  button:not(.tiny):not(.small):not(.iv-bar-segment):not(.go-hub-card):not(.poke-card):not(.team-add-card) {
-    min-height: 40px;
-  }
-  /* Inputs prevent iOS zoom on focus by enforcing 16px+ font */
-  input[type="text"],
-  input[type="number"],
-  input[type="search"],
-  input[type="email"],
+  input[type="text"], input[type="number"],
+  input[type="search"], input[type="email"],
   textarea, select {
     font-size: 16px !important;
   }
 }
 
-/* ─── 2. HEADER (Logo + Tabs + Theme buttons) ──────────────────────── */
+/* ─── 2. HEADER ───────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Whole header more compact */
-  .app-header,
-  header.app-header {
+  .app-header, header.app-header {
     padding: 10px 12px !important;
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
-
-  /* Logo block smaller */
-  .header-logo,
-  .hex-logo-wrap {
+  .header-logo, .hex-logo-wrap {
     transform: scale(0.85);
     transform-origin: left center;
   }
-
-  /* Tabs — horizontal scroll (no wrap) */
   .mode-tabs {
     overflow-x: auto !important;
     overflow-y: hidden !important;
@@ -84,40 +50,26 @@
     scrollbar-width: none !important;
     padding: 4px 0 !important;
     width: 100% !important;
-    order: 99 !important; /* push to bottom row */
+    order: 99 !important;
     margin-top: 4px !important;
   }
   .mode-tabs::-webkit-scrollbar { display: none !important; }
-  .mode-tab {
-    flex-shrink: 0 !important;
-    padding: 8px 14px !important;
-  }
+  .mode-tab { flex-shrink: 0 !important; padding: 8px 14px !important; }
   .mode-tab-icon { font-size: 16px !important; }
   .mode-tab-label { font-size: 11px !important; }
-
-  /* Theme + Settings buttons - inline at right */
-  .header-actions,
-  .theme-toggle-wrap {
+  .header-actions, .theme-toggle-wrap {
     margin-left: auto !important;
     transform: scale(0.85);
   }
 }
 
-/* ─── 3. POKÉDEX PAGE ──────────────────────────────────────────────── */
+/* ─── 3. POKÉDEX — FORCE 2-COL + BIGGER CARDS ─────────────────────── */
 @media (max-width: 640px) {
-  /* Search row stack vertically */
-  .search-row,
-  .pokedex-search-row {
+  .search-row, .pokedex-search-row {
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
-  .search-row > *,
-  .pokedex-search-row > * { flex-basis: 100%; }
-
-  /* Region tabs - horizontal scroll */
-  .gen-tabs,
-  .region-tabs,
-  .region-bar {
+  .gen-tabs, .region-tabs, .region-bar {
     overflow-x: auto !important;
     overflow-y: hidden !important;
     flex-wrap: nowrap !important;
@@ -127,57 +79,93 @@
   }
   .gen-tabs::-webkit-scrollbar,
   .region-tabs::-webkit-scrollbar { display: none !important; }
-  .gen-tab,
-  .region-tab {
+  .gen-tab, .region-tab {
     flex-shrink: 0 !important;
     padding: 8px 12px !important;
     font-size: 12px !important;
   }
 
-  /* Pokemon card grid — 2 columns */
+  /* AGGRESSIVE Pokemon grid — catch ANY container with poke-card children */
   .poke-card-grid,
   .pokemon-grid,
-  .card-grid {
+  .card-grid,
+  .pokedex-grid,
+  .pokedex-cards,
+  .dex-grid,
+  [class*="poke-grid"],
+  [class*="card-grid"],
+  [class*="pokedex-grid"] {
+    display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
+    gap: 12px !important;
   }
-  .poke-card,
-  .pokemon-card {
-    padding: 10px 8px !important;
-    border-radius: 14px !important;
-  }
-  .poke-card .poke-name,
-  .pokemon-card .poke-name { font-size: 13px !important; }
-  .card-pokemon-img { max-width: 100% !important; }
 
-  /* Daily Pokemon banner - reduce padding */
-  .daily-banner,
-  .daily-poke-banner {
+  /* BIGGER Pokemon cards */
+  .poke-card,
+  .pokemon-card,
+  [class*="poke-card"]:not([class*="grid"]) {
+    padding: 14px 10px !important;
+    border-radius: 16px !important;
+    min-height: 200px !important;
+  }
+
+  /* BIGGER Pokemon image */
+  .poke-card img,
+  .pokemon-card img,
+  .card-pokemon-img,
+  .card-img-wrap img {
+    max-width: 100% !important;
+    width: auto !important;
+    min-height: 90px !important;
+  }
+
+  .poke-card .poke-name,
+  .pokemon-card .poke-name,
+  .poke-card [class*="name"] {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+  }
+  .poke-card .poke-id,
+  .pokemon-card .poke-id { font-size: 11px !important; }
+  .poke-card .type-pill,
+  .poke-card [class*="type-"] {
+    font-size: 10px !important;
+    padding: 3px 8px !important;
+  }
+
+  .daily-banner, .daily-poke-banner,
+  [class*="daily-banner"] {
     padding: 12px 14px !important;
     border-radius: 16px !important;
+    margin-bottom: 12px !important;
   }
-  .daily-banner-content { flex-wrap: wrap !important; gap: 10px !important; }
-
-  /* Result count */
+  .daily-banner > div, .daily-banner-content {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
   .result-count { font-size: 14px !important; }
 }
 
-/* Even smaller phones - 1 column? */
+/* ─── 3b. TINY PHONES (< 380px) — 1 col ───────────────────────────── */
 @media (max-width: 380px) {
   .poke-card-grid,
   .pokemon-grid,
-  .card-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
+  .card-grid,
+  .pokedex-grid,
+  [class*="poke-grid"],
+  [class*="card-grid"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
-  .poke-card { padding: 8px 6px !important; }
+  .poke-card, .pokemon-card {
+    padding: 16px 12px !important;
+    min-height: 180px !important;
+  }
 }
 
-/* ─── 4. POKEMON MODAL ─────────────────────────────────────────────── */
+/* ─── 4. POKEMON MODAL ───────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Modal becomes near-fullscreen */
-  .pokemon-modal,
-  .poke-modal-content {
+  .pokemon-modal, .poke-modal-content {
     width: 100% !important;
     max-width: 100% !important;
     max-height: 100vh !important;
@@ -186,11 +174,7 @@
     padding: 12px !important;
     margin: 0 !important;
   }
-
-  /* Modal tabs scroll horizontally */
-  .poke-modal-tabs,
-  .modal-tabs,
-  .pkm-tabs {
+  .poke-modal-tabs, .modal-tabs, .pkm-tabs {
     overflow-x: auto !important;
     flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch !important;
@@ -198,18 +182,12 @@
   }
   .poke-modal-tabs::-webkit-scrollbar,
   .modal-tabs::-webkit-scrollbar { display: none !important; }
-  .poke-modal-tab,
-  .pkm-tab {
+  .poke-modal-tab, .pkm-tab {
     flex-shrink: 0 !important;
     padding: 8px 12px !important;
     font-size: 12px !important;
   }
-
-  /* Pokemon name + image area smaller */
-  .pkm-hero,
-  .modal-hero-img { max-height: 200px !important; }
-
-  /* Catch FAB scaled */
+  .pkm-hero, .modal-hero-img { max-height: 200px !important; }
   .catch-fab {
     bottom: 14px !important;
     right: 14px !important;
@@ -218,17 +196,14 @@
   }
 }
 
-/* ─── 5. TEAM BUILDER ──────────────────────────────────────────────── */
+/* ─── 5. TEAM BUILDER ─────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  /* Hero header smaller */
   .team-page .team-hero {
     padding: 22px 18px !important;
     margin-bottom: 16px !important;
   }
   .team-page .team-hero h1 { font-size: 22px !important; }
   .team-page .team-hero p { font-size: 11px !important; }
-
-  /* Mode toggle */
   .tb-mode-toggle {
     grid-template-columns: 1fr 1fr !important;
     padding: 6px !important;
@@ -238,8 +213,6 @@
   .tb-mode-icon { font-size: 20px !important; }
   .tb-mode-title-text { font-size: 12px !important; }
   .tb-mode-desc { font-size: 10px !important; }
-
-  /* Actions bar stack vertically */
   .tb-actions-bar {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -247,41 +220,26 @@
   }
   .tb-action-btn { width: 100% !important; justify-content: center !important; }
   .random-dropdown { width: 100% !important; }
-
-  /* CP Overview — 2 cards per row */
   .go-team-overview-modern {
     grid-template-columns: 1fr 1fr !important;
     gap: 10px !important;
     padding: 12px !important;
   }
-  .go-team-overview-modern .go-overview-item {
-    min-height: 70px !important;
-    padding: 12px !important;
-    gap: 10px !important;
-  }
-  .go-team-overview-modern .go-overview-icon { width: 40px !important; height: 40px !important; font-size: 20px !important; flex: 0 0 40px !important; }
   .go-team-overview-modern .go-overview-val { font-size: 20px !important; }
   .go-team-overview-modern .go-overview-label { font-size: 9px !important; }
-
-  /* Team grid — 1 column on phones (cards are tall) */
   .go-team-grid {
     grid-template-columns: 1fr !important;
     gap: 14px !important;
   }
-
-  /* Picker modal grid */
   .compare-picker .team-add-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
-  .compare-picker { padding: 14px !important; max-height: 90vh !important; }
-
-  /* PGO Card adjustments */
   .pgo-card .pgo-cp-top-value { font-size: 30px !important; }
   .pgo-card .go-card-name { font-size: 20px !important; }
 }
 
-/* ─── 6. GO TOOLS HUB ──────────────────────────────────────────────── */
+/* ─── 6. GO TOOLS HUB ─────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .go-tools-hub .go-hub-header {
     padding: 22px 18px !important;
@@ -290,39 +248,35 @@
   }
   .go-tools-hub .go-hub-header h2.go-hub-title { font-size: 22px !important; }
   .go-tools-hub .go-hub-subtitle { font-size: 11px !important; }
-
-  /* Grid — 2 columns */
   .go-tools-hub .go-hub-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
   }
   .go-tools-hub .go-hub-card {
     padding: 18px 10px 14px !important;
-    min-height: 150px !important;
+    min-height: 160px !important;
     border-radius: 18px !important;
   }
   .go-tools-hub .go-hub-icon {
-    width: 52px !important;
-    height: 52px !important;
-    font-size: 24px !important;
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 26px !important;
     border-radius: 16px !important;
   }
-  .go-tools-hub .go-hub-card .go-hub-title { font-size: 12px !important; }
+  .go-tools-hub .go-hub-card .go-hub-title { font-size: 13px !important; }
   .go-tools-hub .go-hub-desc { font-size: 10px !important; }
-
   .go-tools-hub .go-category-header {
     padding: 10px 14px !important;
     font-size: 12px !important;
     border-radius: 12px !important;
   }
 }
-
-/* Smallest phones — 1 column for GO tools cards */
 @media (max-width: 380px) {
   .go-tools-hub .go-hub-grid { grid-template-columns: 1fr !important; }
+  .go-tools-hub .go-hub-card { min-height: 140px !important; }
 }
 
-/* ─── 7. RAID GUIDE ────────────────────────────────────────────────── */
+/* ─── 7. RAID GUIDE ───────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .rg-overlay { padding: 12px 8px !important; }
   .rg-modal {
@@ -330,10 +284,6 @@
     border-radius: 20px !important;
   }
   .rg-title { font-size: 18px !important; }
-  .rg-title-emoji { font-size: 22px !important; }
-  .rg-subtitle { font-size: 11px !important; }
-
-  /* Raid hour — stack */
   .rg-raidhour {
     flex-direction: column !important;
     align-items: stretch !important;
@@ -341,159 +291,94 @@
     gap: 10px !important;
     padding: 14px !important;
   }
-  .rg-raidhour-left { justify-content: center !important; }
-  .rg-raidhour-count { align-self: center !important; }
-
-  /* Filter chips — wrap */
   .rg-filters { gap: 6px !important; }
   .rg-chip { padding: 6px 10px !important; font-size: 11px !important; }
-  .rg-chip-emoji { font-size: 12px !important; }
-  .rg-chip-count { font-size: 9px !important; padding: 1px 6px !important; }
-
-  /* Boss cards — 2 columns */
   .rg-tier-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
   }
   .rg-boss { padding: 12px 8px 10px !important; }
-  .rg-boss-img { width: 70px !important; height: 70px !important; }
-  .rg-boss-name { font-size: 11.5px !important; }
-  .rg-boss-type { font-size: 8px !important; padding: 1px 6px !important; }
-
-  /* Community footer — stack to 1 col */
+  .rg-boss-img { width: 78px !important; height: 78px !important; }
+  .rg-boss-name { font-size: 12px !important; }
   .rg-community { padding: 14px !important; }
   .rg-community-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
-
-  .rg-tier-header { padding: 10px 14px !important; }
-  .rg-tier-label { font-size: 12px !important; }
 }
 
-/* ─── 8. GAMES HUB ─────────────────────────────────────────────────── */
+/* ─── 8. GAMES HUB ────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .games-hub-grid,
-  .games-grid {
+  .games-hub-grid, .games-grid, [class*="games-grid"] {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
   }
   .game-card { padding: 16px !important; }
 }
 
-/* ─── 9. SNAPSEARCH MODAL ──────────────────────────────────────────── */
+/* ─── 9. SNAPSEARCH ───────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .snap-overlay,
-  .snap-modal-overlay {
-    padding: 8px !important;
-  }
-  .snap-modal,
-  .snap-container {
+  .snap-overlay, .snap-modal-overlay { padding: 8px !important; }
+  .snap-modal, .snap-container {
     max-width: 100% !important;
     width: 100% !important;
     border-radius: 18px !important;
   }
-  .snap-stage,
-  .snap-camera-stage,
-  .snap-preview-stage {
+  .snap-stage, .snap-camera-stage, .snap-preview-stage {
     height: min(70vh, 540px) !important;
   }
-  .snap-shutter,
-  .snap-action { padding: 14px 22px !important; font-size: 14px !important; }
 }
 
-/* ─── 10. SPECIAL MODALS (Voice Search, Catch Animation, etc) ─────── */
+/* ─── 10. FLOATING BUTTONS — COMPACT ──────────────────────────────── */
 @media (max-width: 640px) {
-  /* Voice Search FAB */
-  .voice-search-fab,
-  .voice-fab {
+  .voice-search-fab, .voice-fab {
     width: 48px !important;
     height: 48px !important;
-    bottom: env(safe-area-inset-bottom, 14px) !important;
+    padding: 0 !important;
   }
-
-  /* Music FAB (random songs) */
-  .music-fab,
-  .random-music-fab,
-  .music-player-fab {
-    transform: scale(0.85);
-    bottom: env(safe-area-inset-bottom, 12px) !important;
+  .music-fab, .random-music-fab, .music-player-fab {
+    transform: scale(0.8) !important;
+    transform-origin: bottom left !important;
+    left: 12px !important;
   }
-
-  /* Weather status pill */
-  .weather-status,
-  .weather-pill {
-    transform: scale(0.85);
-    transform-origin: bottom right;
-  }
-
-  /* Catch Animation modal */
-  .catch-animation-overlay,
-  .catch-3d-stage {
-    inset: 0 !important;
+  .weather-status, .weather-pill {
+    transform: scale(0.8) !important;
+    transform-origin: bottom right !important;
+    right: 12px !important;
   }
 }
 
-/* ─── 11. FOOTER ───────────────────────────────────────────────────── */
+/* ─── 11. FOOTER ──────────────────────────────────────────────────── */
 @media (max-width: 640px) {
-  .footer,
-  .app-footer,
-  footer {
-    padding: 16px 12px 80px !important; /* extra bottom for floating buttons */
+  .footer, .app-footer, footer {
+    padding: 16px 12px 90px !important;
     font-size: 11px !important;
   }
-  .footer-content,
-  .footer-grid {
+  .footer-content, .footer-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
     text-align: center !important;
   }
 }
 
-/* ─── 12. TABLET (medium screens 640-900px) ─────────────────────────── */
+/* ─── 12. TABLET (641–900px) ──────────────────────────────────────── */
 @media (min-width: 641px) and (max-width: 900px) {
-  /* 3-column grids on tablet */
-  .poke-card-grid,
-  .pokemon-grid,
-  .card-grid {
+  .poke-card-grid, .pokemon-grid, .card-grid,
+  [class*="poke-grid"], [class*="card-grid"] {
     grid-template-columns: repeat(3, 1fr) !important;
   }
-
-  /* GO Tools 3 columns */
   .go-tools-hub .go-hub-grid {
     grid-template-columns: repeat(3, 1fr) !important;
   }
-
-  /* Team grid 2 columns */
   .go-team-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
-
-  /* Raid Guide grid 3 columns */
   .rg-tier-grid {
     grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
-/* ─── 13. LANDSCAPE PHONE (low-height, wide) ───────────────────────── */
-@media (max-height: 500px) and (orientation: landscape) {
-  /* Hero sections more compact */
-  .team-hero,
-  .go-hub-header,
-  .games-hero {
-    padding: 14px 18px !important;
-  }
-  .team-hero h1,
-  .go-hub-header h2.go-hub-title { font-size: 18px !important; }
-
-  /* Modals scroll */
-  .pokemon-modal,
-  .rg-modal { max-height: 95vh !important; }
-}
-
-/* ─── 14. REDUCED MOTION (accessibility) ───────────────────────────── */
+/* ─── 13. REDUCED MOTION ──────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
