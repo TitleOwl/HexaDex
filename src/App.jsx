@@ -19,7 +19,7 @@ import Header             from "./components/Header.jsx";
 import PokemonCard, { SkeletonCard } from "./components/PokemonCard.jsx";
 import PokemonModal       from "./components/PokemonModal.jsx";
 import TeamBuilder        from "./components/TeamBuilder.jsx";
-import CompareView        from "./components/CompareView.jsx";
+// Compare feature removed — was: import CompareView from "./components/CompareView.jsx";
 import DailyBanner        from "./components/DailyBanner.jsx";
 import Footer             from "./components/Footer.jsx";
 
@@ -80,8 +80,10 @@ export default function App() {
     window.addEventListener("ui:modal:close", onModalClose);
     window.addEventListener("popstate", onPopstate);
     return () => {
-  window.removeEventListener("popstate", onPopstate);
-};
+      window.removeEventListener("ui:modal:open",  onModalOpen);
+      window.removeEventListener("ui:modal:close", onModalClose);
+      window.removeEventListener("popstate", onPopstate);
+    };
   }, []);
 
   // 🏷️ Update document title with HexaDex branding
@@ -92,8 +94,8 @@ export default function App() {
     document.title = title;
   }, [lang]);
 
-  // ─── View Router (5 main tabs) ─────────────────────────────
-  // pokedex | compare | team | gotools | games
+  // ─── View Router (4 main tabs) ─────────────────────────────
+  // pokedex | team | gotools | games
   const [view, setView] = useState("pokedex");
 
   // ─── 🎵 Music: current generation for BGM switching ────────
@@ -282,29 +284,12 @@ export default function App() {
     />
   ) : null;
 
-const snapSearchEl = !initializing ? (
-  <SnapSearch
-    loaded={loaded}
-    thaiArr={thaiArr}
-    jpArr={jpArr}
-    lang={lang}
-    onOpen={async (pokemonId) => {
-      let pokemon = loaded.find(
-        (p) => Number(p.id) === Number(pokemonId)
-      );
-
-      if (!pokemon) {
-        const res = await fetch(
-          `https://pokeapi.co/api/v2/pokemon/${pokemonId}`
-        );
-        const data = await res.json();
-        pokemon = compactPokemon(data);
-      }
-
-      setSelected(pokemon);
-    }}
-  />
-) : null;
+  const snapSearchEl = !initializing ? (
+    <SnapSearch
+      loaded={loaded} thaiArr={thaiArr} jpArr={jpArr} lang={lang}
+      onOpen={handleSelect}
+    />
+  ) : null;
 
   return (
     <>
@@ -372,14 +357,6 @@ const snapSearchEl = !initializing ? (
             </>
           )}
         </main>
-      )}
-
-      {/* ── Compare View ── */}
-      {view === "compare" && (
-        <CompareView
-          allList={allList} thaiArr={thaiArr} jpArr={jpArr}
-          lang={lang} cachedFetch={cachedFetch}
-        />
       )}
 
       {/* ── Team Builder ── */}

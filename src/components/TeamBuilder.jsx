@@ -1198,14 +1198,14 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
           filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2)) !important;
         }
         
-        /* Pokemon image floating */
+        /* Pokemon image — FLAT 2D look (matches Pokedex page) */
         .pgo-card .go-card-img {
           background: transparent !important;
           border: none !important; padding: 0 !important;
           max-width: 68% !important;
           margin: 0 auto !important;
-          filter: drop-shadow(0 12px 24px rgba(0,0,0,0.35)) !important;
-          animation: tb-img-bob 4s ease-in-out infinite !important;
+          /* Subtle shadow only — no bobbing, no heavy 3D drop-shadow */
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.18)) !important;
           display: block !important;
           position: relative !important;
           z-index: 2 !important;

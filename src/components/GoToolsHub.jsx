@@ -1,7 +1,6 @@
 import { useState } from "react";
 import RaidCounterFinder from "./RaidCounterFinder.jsx";
-import RaidBosses        from "./RaidBosses.jsx";
-import RaidNow           from "./RaidNow.jsx";
+import RaidGuide          from "./RaidGuide.jsx";
 import RocketLineups     from "./RocketLineups.jsx";
 import SummaryOverview   from "./SummaryOverview.jsx";
 import WeatherBoost      from "./WeatherBoost.jsx";
@@ -12,38 +11,25 @@ import { findPokemonInList } from "../perfUtils.js";
 
 const TOOL_CATEGORIES = [
   {
-    id: "summary",
-    titleEn: "📊 Overview",
-    titleTh: "📊 สรุปภาพรวม",
-    titleJa: "📊 概要",
+    id: "battle",
+    titleEn: "⚔️ Battle Preparation & Stats",
+    titleTh: "⚔️ เตรียมสู้และข้อมูล",
+    titleJa: "⚔️ バトル準備 & 統計",
     tools: [
-      { id:"summary", icon:"📊", color:"#7c3aed", live: true, featured: true,
+      { id:"summary", icon:"📊", color:"#7c3aed", live: true,
         titleEn:"Live Activity Summary", titleTh:"สรุปกิจกรรมแบบสด", titleJa:"ライブアクティビティ概要",
         descEn:"All-in-one PoGO dashboard · 📸 save as image",
         descTh:"Dashboard รวมทุกอย่าง · 📸 เซฟเป็นรูปได้",
         descJa:"オールインワン · 📸 画像保存可" },
-    ],
-  },
-  {
-    id: "battle",
-    titleEn: "⚔️ Battle Preparation",
-    titleTh: "⚔️ เตรียมสู้",
-    titleJa: "⚔️ バトル準備",
-    tools: [
-      { id:"raidnow", icon:"🔴", color:"#dc2626", live: true,
-        titleEn:"Raid NOW 🇹🇭", titleTh:"Raid NOW 🇹🇭", titleJa:"レイド NOW 🇹🇭",
-        descEn:"Top-tier raid bosses right now · Thailand focus",
-        descTh:"Raid Boss ทอป-เทียร์ตอนนี้ · เน้นไทย",
-        descJa:"トップティアレイドボス今すぐ · タイ" },
-      { id:"raidbosses", icon:"🎯", color:"#ef4444", live: true,
-        titleEn:"All Raid Bosses", titleTh:"Raid Boss ทั้งหมด", titleJa:"全レイドボス",
-        descEn:"Full raid rotation · Mega / 5★ / 3★ / 1★ / Dynamax",
-        descTh:"Raid Boss ทั้งหมด · Mega / 5★ / 3★ / 1★ / Dynamax",
-        descJa:"全レイド · Mega/5★/3★/1★/ダイマックス" },
-      { id:"raid", icon:"⚔️", color:"#f97316",
-        titleEn:"Raid Counter Finder", titleTh:"ตัวสู้ Raid", titleJa:"レイド対策",
+      { id:"raidguide", icon:"⚔️", color:"#dc2626", live: true,
+        titleEn:"Raid Battle Guide", titleTh:"คู่มือ Raid Boss", titleJa:"レイドガイド",
+        descEn:"All active raid bosses · TH Raid Hour · Community",
+        descTh:"Raid Boss ทั้งหมด · Raid Hour ไทย · ชุมชน",
+        descJa:"全レイドボス · タイレイドアワー · コミュニティ" },
+      { id:"raid", icon:"🛡️", color:"#f97316",
+        titleEn:"Counter Battle Guide", titleTh:"คู่มือการสู้ Raid", titleJa:"対策ガイド",
         descEn:"Find best counters for any raid boss",
-        descTh:"หาตัวสู้ Raid Boss ดีที่สุด",
+        descTh:"หาตัวสู้ Raid Boss ที่ดีที่สุด",
         descJa:"レイドボスへの最適な対策" },
       { id:"rocket", icon:"🚀", color:"#1e293b", live: true,
         titleEn:"Team GO Rocket", titleTh:"Team GO Rocket", titleJa:"GOロケット団",
@@ -54,7 +40,7 @@ const TOOL_CATEGORIES = [
   },
   {
     id: "live",
-    titleEn: "🌐 Environment & Live",
+    titleEn: "🌐 Environment & Live Data",
     titleTh: "🌐 ข้อมูลสดและสภาพแวดล้อม",
     titleJa: "🌐 ライブ & 環境",
     tools: [
@@ -95,236 +81,249 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
     <div className="go-tools-hub" style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 20px" }}>
       {/* ─── VISUAL-FIRST DESIGN (less text, bigger icons) ─── */}
       <style>{`
+        /* ═══════════════════════════════════════════════════════════
+           Design Tokens
+           ═══════════════════════════════════════════════════════════ */
+        .go-tools-hub {
+          --gth-ease: cubic-bezier(0.16, 1, 0.3, 1);
+          --gth-radius-md: 18px;
+          --gth-radius-lg: 24px;
+          --gth-shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.06);
+          --gth-shadow-md: 0 10px 24px rgba(15, 23, 42, 0.12);
+          --gth-shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.18);
+        }
+
+        @keyframes gth-fade-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes gth-pulse-dot {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50%      { transform: scale(1.3); opacity: 0.55; }
+        }
         @keyframes gth-float {
           0%, 100% { transform: translateY(0) rotate(0); }
           50%      { transform: translateY(-8px) rotate(3deg); }
         }
-        @keyframes gth-card-in {
-          from { opacity: 0; transform: translateY(16px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes gth-pulse-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
-          70%      { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-        }
-        @keyframes gth-icon-bob {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-4px); }
+        @keyframes gth-shimmer {
+          0%   { background-position: -200% 50%; }
+          100% { background-position: 200% 50%; }
         }
 
-        /* Hero header — compact, less visual weight */
+        /* ═══════════════════════════════════════════════════════════
+           Hero Header — clean dark mesh gradient
+           ═══════════════════════════════════════════════════════════ */
         .go-tools-hub .go-hub-header {
-          background: linear-gradient(135deg, #1e3a8a 0%, #312e81 45%, #4c1d95 100%) !important;
-          color: white !important;
-          padding: 20px 24px !important;
-          border-radius: 20px !important;
-          margin-bottom: 22px !important;
           position: relative !important;
+          padding: 28px 32px !important;
+          margin-bottom: 30px !important;
+          border-radius: 26px !important;
+          background:
+            radial-gradient(circle at 12% 18%, rgba(168, 85, 247, 0.35), transparent 45%),
+            radial-gradient(circle at 88% 78%, rgba(99, 102, 241, 0.35), transparent 45%),
+            linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%) !important;
+          color: white !important;
           overflow: hidden !important;
-          box-shadow: 0 16px 40px rgba(67, 56, 202, 0.28), 0 0 0 1px rgba(255,255,255,0.08) inset !important;
+          box-shadow: var(--gth-shadow-lg), inset 0 1px 0 rgba(255,255,255,0.15) !important;
+          animation: gth-fade-up 0.5s var(--gth-ease) !important;
         }
-        .go-tools-hub .go-hub-header .go-hub-title {
-          font-size: 24px !important;
-          font-weight: 900 !important;
-          letter-spacing: -0.02em !important;
-          margin: 0 0 2px 0 !important;
-          background: linear-gradient(135deg, #fff 20%, #c7d2fe 100%) !important;
-          -webkit-background-clip: text !important;
-          background-clip: text !important;
+        .go-tools-hub .go-hub-header h2.go-hub-title {
+          font-size: 26px !important;
+          font-weight: 950 !important;
+          margin: 0 0 6px 0 !important;
+          letter-spacing: -0.03em !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 10px !important;
+          background: linear-gradient(135deg, #fff, #fde68a) !important;
+          -webkit-background-clip: text !important; background-clip: text !important;
           -webkit-text-fill-color: transparent !important;
-          color: transparent !important;
         }
         .go-tools-hub .go-hub-subtitle {
-          font-size: 12px !important;
-          color: rgba(199, 210, 254, 0.78) !important;
+          font-size: 13px !important;
+          color: rgba(241, 245, 249, 0.78) !important;
           font-weight: 600 !important;
           margin: 0 !important;
+          letter-spacing: 0.02em !important;
         }
 
-        /* Category banner — more compact */
+        /* ═══════════════════════════════════════════════════════════
+           Category Section — minimal header
+           ═══════════════════════════════════════════════════════════ */
         .go-tools-hub .go-category {
-          margin-bottom: 20px !important;
+          margin-bottom: 28px;
+          animation: gth-fade-up 0.5s var(--gth-ease) backwards;
         }
+        .go-tools-hub .go-category:nth-of-type(2) { animation-delay: 0.1s; }
+        .go-tools-hub .go-category:nth-of-type(3) { animation-delay: 0.18s; }
+
         .go-tools-hub .go-category-header {
-          font-size: 13px !important;
-          font-weight: 900 !important;
-          letter-spacing: 1.2px !important;
-          text-transform: uppercase !important;
-          padding: 9px 16px !important;
-          border-radius: 11px !important;
-          color: white !important;
-          margin-bottom: 12px !important;
           position: relative !important;
+          padding: 13px 18px !important;
+          margin-bottom: 16px !important;
+          border-radius: 14px !important;
+          font-size: 14px !important;
+          font-weight: 900 !important;
+          color: white !important;
+          letter-spacing: 0.02em !important;
           overflow: hidden !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+          box-shadow: var(--gth-shadow-sm) !important;
         }
-        /* Category header — color-coded by section ID (reliable) */
-        .go-tools-hub .go-category[data-cat="summary"] .go-category-header {
-          background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%) !important;
-          box-shadow: 0 8px 22px rgba(124, 58, 237, 0.4) !important;
+        .go-tools-hub [data-cat="battle"] .go-category-header {
+          background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%) !important;
         }
-        .go-tools-hub .go-category[data-cat="battle"] .go-category-header {
-          background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%) !important;
-          box-shadow: 0 8px 22px rgba(220, 38, 38, 0.4) !important;
-        }
-        .go-tools-hub .go-category[data-cat="live"] .go-category-header {
-          background: linear-gradient(135deg, #06b6d4 0%, #1e40af 100%) !important;
-          box-shadow: 0 8px 22px rgba(6, 182, 212, 0.4) !important;
+        .go-tools-hub [data-cat="live"] .go-category-header {
+          background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%) !important;
         }
 
-        /* Card grid — TILE style (more compact, visual-first) */
+        /* Card grid — uniform 4-up on desktop */
         .go-tools-hub .go-hub-grid {
           display: grid !important;
-          grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important;
-          gap: 14px !important;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+          gap: 16px !important;
         }
 
-        /* Cards as visual tiles */
+        /* ═══════════════════════════════════════════════════════════
+           Tool Cards — modern tile style, equal size
+           ═══════════════════════════════════════════════════════════ */
         .go-tools-hub .go-hub-card {
-          background: var(--gth-card-bg, linear-gradient(160deg, #ffffff 0%, #f8fafc 100%)) !important;
-          border-radius: 22px !important;
-          padding: 20px 12px 18px !important;
-          border: 2px solid transparent !important;
-          box-shadow:
-            0 8px 24px rgba(0, 0, 0, 0.06),
-            0 0 0 1px rgba(0, 0, 0, 0.04) !important;
-          cursor: pointer !important;
-          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-                      box-shadow 0.3s, border-color 0.3s !important;
+          position: relative !important;
           display: flex !important;
           flex-direction: column !important;
           align-items: center !important;
-          justify-content: center !important;
-          gap: 12px !important;
-          position: relative !important;
-          overflow: hidden !important;
+          gap: 14px !important;
+          padding: 24px 14px 18px !important;
+          background: white !important;
+          border-radius: var(--gth-radius-lg) !important;
+          border: 1.5px solid rgba(148, 163, 184, 0.15) !important;
+          cursor: pointer !important;
           text-align: center !important;
-          min-height: 165px !important;
-          animation: gth-card-in 0.4s ease backwards;
+          transition: all 0.4s var(--gth-ease) !important;
+          box-shadow: var(--gth-shadow-sm) !important;
+          overflow: hidden !important;
+          animation: gth-fade-up 0.5s var(--gth-ease) backwards !important;
+          min-height: 180px !important;
         }
+
+        /* Color tint on hover using --tool-color */
         .go-tools-hub .go-hub-card::before {
           content: "";
           position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 5px;
-          background: var(--tool-color);
-          opacity: 1;
+          inset: 0;
+          background: radial-gradient(circle at 50% 0%, var(--tool-color, transparent), transparent 65%);
+          opacity: 0;
+          transition: opacity 0.4s ease;
           pointer-events: none;
-        }
-        .go-tools-hub .go-hub-card::after {
-          content: "";
-          position: absolute;
-          top: -60px; right: -60px;
-          width: 160px; height: 160px;
-          border-radius: 50%;
-          background: var(--tool-color);
-          opacity: 0.1;
-          filter: blur(16px);
-          pointer-events: none;
-          transition: opacity 0.3s, transform 0.4s;
         }
         .go-tools-hub .go-hub-card:hover {
-          transform: translateY(-8px) scale(1.04) !important;
-          border-color: var(--tool-color) !important;
-          box-shadow:
-            0 28px 60px rgba(0, 0, 0, 0.18),
-            0 0 0 2px var(--tool-color) !important;
+          transform: translateY(-6px) !important;
+          border-color: var(--tool-color, rgba(99,102,241,0.4)) !important;
+          box-shadow: var(--gth-shadow-lg) !important;
         }
-        .go-tools-hub .go-hub-card:hover::after {
-          opacity: 0.3;
-          transform: scale(1.6);
-        }
-        .go-tools-hub .go-hub-card:hover .go-hub-icon {
-          animation: gth-icon-bob 1.2s ease-in-out infinite;
-        }
+        .go-tools-hub .go-hub-card:hover::before { opacity: 0.08; }
 
-        /* ICON — even bigger, more dramatic */
+        /* Tool icon */
         .go-tools-hub .go-hub-icon {
-          width: 80px !important;
-          height: 80px !important;
-          border-radius: 22px !important;
+          width: 64px !important;
+          height: 64px !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          font-size: 44px !important;
+          font-size: 30px !important;
+          border-radius: 18px !important;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.35) !important;
+          position: relative !important;
+          z-index: 1 !important;
+          transition: transform 0.4s var(--gth-ease) !important;
           flex-shrink: 0 !important;
-          box-shadow:
-            0 14px 30px var(--tool-color),
-            0 0 0 1px rgba(255,255,255,0.3) inset !important;
-          position: relative;
-          z-index: 1;
-          transition: transform 0.3s;
+        }
+        .go-tools-hub .go-hub-card:hover .go-hub-icon {
+          transform: scale(1.08) rotate(-4deg);
         }
 
-        /* Title — compact, single line if possible */
+        /* Card info */
         .go-tools-hub .go-hub-info {
           display: flex !important;
           flex-direction: column !important;
           align-items: center !important;
-          gap: 6px !important;
+          gap: 4px !important;
           position: relative !important;
           z-index: 1 !important;
+          flex: 1 !important;
         }
         .go-tools-hub .go-hub-card .go-hub-title {
-          font-size: 13px !important;
+          font-size: 14px !important;
           font-weight: 800 !important;
           color: #1e293b !important;
-          -webkit-text-fill-color: #1e293b !important;
-          background: none !important;
-          -webkit-background-clip: initial !important;
-          background-clip: initial !important;
-          text-shadow: none !important;
-          margin: 0 !important;
           letter-spacing: -0.01em !important;
-          line-height: 1.25 !important;
           display: flex !important;
           align-items: center !important;
+          gap: 6px !important;
           flex-wrap: wrap !important;
           justify-content: center !important;
-          gap: 5px !important;
+          margin: 0 !important;
+          background: none !important;
+          -webkit-text-fill-color: initial !important;
         }
-        /* HIDE description + arrow — pure visual focus */
-        .go-tools-hub .go-hub-card .go-hub-desc { display: none !important; }
-        .go-tools-hub .go-hub-card .go-hub-arrow { display: none !important; }
+        .go-tools-hub .go-hub-desc {
+          font-size: 11px !important;
+          color: #64748b !important;
+          font-weight: 600 !important;
+          line-height: 1.45 !important;
+          margin-top: 2px !important;
+        }
+
+        /* LIVE badge */
+        .go-tools-hub .go-hub-live {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 4px !important;
+          padding: 2px 9px !important;
+          font-size: 9px !important;
+          font-weight: 900 !important;
+          color: white !important;
+          background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+          border-radius: 999px !important;
+          letter-spacing: 0.08em !important;
+          box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35) !important;
+        }
+        .go-tools-hub .go-hub-live::before {
+          content: "" !important;
+          width: 5px !important; height: 5px !important;
+          background: white !important;
+          border-radius: 50% !important;
+          animation: gth-pulse-dot 1.4s ease-in-out infinite !important;
+        }
 
         /* Dark mode */
+        :root[data-theme="dark"] .go-tools-hub .go-hub-card,
         [data-theme="dark"] .go-tools-hub .go-hub-card {
-          background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%) !important;
-          box-shadow:
-            0 8px 24px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+          background: #1f2937 !important;
+          border-color: rgba(148, 163, 184, 0.18) !important;
         }
-        [data-theme="dark"] .go-tools-hub .go-hub-card .go-hub-title {
-          color: #f1f5f9 !important;
-          -webkit-text-fill-color: #f1f5f9 !important;
+        :root[data-theme="dark"] .go-tools-hub .go-hub-card .go-hub-title,
+        [data-theme="dark"] .go-tools-hub .go-hub-card .go-hub-title { color: #f1f5f9 !important; }
+        :root[data-theme="dark"] .go-tools-hub .go-hub-desc,
+        [data-theme="dark"] .go-tools-hub .go-hub-desc { color: #94a3b8 !important; }
+
+        /* Responsive */
+        @media (max-width: 720px) {
+          .go-tools-hub .go-hub-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+          .go-tools-hub .go-hub-header { padding: 22px !important; }
+          .go-tools-hub .go-hub-header h2.go-hub-title { font-size: 22px !important; }
+        }
+        @media (max-width: 420px) {
+          .go-tools-hub .go-hub-grid { grid-template-columns: 1fr !important; }
         }
 
-        /* Featured (summary) card spans wider */
-        .go-tools-hub .gth-featured {
-          grid-column: 1 / -1 !important;
-          flex-direction: row !important;
-          justify-content: flex-start !important;
-          padding: 18px 22px !important;
-          min-height: auto !important;
-          gap: 16px !important;
-          text-align: left !important;
-        }
-        .go-tools-hub .gth-featured .go-hub-info {
-          flex-direction: column !important;
-          align-items: flex-start !important;
-        }
-        .go-tools-hub .gth-featured .go-hub-card .go-hub-title,
-        .go-tools-hub .gth-featured .go-hub-title {
-          justify-content: flex-start !important;
-        }
-        .go-tools-hub .gth-featured .go-hub-desc {
-          display: block !important;
-          font-size: 12px !important;
-          color: #64748b !important;
-          font-weight: 500 !important;
-          margin-top: 4px !important;
-        }
-        [data-theme="dark"] .go-tools-hub .gth-featured .go-hub-desc {
-          color: #94a3b8 !important;
+        @media (prefers-reduced-motion: reduce) {
+          .go-tools-hub .go-hub-card,
+          .go-tools-hub .go-hub-icon,
+          .go-tools-hub .go-category,
+          .go-tools-hub .go-hub-header { animation: none !important; transition: none !important; }
         }
       `}</style>
 
@@ -392,7 +391,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
       </div>
 
       {TOOL_CATEGORIES.map((cat, catIdx) => (
-        <div key={cat.id} data-cat={cat.id} className={`go-category ${cat.id === "summary" ? "gth-featured" : ""}`}>
+        <div key={cat.id} data-cat={cat.id} className="go-category">
           <div className="go-category-header">
             <div style={{
               position: "absolute", inset: 0,
@@ -415,7 +414,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
           <div className="go-hub-grid">
             {cat.tools.map((t, i) => (
               <button key={t.id}
-                className={`go-hub-card ${t.featured || cat.id === "summary" ? "gth-featured" : ""}`}
+                className="go-hub-card"
                 onClick={() => setActive(t.id)}
                 style={{
                   "--tool-color": t.color,
@@ -472,28 +471,14 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
           }}
         />
       )}
-      {active === "raidnow" && (
-        <RaidNow
+      {active === "raidguide" && (
+        <RaidGuide
           lang={lang}
           allList={allList}
           onClose={() => setActive(null)}
           onOpenPokemon={(boss) => {
             const matched = matchPokemon(boss);
             if (matched && onOpen) { setActive(null); onOpen(matched); }
-          }}
-        />
-      )}
-      {active === "raidbosses" && (
-        <RaidBosses
-          lang={lang}
-          allList={allList}
-          onClose={() => setActive(null)}
-          onOpenPokemon={(boss) => {
-            const matched = matchPokemon(boss);
-            if (matched && onOpen) {
-              setActive(null);
-              onOpen(matched);
-            }
           }}
         />
       )}

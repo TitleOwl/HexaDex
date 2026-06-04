@@ -10,7 +10,6 @@ export function ModeTabs({ view, setView, s, lang }) {
   // Main tabs = key selling points + most-used
   const tabs = [
     { id:"pokedex",  icon:"🏠", label:s.pokedex },
-    { id:"compare",  icon:"⚖️", label:s.compare },
     { id:"team",     icon:"⚔️", label:s.teamBuilder },
     { id:"gotools",  icon:"🎯", label:goLabel },
     { id:"games",    icon:"🎮", label:gamesLabel },
