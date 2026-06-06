@@ -1,21 +1,41 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   HexaDex Responsive Web Design — v2
-   Stronger selectors + Bigger cards on mobile + Compact buttons
+   HexaDex Responsive — v3 (correct class names from real source)
+   ───────────────────────────────────────────────────────────────────────
+   Breakpoints:
+     - Phone:        max-width: 640px (iPhone SE → Pro Max)
+     - Tiny phone:   max-width: 380px
+     - Tablet:       641px - 900px
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ─── 1. GLOBAL BASE ──────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   GLOBAL BASE
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
   html, body {
     overflow-x: hidden !important;
     -webkit-text-size-adjust: 100% !important;
   }
-  .grid-wrap, main.grid-wrap,
-  .pokedex-page, .team-page, .go-tools-hub, .games-hub, main {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
+
+  /* Page wrappers — tighter padding */
+  main.grid-wrap,
+  .grid-wrap,
+  .go-tools-hub,
+  .team-page,
+  .games-hub {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    max-width: 100% !important;
   }
 }
 
+/* Prevent iOS zoom on input focus */
+@media (pointer: coarse) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS safe area for floating widgets */
 @supports (-webkit-touch-callout: none) {
   .music-fab, .footer-fab, .catch-fab,
   .voice-search-fab, .weather-status, .weather-pill {
@@ -23,53 +43,95 @@
   }
 }
 
-@media (pointer: coarse) {
-  input[type="text"], input[type="number"],
-  input[type="search"], input[type="email"],
-  textarea, select {
-    font-size: 16px !important;
-  }
-}
-
-/* ─── 2. HEADER ───────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   HEADER — stack rows, scrollable tabs, compact actions
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .app-header, header.app-header {
-    padding: 10px 12px !important;
+  .header {
+    padding: 10px 10px !important;
+  }
+
+  .header-row {
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
-  .header-logo, .hex-logo-wrap {
+
+  /* Logo — smaller */
+  .logo {
+    flex-shrink: 0 !important;
     transform: scale(0.85);
     transform-origin: left center;
   }
+
+  /* Mode tabs — horizontal scroll, no wrap */
   .mode-tabs {
     overflow-x: auto !important;
     overflow-y: hidden !important;
     flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
-    padding: 4px 0 !important;
     width: 100% !important;
     order: 99 !important;
-    margin-top: 4px !important;
+    padding: 4px 2px !important;
+    margin: 0 !important;
   }
   .mode-tabs::-webkit-scrollbar { display: none !important; }
-  .mode-tab { flex-shrink: 0 !important; padding: 8px 14px !important; }
-  .mode-tab-icon { font-size: 16px !important; }
-  .mode-tab-label { font-size: 11px !important; }
-  .header-actions, .theme-toggle-wrap {
-    margin-left: auto !important;
-    transform: scale(0.85);
+  .mode-tab {
+    flex-shrink: 0 !important;
+    padding: 7px 12px !important;
+    min-width: auto !important;
   }
-}
+  .mode-tab-icon { font-size: 14px !important; }
+  .mode-tab-label { font-size: 11px !important; }
 
-/* ─── 3. POKÉDEX — FORCE 2-COL + BIGGER CARDS ─────────────────────── */
-@media (max-width: 640px) {
-  .search-row, .pokedex-search-row {
+  /* Action buttons (More menu, theme, settings) — small */
+  .header-actions {
+    margin-left: auto !important;
+    gap: 6px !important;
+  }
+  .more-menu-btn,
+  .theme-toggle,
+  .settings-btn {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Search bar */
+  .header-row-filters {
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
-  .gen-tabs, .region-tabs, .region-bar {
+  .search-wrap {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+  .search-box {
+    width: 100% !important;
+    padding: 9px 12px 9px 36px !important;
+    font-size: 14px !important;
+  }
+  .search-icon {
+    left: 12px !important;
+    font-size: 13px !important;
+  }
+  .type-select {
+    flex: 1 1 60% !important;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+  .count-badge {
+    flex: 0 0 auto !important;
+    padding: 6px 10px !important;
+  }
+  .count-num { font-size: 14px !important; }
+  .count-label { font-size: 9px !important; }
+
+  /* Region tabs — horizontal scroll */
+  .gen-filter-wrap,
+  .header-gen-row {
     overflow-x: auto !important;
     overflow-y: hidden !important;
     flex-wrap: nowrap !important;
@@ -77,139 +139,183 @@
     scrollbar-width: none !important;
     padding-bottom: 4px !important;
   }
-  .gen-tabs::-webkit-scrollbar,
-  .region-tabs::-webkit-scrollbar { display: none !important; }
-  .gen-tab, .region-tab {
+  .gen-filter-wrap::-webkit-scrollbar,
+  .header-gen-row::-webkit-scrollbar { display: none !important; }
+  .gen-btn {
     flex-shrink: 0 !important;
-    padding: 8px 12px !important;
-    font-size: 12px !important;
+    padding: 6px 12px !important;
   }
+  .gen-btn-region { font-size: 12px !important; }
+  .gen-btn-sub { font-size: 9px !important; }
+}
 
-  /* ━━━ NUCLEAR OPTION ━━━ 
-     Use :has() to target ANY parent containing .poke-card
-     Works in Safari 15.4+ (iOS 15.4+) and Chrome 105+ */
-  *:has(> .poke-card),
-  *:has(> .pokemon-card),
-  *:has(> [class*="poke-card"]:not([class*="grid"])) {
+/* ═══════════════════════════════════════════════════════════════════════
+   POKEDEX GRID — 3 chubby cards per row
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* The real grid class is just `.grid` */
+  main.grid-wrap > .grid,
+  .grid-wrap > .grid,
+  .grid {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 10px !important;
+    gap: 8px !important;
+    padding: 0 !important;
   }
 
-  /* Original class names — fallback */
-  .poke-card-grid,
-  .pokemon-grid,
-  .card-grid,
-  .pokedex-grid,
-  .pokedex-cards,
-  .dex-grid,
-  [class*="poke-grid"],
-  [class*="card-grid"],
-  [class*="pokedex-grid"] {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 10px !important;
-  }
-
-  /* CHUBBY square cards */
-  .poke-card,
-  .pokemon-card,
-  [class*="poke-card"]:not([class*="grid"]):not([class*="wrap"]) {
-    aspect-ratio: 1 / 1.15 !important;
-    padding: 10px 8px !important;
+  /* Pokemon cards — chubby square shape */
+  .poke-card {
+    padding: 10px 6px !important;
     border-radius: 14px !important;
     min-height: unset !important;
-    height: auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
+    aspect-ratio: 1 / 1.2 !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: space-between !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
-  /* Pokemon image */
+  /* Pokemon image — fits nicely */
   .poke-card img,
-  .pokemon-card img,
   .card-pokemon-img,
-  .card-img-wrap img,
-  [class*="poke-card"] img {
-    max-width: 100% !important;
+  .card-img-wrap img {
+    max-width: 90% !important;
+    max-height: 75px !important;
     width: auto !important;
     height: auto !important;
-    max-height: 80px !important;
     object-fit: contain !important;
+    margin: 4px auto !important;
+  }
+  .card-img-wrap {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
   }
 
-  /* Smaller text — fits 3 cols */
+  /* Pokemon name + ID */
   .poke-card .poke-name,
-  .pokemon-card .poke-name,
-  [class*="poke-card"] [class*="name"] {
+  .poke-card [class*="name"]:not([class*="type"]) {
     font-size: 11px !important;
     font-weight: 800 !important;
-    line-height: 1.2 !important;
+    line-height: 1.15 !important;
     text-align: center !important;
+    margin: 2px 0 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
   }
   .poke-card .poke-id,
-  .pokemon-card .poke-id,
-  [class*="poke-card"] [class*="id"] {
+  .poke-card [class*="id"]:not([class*="name"]):not([class*="img"]) {
     font-size: 9px !important;
     line-height: 1 !important;
   }
+
+  /* Type pills — small */
   .poke-card .type-pill,
-  [class*="poke-card"] [class*="type-"] {
+  .poke-card [class*="type-"] {
     font-size: 8px !important;
-    padding: 2px 6px !important;
+    padding: 1px 5px !important;
   }
 
-  .daily-banner, .daily-poke-banner,
-  [class*="daily-banner"] {
-    padding: 12px 14px !important;
-    border-radius: 16px !important;
-    margin-bottom: 12px !important;
+  /* Favorite button — small */
+  .poke-card .fav-btn,
+  .poke-card [class*="fav"] {
+    font-size: 14px !important;
+    padding: 2px !important;
   }
-  .daily-banner > div, .daily-banner-content {
-    flex-wrap: wrap !important;
-    gap: 10px !important;
+
+  /* Section heading */
+  .section-heading {
+    font-size: 13px !important;
+    margin: 12px 4px 8px !important;
   }
-  .result-count { font-size: 14px !important; }
 }
 
-/* ─── 3b. TINY PHONES (< 380px) — 2 cols ──────────────────────────── */
+/* Tiny phones (< 380px) — fall back to 2 columns */
 @media (max-width: 380px) {
-  .poke-card-grid,
-  .pokemon-grid,
-  .card-grid,
-  .pokedex-grid,
-  [class*="poke-grid"],
-  [class*="card-grid"] {
+  main.grid-wrap > .grid,
+  .grid-wrap > .grid,
+  .grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
-  .poke-card, .pokemon-card {
-    aspect-ratio: 1 / 1.2 !important;
+  .poke-card {
+    aspect-ratio: 1 / 1.25 !important;
     padding: 12px 8px !important;
   }
   .poke-card img,
-  .pokemon-card img,
   .card-pokemon-img {
-    max-height: 100px !important;
+    max-height: 90px !important;
+  }
+  .poke-card .poke-name { font-size: 13px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DAILY BANNER
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .daily-banner,
+  [class*="daily-banner"] {
+    padding: 12px 14px !important;
+    margin-bottom: 12px !important;
+    border-radius: 16px !important;
+  }
+  .daily-banner > *,
+  .daily-banner-content {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
   }
 }
 
-/* ─── 4. POKEMON MODAL ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   LOAD MORE BUTTON
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .pokemon-modal, .poke-modal-content {
+  .load-more-wrap {
+    padding: 16px 0 !important;
+  }
+  .load-more-btn {
+    padding: 12px 20px !important;
+    font-size: 13px !important;
+    width: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EMPTY STATE
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .empty-state {
+    padding: 40px 20px !important;
+  }
+  .empty-icon { font-size: 48px !important; }
+  .empty-title { font-size: 16px !important; }
+  .empty-sub { font-size: 12px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   POKEMON MODAL — fullscreen on mobile
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .pokemon-modal,
+  .poke-modal-content,
+  [class*="pokemon-modal"]:not([class*="overlay"]) {
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 100vh !important;
     height: 100vh !important;
+    max-height: 100vh !important;
     border-radius: 0 !important;
     padding: 12px !important;
     margin: 0 !important;
   }
-  .poke-modal-tabs, .modal-tabs, .pkm-tabs {
+  .poke-modal-tabs,
+  .modal-tabs,
+  .pkm-tabs {
     overflow-x: auto !important;
     flex-wrap: nowrap !important;
     -webkit-overflow-scrolling: touch !important;
@@ -222,182 +328,253 @@
     padding: 8px 12px !important;
     font-size: 12px !important;
   }
-  .pkm-hero, .modal-hero-img { max-height: 200px !important; }
   .catch-fab {
     bottom: 14px !important;
     right: 14px !important;
     transform: scale(0.9) !important;
-    transform-origin: bottom right !important;
   }
 }
 
-/* ─── 5. TEAM BUILDER ─────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   TEAM BUILDER — 1 col team grid, compact controls
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .team-page .team-hero {
-    padding: 22px 18px !important;
-    margin-bottom: 16px !important;
+  .team-page {
+    padding: 12px !important;
   }
-  .team-page .team-hero h1 { font-size: 22px !important; }
-  .team-page .team-hero p { font-size: 11px !important; }
+  .team-hero {
+    padding: 20px 16px !important;
+    margin-bottom: 14px !important;
+  }
+  .team-hero h1 { font-size: 22px !important; }
+  .team-hero p { font-size: 11px !important; }
+
   .tb-mode-toggle {
     grid-template-columns: 1fr 1fr !important;
-    padding: 6px !important;
+    padding: 5px !important;
     gap: 6px !important;
   }
-  .tb-mode-btn { padding: 10px 12px !important; gap: 8px !important; }
-  .tb-mode-icon { font-size: 20px !important; }
+  .tb-mode-btn { padding: 9px 10px !important; gap: 6px !important; }
+  .tb-mode-icon { font-size: 18px !important; }
   .tb-mode-title-text { font-size: 12px !important; }
-  .tb-mode-desc { font-size: 10px !important; }
+  .tb-mode-desc { font-size: 9px !important; }
+
   .tb-actions-bar {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
-  .tb-action-btn { width: 100% !important; justify-content: center !important; }
-  .random-dropdown { width: 100% !important; }
+  .tb-action-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 10px 12px !important;
+  }
+
   .go-team-overview-modern {
     grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    padding: 12px !important;
+    gap: 8px !important;
+    padding: 10px !important;
   }
-  .go-team-overview-modern .go-overview-val { font-size: 20px !important; }
+  .go-team-overview-modern .go-overview-val { font-size: 18px !important; }
   .go-team-overview-modern .go-overview-label { font-size: 9px !important; }
+
   .go-team-grid {
     grid-template-columns: 1fr !important;
-    gap: 14px !important;
+    gap: 12px !important;
   }
+
   .compare-picker .team-add-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
-  .pgo-card .pgo-cp-top-value { font-size: 30px !important; }
-  .pgo-card .go-card-name { font-size: 20px !important; }
 }
 
-/* ─── 6. GO TOOLS HUB ─────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   GO TOOLS HUB — 2 cards per row
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
   .go-tools-hub .go-hub-header {
-    padding: 22px 18px !important;
-    margin-bottom: 20px !important;
-    border-radius: 22px !important;
-  }
-  .go-tools-hub .go-hub-header h2.go-hub-title { font-size: 22px !important; }
-  .go-tools-hub .go-hub-subtitle { font-size: 11px !important; }
-  .go-tools-hub .go-hub-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-  }
-  .go-tools-hub .go-hub-card {
-    padding: 18px 10px 14px !important;
-    min-height: 160px !important;
+    padding: 20px 16px !important;
+    margin-bottom: 16px !important;
     border-radius: 18px !important;
   }
-  .go-tools-hub .go-hub-icon {
-    width: 56px !important;
-    height: 56px !important;
-    font-size: 26px !important;
-    border-radius: 16px !important;
+  .go-tools-hub .go-hub-header h2,
+  .go-tools-hub .go-hub-header h2.go-hub-title { font-size: 20px !important; }
+  .go-tools-hub .go-hub-subtitle { font-size: 11px !important; }
+
+  .go-tools-hub .go-hub-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
   }
-  .go-tools-hub .go-hub-card .go-hub-title { font-size: 13px !important; }
-  .go-tools-hub .go-hub-desc { font-size: 10px !important; }
-  .go-tools-hub .go-category-header {
-    padding: 10px 14px !important;
-    font-size: 12px !important;
+  .go-tools-hub .go-hub-card {
+    padding: 14px 10px 12px !important;
+    min-height: 130px !important;
+    border-radius: 14px !important;
+  }
+  .go-tools-hub .go-hub-icon {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 20px !important;
     border-radius: 12px !important;
   }
-}
-@media (max-width: 380px) {
-  .go-tools-hub .go-hub-grid { grid-template-columns: 1fr !important; }
-  .go-tools-hub .go-hub-card { min-height: 140px !important; }
+  .go-tools-hub .go-hub-card .go-hub-title { font-size: 12px !important; }
+  .go-tools-hub .go-hub-desc { font-size: 9px !important; }
+
+  .go-tools-hub .go-category-header {
+    padding: 9px 12px !important;
+    font-size: 11px !important;
+    border-radius: 10px !important;
+    margin-bottom: 10px !important;
+  }
+  .go-tools-hub .go-category { margin-bottom: 18px !important; }
 }
 
-/* ─── 7. RAID GUIDE ───────────────────────────────────────────────── */
+/* Tiny phones — 1 col GO tools */
+@media (max-width: 380px) {
+  .go-tools-hub .go-hub-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RAID GUIDE — stack vertically
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .rg-overlay { padding: 12px 8px !important; }
+  .rg-overlay { padding: 10px 6px !important; }
   .rg-modal {
-    padding: 16px 12px !important;
-    border-radius: 20px !important;
+    padding: 14px 10px !important;
+    border-radius: 16px !important;
   }
-  .rg-title { font-size: 18px !important; }
+  .rg-title { font-size: 17px !important; }
+  .rg-title-emoji { font-size: 20px !important; }
+  .rg-subtitle { font-size: 10px !important; }
+
   .rg-raidhour {
     flex-direction: column !important;
     align-items: stretch !important;
     text-align: center !important;
-    gap: 10px !important;
-    padding: 14px !important;
+    gap: 8px !important;
+    padding: 12px !important;
   }
-  .rg-filters { gap: 6px !important; }
-  .rg-chip { padding: 6px 10px !important; font-size: 11px !important; }
+
+  .rg-filters { gap: 5px !important; }
+  .rg-chip { padding: 5px 9px !important; font-size: 10px !important; }
+  .rg-chip-emoji { font-size: 11px !important; }
+  .rg-chip-count { font-size: 9px !important; padding: 1px 5px !important; }
+
   .rg-tier-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .rg-boss { padding: 10px 6px 8px !important; }
+  .rg-boss-img { width: 64px !important; height: 64px !important; }
+  .rg-boss-name { font-size: 11px !important; }
+
+  .rg-community { padding: 12px !important; }
+  .rg-community-grid { grid-template-columns: 1fr !important; gap: 6px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GAMES HUB — single column
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .games-hub-grid,
+  .games-grid,
+  [class*="games-grid"] {
+    grid-template-columns: 1fr !important;
     gap: 10px !important;
   }
-  .rg-boss { padding: 12px 8px 10px !important; }
-  .rg-boss-img { width: 78px !important; height: 78px !important; }
-  .rg-boss-name { font-size: 12px !important; }
-  .rg-community { padding: 14px !important; }
-  .rg-community-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+  .game-card { padding: 14px !important; }
 }
 
-/* ─── 8. GAMES HUB ────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   SETTINGS DRAWER
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .games-hub-grid, .games-grid, [class*="games-grid"] {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-  .game-card { padding: 16px !important; }
-}
-
-/* ─── 9. SNAPSEARCH ───────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .snap-overlay, .snap-modal-overlay { padding: 8px !important; }
-  .snap-modal, .snap-container {
-    max-width: 100% !important;
+  .settings-drawer {
     width: 100% !important;
-    border-radius: 18px !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    padding: 18px !important;
   }
-  .snap-stage, .snap-camera-stage, .snap-preview-stage {
-    height: min(70vh, 540px) !important;
+  .settings-title { font-size: 18px !important; }
+  .settings-group { margin-bottom: 18px !important; }
+  .settings-label { font-size: 12px !important; }
+  .settings-options { flex-wrap: wrap !important; gap: 6px !important; }
+  .settings-option {
+    flex: 1 1 auto !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    min-width: 0 !important;
   }
 }
 
-/* ─── 10. FLOATING BUTTONS — COMPACT ──────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   MORE MENU DROPDOWN
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .voice-search-fab, .voice-fab {
-    width: 48px !important;
-    height: 48px !important;
-    padding: 0 !important;
+  .more-menu-dropdown {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: calc(100% - 32px) !important;
+    max-width: 360px !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
   }
-  .music-fab, .random-music-fab, .music-player-fab {
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FLOATING WIDGETS — compact
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .music-fab,
+  .random-music-fab,
+  .music-player-fab,
+  [class*="music-fab"] {
     transform: scale(0.8) !important;
     transform-origin: bottom left !important;
-    left: 12px !important;
+    left: 10px !important;
   }
-  .weather-status, .weather-pill {
+
+  .weather-status,
+  .weather-pill,
+  [class*="weather-status"] {
     transform: scale(0.8) !important;
     transform-origin: bottom right !important;
-    right: 12px !important;
+    right: 10px !important;
+  }
+
+  .voice-search-fab, .voice-fab {
+    width: 42px !important;
+    height: 42px !important;
   }
 }
 
-/* ─── 11. FOOTER ──────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
   .footer, .app-footer, footer {
     padding: 16px 12px 90px !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
+    text-align: center !important;
   }
   .footer-content, .footer-grid {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
-    text-align: center !important;
+    gap: 10px !important;
   }
 }
 
-/* ─── 12. TABLET (641–900px) ──────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   TABLET (641px - 900px)
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (min-width: 641px) and (max-width: 900px) {
-  .poke-card-grid, .pokemon-grid, .card-grid,
-  [class*="poke-grid"], [class*="card-grid"] {
-    grid-template-columns: repeat(3, 1fr) !important;
+  main.grid-wrap > .grid,
+  .grid-wrap > .grid,
+  .grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 12px !important;
   }
   .go-tools-hub .go-hub-grid {
     grid-template-columns: repeat(3, 1fr) !important;
@@ -410,7 +587,9 @@
   }
 }
 
-/* ─── 13. REDUCED MOTION ──────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   REDUCED MOTION (accessibility)
+   ═══════════════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
