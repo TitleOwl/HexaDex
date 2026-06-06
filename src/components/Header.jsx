@@ -7,13 +7,13 @@ export function ModeTabs({ view, setView, s, lang }) {
   const goLabel    = lang === "th" ? "GO Tools" : lang === "ja" ? "GOツール" : "GO Tools";
   const gamesLabel = lang === "th" ? "เกม"     : lang === "ja" ? "ゲーム"    : "Games";
 
-  // Main tabs = key selling points + most-used
   const tabs = [
     { id:"pokedex",  icon:"🏠", label:s.pokedex },
     { id:"team",     icon:"⚔️", label:s.teamBuilder },
     { id:"gotools",  icon:"🎯", label:goLabel },
     { id:"games",    icon:"🎮", label:gamesLabel },
   ];
+
   return (
     <div className="mode-tabs">
       {tabs.map(t => (
@@ -32,7 +32,6 @@ export function ModeTabs({ view, setView, s, lang }) {
 function MoreMenu({ onOpenBirthday, onOpenTier, lang }) {
   const [open, setOpen] = useState(false);
 
-  // Grouped by category — "Discover & Browse" only (since main features are in tabs)
   const groups = lang === "th" ? [
     { title: "📊 สำรวจ & จัดอันดับ", items: [
       { icon: "📊", label: "Meta Tier List",  fn: onOpenTier,     desc: "ระบบ tier S/A/B/C/D + Custom" },
@@ -95,13 +94,75 @@ function ThemeToggle({ theme, onToggle, autoMode }) {
 }
 
 function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
-  theme, toggleTheme, autoMode, enableAuto, s }) {
+  theme, toggleTheme, autoMode, enableAuto, s, onOpenChangelog,
+  currentVersion, latestDate }) {
   if (!open) return null;
+
+  const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-drawer" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close settings-close" onClick={onClose}>✕</button>
         <h2 className="settings-title">⚙️ {s.settings}</h2>
+
+        {/* ─── NEW: Version / What's New ─── */}
+        <div className="settings-group">
+          <div className="settings-label">
+            📋 {t("What's New", "อัปเดตล่าสุด", "アップデート")}
+          </div>
+          <button
+            onClick={() => { onClose(); onOpenChangelog(); }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "14px 16px",
+              background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(168,85,247,0.04))",
+              border: "1.5px solid rgba(124,58,237,0.25)",
+              borderRadius: 14,
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "all 0.25s ease",
+              color: "inherit",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(168,85,247,0.08))";
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 8px 20px rgba(124,58,237,0.2)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(168,85,247,0.04))";
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
+          >
+            <div style={{
+              width: 44, height: 44,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 22,
+              boxShadow: "0 4px 12px rgba(124,58,237,0.4)",
+              flexShrink: 0,
+            }}>📋</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <span style={{
+                  fontFamily: "'SF Mono', monospace",
+                  fontSize: 14, fontWeight: 900, color: "#7c3aed",
+                  background: "rgba(124,58,237,0.12)",
+                  padding: "2px 8px", borderRadius: 999,
+                }}>v{currentVersion}</span>
+                <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 700 }}>{latestDate}</span>
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, opacity: 0.7, marginTop: 4 }}>
+                {t("Click to see all updates →", "คลิกดูประวัติทั้งหมด →", "クリックして履歴を見る →")}
+              </div>
+            </div>
+          </button>
+        </div>
 
         <div className="settings-group">
           <div className="settings-label">🌐 {s.language}</div>
@@ -180,6 +241,7 @@ export default function Header({
   filteredCount, totalCount,
   thaiLoading, jpLoading,
   onOpenBirthday, onOpenTier,
+  onOpenChangelog, hasUpdate, currentVersion = "1.0.0", latestDate = "2026-06-04",
   voiceSearchEl, snapSearchEl,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -199,6 +261,27 @@ export default function Header({
           .logo > * {
             min-width: auto !important;
           }
+          /* Red notification dot on settings button */
+          .settings-btn { position: relative; }
+          .settings-btn .settings-dot {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
+            border: 2px solid white;
+            animation: settings-dot-pulse 1.6s ease-in-out infinite;
+          }
+          [data-theme="dark"] .settings-btn .settings-dot {
+            border-color: #1f2937;
+          }
+          @keyframes settings-dot-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50%      { transform: scale(1.25); opacity: 0.7; }
+          }
         `}</style>
         <div className="header-row header-row-main">
           <div className="logo">
@@ -208,13 +291,14 @@ export default function Header({
               tagline={s.subtitle}
             />
           </div>
-
           <ModeTabs view={view} setView={setView} s={s} lang={lang} />
-
           <div className="header-actions">
             <MoreMenu onOpenBirthday={onOpenBirthday} onOpenTier={onOpenTier} lang={lang} />
             <ThemeToggle theme={theme} onToggle={toggleTheme} autoMode={autoMode} />
-            <button className="settings-btn" onClick={() => setSettingsOpen(true)} title={s.settings}>⚙️</button>
+            <button className="settings-btn" onClick={() => setSettingsOpen(true)} title={s.settings}>
+              ⚙️
+              {hasUpdate && <span className="settings-dot" />}
+            </button>
           </div>
         </div>
 
@@ -228,18 +312,16 @@ export default function Header({
                 {voiceSearchEl}
                 {snapSearchEl}
               </div>
-
               <select className="type-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
                 <option value="all">{s.allTypes}</option>
                 {ALL_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {lang === "th" ? `${TYPE_NAMES_TH[t] ?? t}`
-                     : lang === "ja" ? `${TYPE_NAMES_JA[t] ?? t}`
-                     : t.charAt(0).toUpperCase() + t.slice(1)}
+                      : lang === "ja" ? `${TYPE_NAMES_JA[t] ?? t}`
+                      : t.charAt(0).toUpperCase() + t.slice(1)}
                   </option>
                 ))}
               </select>
-
               <div className="count-badge">
                 <span className="count-num">{filteredCount.toLocaleString()}</span>
                 <span className="count-label">{s.of} {totalCount.toLocaleString()}</span>
@@ -262,7 +344,9 @@ export default function Header({
 
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)}
         lang={lang} setLang={setLang} soundOn={soundOn} setSoundOn={setSoundOn}
-        theme={theme} toggleTheme={toggleTheme} autoMode={autoMode} enableAuto={enableAuto} s={s} />
+        theme={theme} toggleTheme={toggleTheme} autoMode={autoMode} enableAuto={enableAuto} s={s}
+        onOpenChangelog={onOpenChangelog}
+        currentVersion={currentVersion} latestDate={latestDate} />
     </>
   );
 }

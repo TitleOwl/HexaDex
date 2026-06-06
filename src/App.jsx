@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import "./App.css";
-
+import "./responsive.css";
 import {
   STRINGS, TYPE_NAMES_TH, TYPE_NAMES_JA, GENERATIONS, ALL_TYPES,
   CACHE_KEY, LIST_KEY, THAI_KEY, JP_KEY,
   THAI_NAMES_URL, JP_NAMES_URL, PAGE_SIZE, SEARCH_DEBOUNCE,
 } from "./data.js";
-
 import {
   cache, compactPokemon, useDebouncedValue, useModelViewerScript,
   getLocalName, isSoundEnabled,
 } from "./utils.js";
-
 import { useTheme } from "./useTheme.js";
 
 // ─── Core Components ─────────────────────────────────────────
@@ -19,7 +17,6 @@ import Header             from "./components/Header.jsx";
 import PokemonCard, { SkeletonCard } from "./components/PokemonCard.jsx";
 import PokemonModal       from "./components/PokemonModal.jsx";
 import TeamBuilder        from "./components/TeamBuilder.jsx";
-// Compare feature removed — was: import CompareView from "./components/CompareView.jsx";
 import DailyBanner        from "./components/DailyBanner.jsx";
 import Footer             from "./components/Footer.jsx";
 
@@ -32,15 +29,16 @@ import CardMode           from "./components/CardMode.jsx";
 import BirthdayPokemon    from "./components/BirthdayPokemon.jsx";
 import MetaTierBrowser    from "./components/MetaTierBrowser.jsx";
 import MultiplayerQuiz    from "./components/MultiplayerQuiz.jsx";
+import Changelog          from "./components/Changelog.jsx";
+import { hasUnseenVersion, fetchChangelog, getCurrentVersion, getLatestCommitDate } from "./data/changelog.js";
 
 // ─── Search add-ons (passed to Header) ───────────────────────
 import VoiceSearch        from "./components/VoiceSearch.jsx";
 import SnapSearch         from "./components/SnapSearch.jsx";
 
-// ─── 🎵 Music Player (NEW) ───────────────────────────────────
+// ─── 🎵 Music Player ─────────────────────────────────────────
 import MusicPlayer        from "./components/MusicPlayer.jsx";
 import WeatherStatus      from "./components/WeatherStatus.jsx";
-
 
 export default function App() {
   // ─── Language & Sound ──────────────────────────────────────
@@ -48,16 +46,14 @@ export default function App() {
     try { return localStorage.getItem("pkdx_lang") ?? "en"; } catch { return "en"; }
   });
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
-
   const { theme, toggleTheme, autoMode, enableAuto } = useTheme();
+
   useEffect(() => { try { localStorage.setItem("pkdx_lang", lang); } catch {} }, [lang]);
 
   // 🔙 Global back-button trap — closes topmost modal instead of leaving SPA
-  // Uses ui:modal:open/close events from useModalLifecycle to track active modals
   useEffect(() => {
     let modalStack = 0;
     let trapPushed = false;
-
     const pushTrap = () => {
       if (!trapPushed) {
         try { window.history.pushState({ hexadexTrap: true }, ""); trapPushed = true; } catch {}
@@ -68,14 +64,10 @@ export default function App() {
     const onPopstate = () => {
       trapPushed = false;
       if (modalStack > 0) {
-        // Close topmost modal — dispatch a close-all event that modals listen for
         window.dispatchEvent(new CustomEvent("ui:back-pressed"));
-        // Re-push trap to catch the NEXT back press too
         pushTrap();
       }
-      // If no modal: let browser navigate normally (back exits app)
     };
-
     window.addEventListener("ui:modal:open",  onModalOpen);
     window.addEventListener("ui:modal:close", onModalClose);
     window.addEventListener("popstate", onPopstate);
@@ -89,13 +81,12 @@ export default function App() {
   // 🏷️ Update document title with HexaDex branding
   useEffect(() => {
     const title = lang === "th" ? "HexaDex — สารานุกรมโปเกม่อนสุดล้ำ"
-                : lang === "ja" ? "HexaDex — 究極のポケモン図鑑"
-                : "HexaDex — The Hexagonal Pokédex";
+      : lang === "ja" ? "HexaDex — 究極のポケモン図鑑"
+      : "HexaDex — The Hexagonal Pokédex";
     document.title = title;
   }, [lang]);
 
   // ─── View Router (4 main tabs) ─────────────────────────────
-  // pokedex | team | gotools | games
   const [view, setView] = useState("pokedex");
 
   // ─── 🎵 Music: current generation for BGM switching ────────
@@ -106,6 +97,21 @@ export default function App() {
   const [tierOpen, setTierOpen]             = useState(false);
   const [multiplayerOpen, setMultiplayerOpen] = useState(false);
   const [cardModePokemon, setCardModePokemon] = useState(null);
+
+  // ─── 📋 Changelog state ────────────────────────────────────
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [hasUpdate, setHasUpdate]         = useState(false);
+  const [currentVersion, setCurrentVersion] = useState(() => getCurrentVersion());
+  const [latestDate, setLatestDate]         = useState(() => getLatestCommitDate());
+
+  // Pre-warm: fetch changelog on mount → updates version + dot
+  useEffect(() => {
+    fetchChangelog().then(result => {
+      if (result.version) setCurrentVersion(result.version);
+      if (result.date)    setLatestDate(result.date);
+      setHasUpdate(hasUnseenVersion());
+    });
+  }, []);
 
   // ─── Pokemon Data ──────────────────────────────────────────
   const [allList, setAllList] = useState([]);
@@ -217,6 +223,7 @@ export default function App() {
     setLoaded(prev => [...prev, ...fetched]);
     setOffset(o => o + PAGE_SIZE);
     setLoading(false);
+
     const all = {};
     detailCache.current.forEach((v, k) => { all[k] = v; });
     cache.set(CACHE_KEY, all);
@@ -250,8 +257,8 @@ export default function App() {
     if (debouncedSearch) return s.resultsFor(debouncedSearch);
     if (typeFilter !== "all") {
       const tName = lang === "th" ? (TYPE_NAMES_TH[typeFilter] ?? typeFilter)
-                  : lang === "ja" ? (TYPE_NAMES_JA[typeFilter] ?? typeFilter)
-                  : typeFilter;
+        : lang === "ja" ? (TYPE_NAMES_JA[typeFilter] ?? typeFilter)
+        : typeFilter;
       return s.typeHeading(tName, filtered.length);
     }
     const gen = GENERATIONS[genIdx];
@@ -266,11 +273,8 @@ export default function App() {
   }, []);
 
   // ─── 🎵 Gen change handler (for music + filter) ───────────
-  // Updates both pokedex filter AND music region together
   const handleGenChange = useCallback((idx) => {
     setGenIdx(idx);
-    // genIdx 0 = "All" → null (random tracks)
-    // genIdx 1-9 = Gen 1-9 → matches REGION_MUSIC keys
     setCurrentGen(idx === 0 ? null : idx);
   }, []);
 
@@ -283,7 +287,6 @@ export default function App() {
       onOpen={handleSelect} onSetSearch={setSearch}
     />
   ) : null;
-
   const snapSearchEl = !initializing ? (
     <SnapSearch
       loaded={loaded} thaiArr={thaiArr} jpArr={jpArr} lang={lang}
@@ -308,6 +311,10 @@ export default function App() {
         onOpenBirthday={() => setBirthdayOpen(true)}
         onOpenTier={() => setTierOpen(true)}
         onOpenMultiplayer={() => setMultiplayerOpen(true)}
+        onOpenChangelog={() => { setShowChangelog(true); setHasUpdate(false); }}
+        hasUpdate={hasUpdate}
+        currentVersion={currentVersion}
+        latestDate={latestDate}
         voiceSearchEl={voiceSearchEl}
         snapSearchEl={snapSearchEl}
       />
@@ -321,7 +328,6 @@ export default function App() {
               lang={lang} cachedFetch={cachedFetch} onOpen={handleSelect}
             />
           )}
-
           {initializing ? (
             <div className="grid">
               {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
@@ -411,7 +417,6 @@ export default function App() {
           onClose={() => setBirthdayOpen(false)}
         />
       )}
-
       {tierOpen && (
         <MetaTierBrowser
           loaded={loaded} allList={allList} thaiArr={thaiArr} jpArr={jpArr}
@@ -420,7 +425,6 @@ export default function App() {
           onClose={() => setTierOpen(false)}
         />
       )}
-
       {multiplayerOpen && (
         <MultiplayerQuiz
           allList={allList} thaiArr={thaiArr} jpArr={jpArr}
@@ -428,7 +432,6 @@ export default function App() {
           onClose={() => setMultiplayerOpen(false)}
         />
       )}
-
       {cardModePokemon && (
         <CardMode
           pokemon={cardModePokemon} lang={lang}
@@ -437,10 +440,17 @@ export default function App() {
         />
       )}
 
-      {/* ── 🎵 Music Player (always mounted, floats bottom-left) ── */}
+      {/* ── 📋 Changelog Modal ── */}
+      {showChangelog && (
+        <Changelog
+          lang={lang}
+          onClose={() => setShowChangelog(false)}
+        />
+      )}
+
+      {/* ── 🎵 Music Player + Weather ── */}
       <MusicPlayer currentGen={currentGen} lang={lang} />
       <WeatherStatus lang={lang} />
-
       <Footer lang={lang} />
     </>
   );
