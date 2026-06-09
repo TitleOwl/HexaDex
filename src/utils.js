@@ -38,6 +38,22 @@ export function flattenEvo(chain) {
   return out;
 }
 
+// Build a proper branching evolution tree (supports Eevee, Slowpoke splits etc.)
+export function buildEvoTree(chain) {
+  const parseNode = (node) => {
+    const id = parseInt(node.species.url.split("/").filter(Boolean).pop(), 10);
+    return {
+      id,
+      name: node.species.name,
+      minLevel: node.evolution_details?.[0]?.min_level ?? null,
+      trigger: node.evolution_details?.[0]?.trigger?.name ?? null,
+      item: node.evolution_details?.[0]?.item?.name ?? null,
+      children: (node.evolves_to ?? []).map(parseNode),
+    };
+  };
+  return parseNode(chain);
+}
+
 // ─── Defensive matchup calculation ────────────────────────────────────────────
 export function calcDefMatchups(types) {
   const defTypes = types.map((t) => t.type.name);
@@ -120,16 +136,41 @@ export function setSoundEnabled(on) {
 }
 export function isSoundEnabled() { return _soundEnabled; }
 
-export function playCry(id, volume = 0.4) {
+let _cryStyle = (() => {
+  try { return localStorage.getItem("pkdx_cry_style") ?? "anime"; } catch { return "anime"; }
+})();
+export function getCryStyle() { return _cryStyle; }
+export function setCryStyle(style) {
+  _cryStyle = style;
+  try { localStorage.setItem("pkdx_cry_style", style); } catch {}
+}
+
+export function playCry(id, volume = 0.4, name = null) {
   if (!_soundEnabled) return;
   if (_cryAudio) { _cryAudio.pause(); _cryAudio = null; }
-  _cryAudio = new Audio(CRY_URL.latest(id));
-  _cryAudio.volume = volume;
-  _cryAudio.play().catch(() => {
-    _cryAudio = new Audio(CRY_URL.legacy(id));
-    _cryAudio.volume = volume;
-    _cryAudio.play().catch(() => {});
-  });
+
+  const tryPlay = (url, ...fallbacks) => {
+    const audio = new Audio(url);
+    audio.volume = volume;
+    _cryAudio = audio;
+    audio.play().catch(() => {
+      if (fallbacks.length) tryPlay(...fallbacks);
+    });
+  };
+
+  let sources;
+  if (_cryStyle === "anime") {
+    sources = [CRY_URL.anime(id)];
+    if (name) sources.push(CRY_URL.showdown(name));
+    sources.push(CRY_URL.latest(id), CRY_URL.legacy(id));
+  } else if (_cryStyle === "classic") {
+    sources = [CRY_URL.legacy(id), CRY_URL.anime(id)];
+  } else {
+    // "game" — Showdown MP3 first (properly labeled, modern sound)
+    sources = name ? [CRY_URL.showdown(name)] : [];
+    sources.push(CRY_URL.latest(id), CRY_URL.anime(id), CRY_URL.legacy(id));
+  }
+  tryPlay(...sources);
 }
 
 let _audioCtx = null;

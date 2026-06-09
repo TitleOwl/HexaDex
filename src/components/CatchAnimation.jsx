@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Catch3DPokemon from "./Catch3DPokemon.jsx";
 import CatchBattleMusic from "./CatchBattleMusic.jsx";
+import ARViewer from "./ARViewer.jsx";
 import { catchSounds } from "../catchSounds.js";
 
 // ═══════════════════════════════════════════════════════════
@@ -55,19 +56,44 @@ const BERRIES = [
   { id:"silver-pinap", name:"Silver Pinap", nameLong:"Silver Pinap Berry",  mult:1.8, color:"#94a3b8", shape:"pinap" },
 ];
 
-// ─── 8-bit Pokeball image ───────────────────────────────────
+// ─── 8-bit Pokeball image (with colored-circle fallback) ─────
 function PokeballImg({ ballId, size = 60, animate = false, glow = false }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const ball = POKEBALLS.find(b => b.id === ballId) ?? POKEBALLS[0];
+  const cls  = `ball-img-8bit${animate ? " ball-spin-8bit" : ""}${glow ? " ball-glow-8bit" : ""}`;
+
+  if (imgFailed) {
+    // Sprite failed to load — render a colored circle with the ball's glow color
+    return (
+      <div
+        className={cls}
+        style={{
+          "--ball-glow": ball.glow,
+          width: size, height: size,
+          borderRadius: "50%",
+          background: `radial-gradient(circle at 35% 35%, ${ball.glow}bb, ${ball.glow})`,
+          border: `2px solid ${ball.glow}`,
+          boxShadow: glow ? `0 0 14px ${ball.glow}` : "none",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: size * 0.38, color: "white", fontWeight: 900,
+          flexShrink: 0,
+        }}
+      >
+        ⊕
+      </div>
+    );
+  }
+
   return (
     <img
       src={`${ITEM_BASE}/${ballId}.png`}
       alt={ball.name}
       width={size}
       height={size}
-      className={`ball-img-8bit${animate ? " ball-spin-8bit" : ""}${glow ? " ball-glow-8bit" : ""}`}
+      className={cls}
       style={{ "--ball-glow": ball.glow }}
       draggable={false}
-      onError={(e) => { e.target.style.opacity = "0.4"; }}
+      onError={() => setImgFailed(true)}
     />
   );
 }
@@ -176,6 +202,34 @@ function BerryGO({ berryId, size = 40, animate = false }) {
   return null;
 }
 
+// ─── Berry image — PokeAPI 8-bit sprite, falls back to SVG ───
+// Standard berries (razz/nanab/pinap) have PokeAPI sprites.
+// GO-exclusive berries (golden-razz, silver-pinap) fall back to the SVG renderer.
+const BERRY_SPRITE_SLUG = {
+  "razz-berry":   "razz-berry",
+  "nanab-berry":  "nanab-berry",
+  "pinap-berry":  "pinap-berry",
+  "golden-razz":  "golden-razz-berry",
+  "silver-pinap": "silver-pinap-berry",
+};
+function BerryImg({ berryId, size = 40, animate = false }) {
+  const [failed, setFailed] = useState(false);
+  const slug = BERRY_SPRITE_SLUG[berryId];
+  if (!slug || failed) return <BerryGO berryId={berryId} size={size} animate={animate} />;
+  return (
+    <img
+      src={`${ITEM_BASE}/${slug}.png`}
+      alt={berryId}
+      width={size}
+      height={size}
+      className={`berry-go${animate ? " berry-spin" : ""}`}
+      draggable={false}
+      style={{ imageRendering: "pixelated", objectFit: "contain" }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 // ─── Capture rate (BST-based) ───────────────────────────────
 function getCaptureRate(pokemon) {
   const bst = pokemon.stats.reduce((sum, s) => sum + s.base_stat, 0);
@@ -193,37 +247,26 @@ function getCaptureRate(pokemon) {
 }
 
 // ─── Curve Ball detection ──────────────────────────────────
-// Measures how much the drag path curves AND which direction.
-// Pokemon GO: curved throws get a ×1.7 catch rate multiplier.
-//
-// Uses sum of signed perpendicular distances across ALL intermediate
-// points (more accurate than single midpoint sampling).
-//
-// Cross product convention (screen Y-down):
-//   positive cross → midpoint is to the RIGHT of line first→last
-//   negative cross → midpoint is to the LEFT
-// → If user drags through the right side of the screen, ball curves right.
+// Direction based purely on horizontal displacement of the drag.
+// Drag right → ball curves right. Drag left → ball curves left.
+// Curvature scales with how diagonal the drag is (0 = straight up).
 function detectCurveBall(path) {
   const result = { curvature: 0, direction: null };
   if (path.length < 5) return result;
   const first = path[0];
-  const last = path[path.length - 1];
-  const dx = last.x - first.x;
-  const dy = last.y - first.y;
-  const len = Math.sqrt(dx * dx + dy * dy);
-  if (len < 25) return result;
-  // Sum signed cross products from all intermediate points
-  let totalCross = 0;
-  for (let i = 1; i < path.length - 1; i++) {
-    const p = path[i];
-    totalCross += dx * (p.y - first.y) - dy * (p.x - first.x);
-  }
-  const avgCross = totalCross / (path.length - 2);
-  const perpDist = Math.abs(avgCross) / len;
-  // Standard convention: positive cross = midpoint to the right (screen Y-down)
-  // → drag through right side → ball curves to the right
-  result.direction = avgCross > 0 ? "right" : "left";
-  result.curvature = Math.min(1.0, perpDist / 22);
+  const last  = path[path.length - 1];
+  const dx    = last.x - first.x;          // positive = moved right
+  const dy    = last.y - first.y;          // screen Y: positive = moved down
+  const dist  = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 30) return result;
+
+  // Fraction of total movement that is horizontal
+  const hFrac = Math.abs(dx) / dist;
+  if (hFrac < 0.10) return result;          // nearly straight up, not a curve
+
+  result.direction = dx > 0 ? "right" : "left";
+  // Curvature 0→1: starts at 10% horizontal, reaches max at 40%
+  result.curvature = Math.min(1.0, Math.max(0, (hFrac - 0.10) / 0.30));
   return result;
 }
 
@@ -315,7 +358,7 @@ function BerryPicker({ selectedId, onSelect, onClose, lang }) {
         <div className="catch-go-detail-preview">
           {previewBerry ? (
             <>
-              <BerryGO berryId={previewId} size={90} animate />
+              <BerryImg berryId={previewId} size={90} animate />
               <div className="catch-go-detail-info">
                 <div className="catch-go-detail-name">{previewBerry.nameLong}</div>
                 <div className="catch-go-detail-rate" style={{ color: previewBerry.color }}>
@@ -339,7 +382,7 @@ function BerryPicker({ selectedId, onSelect, onClose, lang }) {
               className={`catch-go-picker-item${previewId === b.id ? " selected" : ""}`}
               onClick={() => setPreviewId(b.id)}
               onDoubleClick={() => { onSelect(b.id); onClose(); }}>
-              <BerryGO berryId={b.id} size={42} />
+              <BerryImg berryId={b.id} size={42} />
               <span className="catch-go-picker-label">{b.name}</span>
             </button>
           ))}
@@ -361,6 +404,7 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
   const timerRef = useRef([]);
 
   const [phase, setPhase] = useState("idle");
+  const [arOpen, setArOpen] = useState(false);
   const [ballId, setBallId] = useState("poke-ball");
   const [berryId, setBerryId] = useState(null);
   const [showBallPicker, setShowBallPicker] = useState(false);
@@ -381,6 +425,8 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
   const [isCurveBall, setIsCurveBall] = useState(false);
   // Direction of curve ("left" or "right") — determines arc trajectory
   const [curveDirection, setCurveDirection] = useState("right");
+  // Strength of curve 0–1 — controls how far the arc swings sideways
+  const [curveStrength, setCurveStrength] = useState(0.8);
   // Show tutorial on first open (or when user re-opens via ? button)
   const [showTutorial, setShowTutorial] = useState(() => {
     try { return localStorage.getItem("pkdx_catch_tutorial_seen") !== "true"; }
@@ -607,9 +653,10 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
     const { curvature, direction } = detectCurveBall(dragPath);
     const curve = curvature > 0.3;
     setIsCurveBall(curve);
+    setCurveStrength(Math.max(0.15, curvature)); // always save actual strength for animation
     if (curve) {
       throwBonus *= 1.7;
-      setCurveDirection(direction);
+      setCurveDirection(direction ?? "right");
     }
 
     // Roll for Critical Catch!
@@ -696,23 +743,36 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
       onTouchMove={(e) => e.stopPropagation()}>
       <CatchBattleMusic pokemonId={pokemon.id} />
 
-      {/* 🌀 Curve ball trajectory keyframes — always available so animation registers */}
-      <style>{`
-        @keyframes catch-go-curve-left {
-          0%   { bottom: 40px; left: 50%; transform: translateX(-50%) scale(1)    rotate(0); }
-          20%  { bottom: 24%;  left: 16%; transform: translateX(-50%) scale(0.85) rotate(-180deg); }
-          45%  { bottom: 42%;  left: 22%; transform: translateX(-50%) scale(0.72) rotate(-360deg); }
-          70%  { bottom: 50%;  left: 38%; transform: translateX(-50%) scale(0.65) rotate(-560deg); }
-          100% { bottom: 35%;  left: 50%; transform: translateX(-50%) scale(0.7)  rotate(-720deg); }
-        }
-        @keyframes catch-go-curve-right {
-          0%   { bottom: 40px; left: 50%; transform: translateX(-50%) scale(1)    rotate(0); }
-          20%  { bottom: 24%;  left: 84%; transform: translateX(-50%) scale(0.85) rotate(180deg); }
-          45%  { bottom: 42%;  left: 78%; transform: translateX(-50%) scale(0.72) rotate(360deg); }
-          70%  { bottom: 50%;  left: 62%; transform: translateX(-50%) scale(0.65) rotate(560deg); }
-          100% { bottom: 35%;  left: 50%; transform: translateX(-50%) scale(0.7)  rotate(720deg); }
-        }
-      `}</style>
+      {/* 🌀 Curve ball trajectory keyframes — dynamic based on curveStrength */}
+      <style>{(() => {
+        const s  = curveStrength;
+        const lp = (50 - s * 34).toFixed(1);  // peak X for left  (16% at max)
+        const rp = (50 + s * 34).toFixed(1);  // peak X for right (84% at max)
+        const lm = (50 - s * 28).toFixed(1);  // mid X for left
+        const rm = (50 + s * 28).toFixed(1);  // mid X for right
+        const lr = (50 - s * 12).toFixed(1);  // return X for left
+        const rr = (50 + s * 12).toFixed(1);  // return X for right
+        const r1 = (s * 180).toFixed(0);
+        const r2 = (s * 360).toFixed(0);
+        const r3 = (s * 560).toFixed(0);
+        const r4 = (s * 720).toFixed(0);
+        return `
+          @keyframes catch-go-curve-left {
+            0%   { bottom: 40px; left: 50%;    transform: translateX(-50%) scale(1)    rotate(0); }
+            20%  { bottom: 24%;  left: ${lp}%; transform: translateX(-50%) scale(0.85) rotate(-${r1}deg); }
+            45%  { bottom: 42%;  left: ${lm}%; transform: translateX(-50%) scale(0.72) rotate(-${r2}deg); }
+            70%  { bottom: 50%;  left: ${lr}%; transform: translateX(-50%) scale(0.65) rotate(-${r3}deg); }
+            100% { bottom: 35%;  left: 50%;    transform: translateX(-50%) scale(0.7)  rotate(-${r4}deg); }
+          }
+          @keyframes catch-go-curve-right {
+            0%   { bottom: 40px; left: 50%;    transform: translateX(-50%) scale(1)    rotate(0); }
+            20%  { bottom: 24%;  left: ${rp}%; transform: translateX(-50%) scale(0.85) rotate(${r1}deg); }
+            45%  { bottom: 42%;  left: ${rm}%; transform: translateX(-50%) scale(0.72) rotate(${r2}deg); }
+            70%  { bottom: 50%;  left: ${rr}%; transform: translateX(-50%) scale(0.65) rotate(${r3}deg); }
+            100% { bottom: 35%;  left: 50%;    transform: translateX(-50%) scale(0.7)  rotate(${r4}deg); }
+          }
+        `;
+      })()}</style>
 
       {/* ─── Background landscape ─── */}
       <div className="catch-go-bg" aria-hidden>
@@ -958,7 +1018,7 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
               filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.4))",
             }}>
             {currentThrowable === "berry" ? (
-              <BerryGO berryId={berryId} size={88} animate />
+              <BerryImg berryId={berryId} size={88} animate />
             ) : (
               <PokeballImg ballId={ballId} size={88} glow animate />
             )}
@@ -1074,7 +1134,11 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
             caughtCount={caughtCount}
             isCritical={isCritical}
             lang={lang}
+            onOpenAR={() => setArOpen(true)}
           />
+        )}
+        {arOpen && (
+          <ARViewer pokemon={pokemon} lang={lang} onClose={() => setArOpen(false)} />
         )}
 
         {/* Fail/escape result (smaller, less dramatic) */}
@@ -1100,7 +1164,7 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
                 cursor: "grab",
               }}>
               {currentThrowable === "berry" ? (
-                <BerryGO berryId={berryId} size={110} animate />
+                <BerryImg berryId={berryId} size={110} animate />
               ) : (
                 <PokeballImg ballId={ballId} size={110} glow />
               )}
@@ -1132,7 +1196,7 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
             gap: "6px",
             zIndex: 8,
           }}>
-            <BerryGO berryId={berryId} size={18} />
+            <BerryImg berryId={berryId} size={18} />
             {lang === "th" ? "เบอร์รี่ทำงาน!" : "Berry active!"}
           </div>
         )}
@@ -1146,7 +1210,7 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
           disabled={phase !== "idle" || berryFlying}
           style={berryThrown ? { opacity: 0.6 } : undefined}
           title={lang === "th" ? "เลือกเบอร์รี่" : "Select berry"}>
-          {berry ? <BerryGO berryId={berryId} size={42} /> : <span style={{ fontSize: 28 }}>🍓</span>}
+          {berry ? <BerryImg berryId={berryId} size={42} /> : <span style={{ fontSize: 28 }}>🍓</span>}
         </button>
 
         {/* placeholder to keep visual layout balanced */}
@@ -1209,7 +1273,7 @@ function BerryFlyAnimation({ berryId }) {
         transition: "all 0.55s cubic-bezier(0.45, 0, 0.55, 1)",
         ...current,
       }}>
-        <BerryGO berryId={berryId} size={68} animate />
+        <BerryImg berryId={berryId} size={68} animate />
       </div>
 
       {/* +% boost indicator that appears at the end */}
@@ -1242,7 +1306,7 @@ function BerryFlyAnimation({ berryId }) {
 // CatchSuccessScreen — Pokemon GO style celebration after catch
 // Full-screen overlay with sparkles, big Pokeball, XP breakdown
 // ═══════════════════════════════════════════════════════════
-function CatchSuccessScreen({ pokemon, pokemonName, ballId, ball, bonuses, caughtCount, isCritical, lang }) {
+function CatchSuccessScreen({ pokemon, pokemonName, ballId, ball, bonuses, caughtCount, isCritical, lang, onOpenAR }) {
   // 30 confetti particles with random colors/positions
   const confetti = useMemo(() => {
     const colors = ["#fbbf24", "#facc15", "#34d399", "#60a5fa", "#f472b6", "#a78bfa", "#fb923c"];
@@ -1447,6 +1511,29 @@ function CatchSuccessScreen({ pokemon, pokemonName, ballId, ball, bonuses, caugh
           {ball.name} · #{caughtCount} {lang === "th" ? "ตัว" : "caught"}
         </span>
       </div>
+
+      {/* AR View button */}
+      {onOpenAR && (
+        <button
+          onClick={onOpenAR}
+          style={{
+            marginTop: 18,
+            padding: "11px 28px",
+            borderRadius: 999,
+            border: "1.5px solid rgba(56,189,248,0.6)",
+            background: "rgba(56,189,248,0.15)",
+            color: "#bae6fd",
+            fontSize: 14,
+            fontWeight: 900,
+            cursor: "pointer",
+            backdropFilter: "blur(8px)",
+            letterSpacing: "0.5px",
+            animation: "catch-go-bonus-row-in 0.5s ease 1.5s backwards",
+          }}
+        >
+          📷 {lang === "th" ? "ดูใน AR" : lang === "ja" ? "ARで見る" : "View in AR"}
+        </button>
+      )}
     </div>
   );
 }
@@ -2221,7 +2308,7 @@ function VizBerry() {
     }}>
       {/* Berry flying */}
       <div style={{ animation: "viz-berry-fly 2.2s ease-in-out infinite", display: "flex", alignItems: "center" }}>
-        <BerryGO berryId="razz-berry" size={32} />
+        <BerryImg berryId="razz-berry" size={32} />
       </div>
       {/* Pokemon (gets bigger as berry approaches) */}
       <div style={{

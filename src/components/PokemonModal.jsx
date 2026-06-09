@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useModalLifecycle } from "../perfUtils.js";
 import {
   STRINGS, TYPE_NAMES_TH, TYPE_NAMES_JA, STAT_LABELS,
 } from "../data.js";
 import {
   typeColor, padId, getArt, getLocalName, statColor,
-  calcDefMatchups, flattenEvo, playCry, playTypeSound,
+  calcDefMatchups, flattenEvo, buildEvoTree, playCry, playTypeSound,
+  getCryStyle, setCryStyle,
 } from "../utils.js";
 import Pokemon3DViewer  from "./Pokemon3DViewer.jsx";
 import CatchAnimation   from "./CatchAnimation.jsx";
@@ -266,11 +267,115 @@ function BreedingSection({ species, pokemon, s }) {
   );
 }
 
+// ─── Cry Style Picker ─────────────────────────────────────────────────────────
+const CRY_STYLES = [
+  { id: "anime",   emoji: "🎌", label: "Anime"  },
+  { id: "game",    emoji: "🎮", label: "Game"   },
+  { id: "classic", emoji: "🕹️", label: "8-bit"  },
+];
+
+function CryStylePicker({ lang }) {
+  const [style, setStyle] = useState(getCryStyle);
+  const [open, setOpen]   = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const pick = (id) => { setCryStyle(id); setStyle(id); setOpen(false); };
+  const current = CRY_STYLES.find(s => s.id === style) ?? CRY_STYLES[0];
+  const cryLabel = lang === "th" ? "เสียงร้อง" : lang === "ja" ? "鳴き声" : "Cry";
+
+  return (
+    <div className="cry-picker-wrap" ref={ref} onClick={e => e.stopPropagation()}>
+      <button className={`cry-picker-btn${open ? " open" : ""}`} onClick={() => setOpen(o => !o)}>
+        <span className="cry-picker-label-text">{cryLabel}</span>
+        <span className="cry-picker-divider" />
+        <strong className="cry-picker-value">{current.label}</strong>
+        <span className={`cry-picker-arrow${open ? " flipped" : ""}`}>▾</span>
+      </button>
+      {open && (
+        <div className="cry-picker-menu">
+          {CRY_STYLES.map(s => (
+            <button
+              key={s.id}
+              className={`cry-picker-item${style === s.id ? " active" : ""}`}
+              onClick={() => pick(s.id)}>
+              <span>{s.label}</span>
+              {style === s.id && <span className="cry-picker-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Evolution Tree (branching support for Eevee, Slowpoke, etc.) ─────────────
+function EvoNode({ node, currentId, evoImgs, lang, thaiArr, jpArr, color, onNavigate }) {
+  const local = getLocalName(node.id, lang, thaiArr, jpArr);
+  const name = local ?? node.name;
+  const isCurrent = node.id === currentId;
+  const nav = () => { if (!isCurrent) fetch(`https://pokeapi.co/api/v2/pokemon/${node.id}`).then(r => r.json()).then(onNavigate); };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+      <div
+        className={`evo-node${isCurrent ? " current" : ""}`}
+        style={isCurrent ? { borderColor: color } : {}}
+        onClick={nav}
+      >
+        {evoImgs[node.id]
+          ? <img src={evoImgs[node.id]} alt={name} className="evo-img" loading="lazy" />
+          : <div className="skeleton-pulse" style={{ width: 78, height: 78, borderRadius: "50%" }} />
+        }
+        <div className="evo-name">{name}</div>
+        {lang !== "en" && local && <div className="evo-name-en">{node.name}</div>}
+        {node.minLevel && <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2 }}>Lv.{node.minLevel}</div>}
+      </div>
+    </div>
+  );
+}
+
+function EvoTree({ node, currentId, evoImgs, lang, thaiArr, jpArr, color, onNavigate }) {
+  if (!node) return null;
+  const hasBranch = node.children.length > 1;
+  const isSingle = node.children.length === 1;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: "100%" }}>
+      {/* Current node row */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+        <EvoNode node={node} currentId={currentId} evoImgs={evoImgs} lang={lang} thaiArr={thaiArr} jpArr={jpArr} color={color} onNavigate={onNavigate} />
+        {isSingle && (
+          <>
+            <div className="evo-arrow">→</div>
+            <EvoTree node={node.children[0]} currentId={currentId} evoImgs={evoImgs} lang={lang} thaiArr={thaiArr} jpArr={jpArr} color={color} onNavigate={onNavigate} />
+          </>
+        )}
+      </div>
+      {hasBranch && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap", justifyContent: "center", marginTop: 6 }}>
+          {node.children.map(child => (
+            <div key={child.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="evo-arrow">→</div>
+              <EvoTree node={child} currentId={currentId} evoImgs={evoImgs} lang={lang} thaiArr={thaiArr} jpArr={jpArr} color={color} onNavigate={onNavigate} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Modal ────────────────────────────────────────────────────────────────────
 export default function PokemonModal({
   pokemon, onClose, onNavigate, lang, thaiArr, jpArr,
   speciesCache, evoCache, moveCache,
-  onPlayCry, onOpenCardMode,  // ⭐ NEW: for challenge tracking + card mode
+  onPlayCry, onOpenCardMode,
+  isFav = false, onFav,
 }) {
   const [tab, setTab]         = useState(0);
   const [species, setSpecies] = useState(null);
@@ -313,14 +418,17 @@ export default function PokemonModal({
         let chain = evoCache.current.get(data.evolution_chain.url);
         if (!chain) {
           const ev = await fetch(data.evolution_chain.url).then(r => r.json());
-          chain = flattenEvo(ev.chain);
+          chain = buildEvoTree(ev.chain);
           evoCache.current.set(data.evolution_chain.url, chain);
         }
         setEvo(chain);
+        // Collect all ids from tree
+        const collectIds = (node) => [node.id, ...node.children.flatMap(collectIds)];
+        const allIds = collectIds(chain);
         const imgs = {};
-        await Promise.allSettled(chain.map(async e => {
-          const d = await fetch(`https://pokeapi.co/api/v2/pokemon/${e.id}`).then(r => r.json());
-          imgs[e.id] = getArt(d);
+        await Promise.allSettled(allIds.map(async id => {
+          const d = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
+          imgs[id] = getArt(d);
         }));
         setEvoImgs(imgs);
         speciesCache.current.set(pokemon.id, { species:data, chain, evoImgs:imgs });
@@ -343,7 +451,7 @@ export default function PokemonModal({
   )?.genus ?? species?.genera?.find(g => g.language.name === "en")?.genus;
 
   const playCryTracked = (id) => {
-    playCry(id);
+    playCry(id, 0.4, pokemon.name);
     onPlayCry?.();
   };
 
@@ -850,7 +958,7 @@ export default function PokemonModal({
               onClick={() => setIsShiny(v => !v)}
               title={isShiny ? "Normal" : "Shiny"}
             >✨</button>
-            {/* ⭐ NEW: Card Mode button */}
+            {/* Card Mode button */}
             {onOpenCardMode && (
               <button
                 className="hero-card-btn"
@@ -898,11 +1006,23 @@ export default function PokemonModal({
           {!view3d && (
             <>
               <div className="modal-genus">{genus ?? "Pokémon"} · {padId(pokemon.id)}</div>
-              <div className="modal-name" onClick={() => playCryTracked(pokemon.id)} title={s.playCry}>
-                {heroName}
-                {isShiny && <span className="hero-shiny-badge">✨</span>}
-                <span className="modal-name-cry">🔊</span>
+              <div className="modal-name-row">
+                <div className="modal-name" onClick={() => playCryTracked(pokemon.id)} title={s.playCry}>
+                  {heroName}
+                  {isShiny && <span className="hero-shiny-badge">✨</span>}
+                  <span className="modal-name-cry">🔊</span>
+                </div>
+                {onFav && (
+                  <button
+                    className={`modal-fav-btn${isFav ? " active" : ""}`}
+                    onClick={() => onFav(pokemon.id)}
+                    title={isFav ? s.removeFav : s.addFav}
+                  >
+                    <span className="modal-fav-icon">{isFav ? "❤️" : "🤍"}</span>
+                  </button>
+                )}
               </div>
+              <CryStylePicker lang={lang} />
               {lang !== "en" && localName && <div className="modal-name-en">{pokemon.name}</div>}
               {displayImg && (
                 <img
@@ -937,6 +1057,7 @@ export default function PokemonModal({
                 color={color}
                 isShiny={isShiny}
                 lang={lang}
+                types={pokemon.types}
               />
               <CatchHintBelow3D setCatchOpen={setCatchOpen} lang={lang} />
               <div className="hero-3d-hint">
@@ -1007,29 +1128,16 @@ export default function PokemonModal({
             <div>
               <div className="modal-section-title">{s.evolutions}</div>
               {!evo ? <p className="evo-loading">{s.evoLoading}</p> : (
-                <div className="evo-chain">
-                  {evo.map((e, i) => {
-                    const evoLocal = getLocalName(e.id, lang, thaiArr, jpArr);
-                    const evoDN = evoLocal ?? e.name;
-                    return (
-                      <div key={e.id} style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        {i > 0 && <div className="evo-arrow">→</div>}
-                        <div
-                          className={`evo-node${e.id===pokemon.id?" current":""}`}
-                          style={e.id===pokemon.id?{borderColor:color}:{}}
-                          onClick={()=>{ if(e.id!==pokemon.id) fetch(`https://pokeapi.co/api/v2/pokemon/${e.id}`).then(r=>r.json()).then(onNavigate); }}
-                        >
-                          {evoImgs[e.id]
-                            ? <img src={evoImgs[e.id]} alt={evoDN} className="evo-img" loading="lazy" />
-                            : <div className="skeleton-pulse" style={{width:78,height:78,borderRadius:"50%"}} />
-                          }
-                          <div className="evo-name">{evoDN}</div>
-                          {lang !== "en" && evoLocal && <div className="evo-name-en">{e.name}</div>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <EvoTree
+                  node={evo}
+                  currentId={pokemon.id}
+                  evoImgs={evoImgs}
+                  lang={lang}
+                  thaiArr={thaiArr}
+                  jpArr={jpArr}
+                  color={color}
+                  onNavigate={onNavigate}
+                />
               )}
             </div>
           )}

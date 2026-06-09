@@ -8,12 +8,13 @@ import {
 } from "./data.js";
 import {
   cache, compactPokemon, useDebouncedValue, useModelViewerScript,
-  getLocalName, isSoundEnabled,
+  getLocalName, isSoundEnabled, getCryStyle, setCryStyle,
 } from "./utils.js";
 import { useTheme } from "./useTheme.js";
 
 // ─── Core Components ─────────────────────────────────────────
 import Header             from "./components/Header.jsx";
+import ScrollToTop        from "./components/ScrollToTop.jsx";
 import PokemonCard, { SkeletonCard } from "./components/PokemonCard.jsx";
 import PokemonModal       from "./components/PokemonModal.jsx";
 import TeamBuilder        from "./components/TeamBuilder.jsx";
@@ -46,6 +47,11 @@ export default function App() {
     try { return localStorage.getItem("pkdx_lang") ?? "en"; } catch { return "en"; }
   });
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [cryStyle, setCryStyleState] = useState(() => getCryStyle());
+  const handleSetCryStyle = useCallback((style) => {
+    setCryStyle(style);
+    setCryStyleState(style);
+  }, []);
   const { theme, toggleTheme, autoMode, enableAuto } = useTheme();
 
   useEffect(() => { try { localStorage.setItem("pkdx_lang", lang); } catch {} }, [lang]);
@@ -123,6 +129,7 @@ export default function App() {
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem("pkdx_favs") ?? "[]"); } catch { return []; }
   });
+  const [showFavsOnly, setShowFavsOnly] = useState(false);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -141,6 +148,7 @@ export default function App() {
 
   useEffect(() => {
     try { localStorage.setItem("pkdx_favs", JSON.stringify(favorites)); } catch {}
+    if (favorites.length === 0 && showFavsOnly) setShowFavsOnly(false);
   }, [favorites]);
 
   useModelViewerScript();
@@ -237,6 +245,9 @@ export default function App() {
   );
 
   const filtered = useMemo(() => {
+    if (showFavsOnly) {
+      return loaded.filter(p => favorites.includes(p.id));
+    }
     const gen = GENERATIONS[genIdx];
     const q = debouncedSearch.toLowerCase().trim();
     return loaded.filter(p => {
@@ -250,7 +261,7 @@ export default function App() {
       }
       return true;
     });
-  }, [loaded, genIdx, typeFilter, debouncedSearch, localName]);
+  }, [loaded, genIdx, typeFilter, debouncedSearch, localName, showFavsOnly, favorites]);
 
   const sectionHeading = useMemo(() => {
     const s = STRINGS[lang];
@@ -272,6 +283,36 @@ export default function App() {
     setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
   }, []);
 
+  // 🔊 Wrapped handler — opens Pokemon modal
+  // Used by SnapSearch + VoiceSearch (both may pass id or pokemon object)
+  // The Pokemon cry will play automatically from PokemonModal's useEffect
+  const handleSearchOpen = useCallback(async (pokemonOrId) => {
+    // Case 1: full pokemon object passed → use directly
+    if (pokemonOrId && typeof pokemonOrId === "object" && pokemonOrId.types) {
+      setSelected(pokemonOrId);
+      return;
+    }
+
+    // Case 2: id passed (number or string) — need to find/fetch full data
+    const id = Number(pokemonOrId?.id ?? pokemonOrId);
+    if (!id || isNaN(id)) return;
+
+    // Try in-memory caches first
+    let pokemon = loaded.find(p => p.id === id) || detailCache.current.get(id);
+
+    // Fallback: fetch from PokeAPI if not loaded yet
+    if (!pokemon || !pokemon.types) {
+      try {
+        pokemon = await cachedFetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+      } catch (e) {
+        console.error("Failed to fetch pokemon", id, e);
+        return;
+      }
+    }
+
+    setSelected(pokemon);
+  }, [loaded, cachedFetch]);
+
   // ─── 🎵 Gen change handler (for music + filter) ───────────
   const handleGenChange = useCallback((idx) => {
     setGenIdx(idx);
@@ -281,16 +322,17 @@ export default function App() {
   const s = STRINGS[lang];
 
   // ─── Voice & Snap UI (placed in Header search bar) ─────────
+  // Both use handleSearchOpen → plays cry when Pokemon is identified
   const voiceSearchEl = !initializing ? (
     <VoiceSearch
       allList={allList} thaiArr={thaiArr} jpArr={jpArr} lang={lang}
-      onOpen={handleSelect} onSetSearch={setSearch}
+      onOpen={handleSearchOpen} onSetSearch={setSearch}
     />
   ) : null;
   const snapSearchEl = !initializing ? (
     <SnapSearch
       loaded={loaded} thaiArr={thaiArr} jpArr={jpArr} lang={lang}
-      onOpen={handleSelect}
+      onOpen={handleSearchOpen}
     />
   ) : null;
 
@@ -299,6 +341,7 @@ export default function App() {
       <Header
         lang={lang} setLang={setLang}
         soundOn={soundOn} setSoundOn={setSoundOn}
+        cryStyle={cryStyle} setCryStyle={handleSetCryStyle}
         theme={theme} toggleTheme={toggleTheme}
         autoMode={autoMode} enableAuto={enableAuto}
         view={view} setView={setView}
@@ -317,12 +360,15 @@ export default function App() {
         latestDate={latestDate}
         voiceSearchEl={voiceSearchEl}
         snapSearchEl={snapSearchEl}
+        favCount={favorites.length}
+        showFavsOnly={showFavsOnly}
+        onToggleFavs={() => setShowFavsOnly(v => !v)}
       />
 
       {/* ── Pokédex View ── */}
       {view === "pokedex" && (
         <main className="grid-wrap">
-          {!initializing && !debouncedSearch && typeFilter === "all" && genIdx === 0 && allList.length > 0 && (
+          {!initializing && !debouncedSearch && typeFilter === "all" && genIdx === 0 && !showFavsOnly && allList.length > 0 && (
             <DailyBanner
               allList={allList} thaiArr={thaiArr} jpArr={jpArr}
               lang={lang} cachedFetch={cachedFetch} onOpen={handleSelect}
@@ -331,6 +377,12 @@ export default function App() {
           {initializing ? (
             <div className="grid">
               {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : showFavsOnly && favorites.length === 0 ? (
+            <div className="fav-empty-state">
+              <div className="fav-empty-heart">♡</div>
+              <div className="fav-empty-title">{s.favEmpty}</div>
+              <div className="fav-empty-sub">{s.favEmptySub}</div>
             </div>
           ) : filtered.length === 0 ? (
             <div className="empty-state">
@@ -405,6 +457,8 @@ export default function App() {
           lang={lang} thaiArr={thaiArr} jpArr={jpArr}
           speciesCache={speciesCache} evoCache={evoCache} moveCache={moveCache}
           onOpenCardMode={(p) => setCardModePokemon(p)}
+          isFav={favorites.includes(selected.id)}
+          onFav={toggleFav}
         />
       )}
 
@@ -449,6 +503,7 @@ export default function App() {
       )}
 
       {/* ── 🎵 Music Player + Weather ── */}
+      <ScrollToTop />
       <MusicPlayer currentGen={currentGen} lang={lang} />
       <WeatherStatus lang={lang} />
       <Footer lang={lang} />

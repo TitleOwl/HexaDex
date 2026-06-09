@@ -1,9 +1,9 @@
 // ─── GamesHub — Arcade-themed mini-games hub ──────────
-// Now has ONE game card with mode picker (Single / Multiplayer)
 
 import { useState, useEffect } from "react";
 import WhosThatGame    from "./WhosThatGame.jsx";
 import MultiplayerQuiz from "./MultiplayerQuiz.jsx";
+import GuessTheCryGame from "./GuessTheCryGame.jsx";
 import { useModalLifecycle } from "../perfUtils.js";
 
 const GAMES = [
@@ -24,10 +24,27 @@ const GAMES = [
              th: ["เล่นคนเดียว", "เล่นกับเพื่อน"],
              ja: ["シングル", "マルチプレイヤー"] },
   },
+  {
+    id: "guessthecry",
+    icon: "🔊",
+    color: "#f59e0b",
+    accent: "#fbbf24",
+    bestKey: "pkdx_guess_cry_best",
+    streakKey: "pkdx_guess_cry_streak",
+    titleEn: "Guess the Cry!",
+    titleTh: "ทายเสียงโปเกมอน",
+    titleJa: "鳴き声クイズ",
+    tagEn: "🎵 Sound Guessing",
+    tagTh: "🎵 เกมทายเสียงร้อง",
+    tagJa: "🎵 鳴き声当てゲーム",
+    modes: { en: ["Play Now"],
+             th: ["เล่นเลย!"],
+             ja: ["プレイ"] },
+  },
 ];
 
 export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, genIdx }) {
-  // null | "picker" | "single" | "multi"
+  // null | "picker" | "single" | "multi" | "cry"
   const [gameState, setGameState] = useState(null);
   const [scores, setScores] = useState({});
 
@@ -444,61 +461,63 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
         </div>
       </div>
 
-      {/* ── Game Cards (just one now) ── */}
+      {/* ── Game Cards ── */}
       <div className="gh-grid">
-        {GAMES.map((g, i) => (
-          <button key={g.id} className="gh-card"
-            onClick={() => setGameState("picker")}
-            style={{ "--gc": g.color, animationDelay: `${i * 0.08}s` }}>
+        {GAMES.map((g, i) => {
+          const bestId = g.id + "_best";
+          const streakId = g.id + "_streak";
+          return (
+            <button key={g.id} className="gh-card"
+              onClick={() => {
+                if (g.id === "guessthecry") setGameState("cry");
+                else setGameState("picker");
+              }}
+              style={{ "--gc": g.color, animationDelay: `${i * 0.08}s` }}>
 
-            <div className="gh-card-head">
-              <div className="gh-card-icon">{g.icon}</div>
-              <div style={{ flex: 1 }}>
-                <span className="gh-card-tag">{tag(g)}</span>
-                <div className="gh-card-title">{title(g)}</div>
+              <div className="gh-card-head">
+                <div className="gh-card-icon">{g.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <span className="gh-card-tag">{tag(g)}</span>
+                  <div className="gh-card-title">{title(g)}</div>
+                </div>
               </div>
-            </div>
 
-            <div className="gh-mode-badges">
-              <span className="gh-mode-badge">🎮 {modes(g)[0]}</span>
-              <span className="gh-mode-badge">🌐 {modes(g)[1]}</span>
-            </div>
-
-            {(scores.whosthat_best > 0 || scores.whosthat_streak > 0) && (
-              <div className="gh-scores">
-                {scores.whosthat_best > 0 && (
-                  <span className="gh-score-chip">
-                    🏆 {scores.whosthat_best} {t("คะแนน", "pts", "点")}
+              <div className="gh-mode-badges">
+                {modes(g).map((m, mi) => (
+                  <span key={mi} className="gh-mode-badge">
+                    {mi === 0 ? "🎮" : "🌐"} {m}
                   </span>
-                )}
-                {scores.whosthat_streak > 0 && (
-                  <span className="gh-score-chip" style={{
-                    background: "rgba(249, 115, 22, 0.15)",
-                    borderColor: "rgba(249, 115, 22, 0.35)",
-                    color: "#fdba74",
-                  }}>
-                    🔥 {scores.whosthat_streak} streak
-                  </span>
-                )}
+                ))}
               </div>
-            )}
 
-            <div className="gh-play">
-              ▶ {t("เล่นเลย", "PLAY NOW", "プレイ")}
-            </div>
-          </button>
-        ))}
+              {(scores[bestId] > 0 || scores[streakId] > 0) && (
+                <div className="gh-scores">
+                  {scores[bestId] > 0 && (
+                    <span className="gh-score-chip">
+                      🏆 {scores[bestId]} {t("คะแนน", "pts", "点")}
+                    </span>
+                  )}
+                  {scores[streakId] > 0 && (
+                    <span className="gh-score-chip" style={{
+                      background: "rgba(249, 115, 22, 0.15)",
+                      borderColor: "rgba(249, 115, 22, 0.35)",
+                      color: "#fdba74",
+                    }}>
+                      🔥 {scores[streakId]} streak
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="gh-play">
+                ▶ {t("เล่นเลย", "PLAY NOW", "プレイ")}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="gh-footer">
-        <p className="gh-footer-text">
-          🚧 {t("เกมใหม่กำลังมา... อยู่ระหว่างพัฒนา",
-                "MORE GAMES COMING SOON",
-                "新しいゲーム開発中")}
-        </p>
-      </div>
-
-      {/* ── Mode Picker Overlay ── */}
+      {/* ── Mode Picker Overlay (Who's That) ── */}
       {gameState === "picker" && (
         <ModePicker lang={lang}
           onClose={() => setGameState(null)}
@@ -514,6 +533,11 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
       {gameState === "multi" && (
         <MultiplayerQuiz allList={allList} thaiArr={thaiArr} jpArr={jpArr}
           lang={lang}
+          onClose={() => setGameState(null)} />
+      )}
+      {gameState === "cry" && (
+        <GuessTheCryGame allList={allList} thaiArr={thaiArr} jpArr={jpArr}
+          lang={lang} genIdx={genIdx}
           onClose={() => setGameState(null)} />
       )}
     </main>
