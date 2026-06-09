@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Catch3DPokemon from "./Catch3DPokemon.jsx";
 import CatchBattleMusic from "./CatchBattleMusic.jsx";
-import ARViewer from "./ARViewer.jsx";
 import { catchSounds } from "../catchSounds.js";
 
 // ═══════════════════════════════════════════════════════════
@@ -404,7 +403,6 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
   const timerRef = useRef([]);
 
   const [phase, setPhase] = useState("idle");
-  const [arOpen, setArOpen] = useState(false);
   const [ballId, setBallId] = useState("poke-ball");
   const [berryId, setBerryId] = useState(null);
   const [showBallPicker, setShowBallPicker] = useState(false);
@@ -1134,11 +1132,7 @@ export default function CatchAnimation({ pokemon, lang = "en", onClose }) {
             caughtCount={caughtCount}
             isCritical={isCritical}
             lang={lang}
-            onOpenAR={() => setArOpen(true)}
           />
-        )}
-        {arOpen && (
-          <ARViewer pokemon={pokemon} lang={lang} onClose={() => setArOpen(false)} />
         )}
 
         {/* Fail/escape result (smaller, less dramatic) */}
@@ -1306,7 +1300,7 @@ function BerryFlyAnimation({ berryId }) {
 // CatchSuccessScreen — Pokemon GO style celebration after catch
 // Full-screen overlay with sparkles, big Pokeball, XP breakdown
 // ═══════════════════════════════════════════════════════════
-function CatchSuccessScreen({ pokemon, pokemonName, ballId, ball, bonuses, caughtCount, isCritical, lang, onOpenAR }) {
+function CatchSuccessScreen({ pokemon, pokemonName, ballId, ball, bonuses, caughtCount, isCritical, lang }) {
   // 30 confetti particles with random colors/positions
   const confetti = useMemo(() => {
     const colors = ["#fbbf24", "#facc15", "#34d399", "#60a5fa", "#f472b6", "#a78bfa", "#fb923c"];
@@ -1512,28 +1506,6 @@ function CatchSuccessScreen({ pokemon, pokemonName, ballId, ball, bonuses, caugh
         </span>
       </div>
 
-      {/* AR View button */}
-      {onOpenAR && (
-        <button
-          onClick={onOpenAR}
-          style={{
-            marginTop: 18,
-            padding: "11px 28px",
-            borderRadius: 999,
-            border: "1.5px solid rgba(56,189,248,0.6)",
-            background: "rgba(56,189,248,0.15)",
-            color: "#bae6fd",
-            fontSize: 14,
-            fontWeight: 900,
-            cursor: "pointer",
-            backdropFilter: "blur(8px)",
-            letterSpacing: "0.5px",
-            animation: "catch-go-bonus-row-in 0.5s ease 1.5s backwards",
-          }}
-        >
-          📷 {lang === "th" ? "ดูใน AR" : lang === "ja" ? "ARで見る" : "View in AR"}
-        </button>
-      )}
     </div>
   );
 }
