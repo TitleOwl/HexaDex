@@ -732,21 +732,24 @@ export default function PokemonModal({
         .modal-overlay .modal-close {
           position: absolute !important;
           top: 14px !important; right: 14px !important;
-          width: 38px !important; height: 38px !important;
+          width: 36px !important; height: 36px !important;
           border-radius: 50% !important;
-          background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
-          border: 2px solid rgba(255,255,255,0.4) !important;
-          color: white !important;
-          font-size: 15px !important; font-weight: 900 !important;
+          background: rgba(15, 23, 42, 0.52) !important;
+          border: 1.5px solid rgba(255,255,255,0.18) !important;
+          color: rgba(255,255,255,0.72) !important;
+          font-size: 14px !important; font-weight: 700 !important;
           cursor: pointer !important;
-          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.5), 0 0 0 1px rgba(255,255,255,0.1) inset !important;
-          transition: transform 0.2s, box-shadow 0.2s !important;
+          backdrop-filter: blur(10px) !important;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+          transition: transform 0.22s cubic-bezier(.22,1,.36,1), background 0.18s, color 0.18s !important;
           z-index: 5 !important;
           display: flex !important; align-items: center !important; justify-content: center !important;
         }
         .modal-overlay .modal-close:hover {
           transform: scale(1.1) rotate(90deg) !important;
-          box-shadow: 0 8px 22px rgba(220, 38, 38, 0.7) !important;
+          background: rgba(30, 41, 59, 0.82) !important;
+          color: #fff !important;
+          box-shadow: 0 4px 18px rgba(0,0,0,0.28) !important;
         }
 
         .modal-overlay .hero-view-controls {
