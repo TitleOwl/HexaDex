@@ -402,19 +402,19 @@ input, select { font-family: inherit; }
 .poke-card {
   position: relative;
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border-radius: 18px;
   padding: 0;
   cursor: pointer;
   overflow: hidden;
   border: 1.5px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
+  transition: transform 0.28s cubic-bezier(.22,1,.36,1), box-shadow 0.28s cubic-bezier(.22,1,.36,1), border-color 0.22s;
   content-visibility: auto;
   contain-intrinsic-size: 280px;
 }
 .poke-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-6px) scale(1.015);
+  box-shadow: 0 18px 48px rgba(0,0,0,0.13), 0 0 0 1.5px var(--card-type-color, var(--blue)), 0 0 28px var(--card-type-glow, rgba(41,121,208,0.15));
   border-color: var(--card-type-color, var(--blue));
 }
 .poke-card.compare-mode { cursor: copy; }
@@ -447,7 +447,7 @@ input, select { font-family: inherit; }
 }
 .card-img-wrap {
   position: relative;
-  height: 140px;
+  height: 155px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -478,25 +478,29 @@ input, select { font-family: inherit; }
   100% { transform: scale(1); }
 }
 .card-pokemon-img {
-  width: 110px; height: 110px;
+  width: 120px; height: 120px;
   object-fit: contain;
-  transition: transform 0.3s, opacity 0.3s;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+  transition: transform 0.35s cubic-bezier(.22,1,.36,1), opacity 0.3s, filter 0.3s;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.18));
 }
 .img-visible { opacity: 1; }
 .img-hidden { opacity: 0; }
-.poke-card:hover .card-pokemon-img { transform: scale(1.06); }
-.card-body { padding: 12px 16px 14px; }
+.poke-card:hover .card-pokemon-img {
+  transform: scale(1.12) translateY(-6px);
+  filter: drop-shadow(0 12px 22px rgba(0,0,0,0.22));
+}
+.card-body { padding: 14px 16px 16px; }
 .card-num {
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-muted);
-  letter-spacing: 1px;
-  margin-bottom: 2px;
+  letter-spacing: 1.2px;
+  margin-bottom: 3px;
+  opacity: 0.7;
 }
 .card-name {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.22rem;
   color: var(--text-primary);
   text-transform: capitalize;
   letter-spacing: 0.5px;
@@ -515,14 +519,15 @@ input, select { font-family: inherit; }
 }
 .type-tag {
   display: inline-block;
-  padding: 2px 9px;
+  padding: 3px 10px;
   border-radius: 99px;
   font-size: 10px;
   font-weight: 800;
   color: #fff;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  letter-spacing: 0.6px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.28);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.18);
 }
 .type-tag-mini {
   display: inline-block;
@@ -12552,8 +12557,8 @@ body::before {
 
 /* ── Pokemon card — holographic shimmer on hover ──────────────── */
 .poke-card {
-  transition: transform 0.26s cubic-bezier(.22,1,.36,1),
-              box-shadow 0.26s cubic-bezier(.22,1,.36,1),
+  transition: transform 0.28s cubic-bezier(.22,1,.36,1),
+              box-shadow 0.28s cubic-bezier(.22,1,.36,1),
               border-color 0.22s !important;
 }
 .poke-card::before {
@@ -12564,24 +12569,24 @@ body::before {
   pointer-events: none;
   border-radius: inherit;
   background: linear-gradient(
-    112deg,
-    transparent 15%,
-    rgba(255,255,255,0.24) 40%,
-    rgba(255,255,255,0.08) 52%,
-    transparent 72%
+    118deg,
+    transparent 20%,
+    rgba(255,255,255,0.18) 44%,
+    rgba(255,255,255,0.06) 56%,
+    transparent 76%
   );
-  transform: translateX(-140%) skewX(-10deg);
-  transition: transform 0.65s cubic-bezier(.22,1,.36,1);
+  transform: translateX(-160%) skewX(-8deg);
+  transition: transform 0.7s cubic-bezier(.22,1,.36,1);
 }
 .poke-card:hover::before {
-  transform: translateX(140%) skewX(-10deg);
+  transform: translateX(160%) skewX(-8deg);
 }
 .poke-card:hover {
-  transform: translateY(-7px) scale(1.013) !important;
+  transform: translateY(-6px) scale(1.015) !important;
   box-shadow:
     0 20px 52px rgba(0,0,0,0.14),
     0 0 0 1.5px var(--card-type-color, var(--blue)),
-    0 0 32px var(--card-type-glow, rgba(41,121,208,0.18)) !important;
+    0 0 36px var(--card-type-glow, rgba(41,121,208,0.18)) !important;
 }
 
 /* ── Card image area — type-colored ambient glow ──────────────── */
@@ -12647,29 +12652,9 @@ body::before {
   }
 }
 
-/* ── Modal hero — Pokédex scan-line sweep on open ────────────── */
+/* ── Modal hero ──────────────────────────────────────────────── */
 .modal-hero {
   overflow: hidden;
-}
-.modal-hero::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0;
-  top: 0;
-  height: 2px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    rgba(0,225,255,0.9) 50%,
-    transparent 100%
-  );
-  animation: hero-scan 1.4s ease-out forwards;
-  z-index: 6;
-  pointer-events: none;
-}
-@keyframes hero-scan {
-  0%   { top: 0%;   opacity: 1;   }
-  85%  { top: 100%; opacity: 0.5; }
-  100% { top: 100%; opacity: 0;   }
 }
 
 /* ── Load more button — flowing gradient shimmer ─────────────── */
