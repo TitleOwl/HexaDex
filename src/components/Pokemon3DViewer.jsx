@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { GLB_URL } from "../data.js";
 import { useModelViewerScript } from "../utils.js";
+import TypeParticles from "./TypeParticles.jsx";
 
-export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny, lang }) {
+export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny, lang, types }) {
   const containerRef  = useRef(null);
   const mvRef         = useRef(null);
   const animationsRef = useRef([]);
@@ -39,11 +40,11 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
     mv.setAttribute("camera-controls",     "");
     mv.setAttribute("autoplay",            "");
     mv.setAttribute("animation-crossfade-duration", "250");
-    mv.setAttribute("environment-image",   "neutral");
-    mv.setAttribute("tone-mapping",        "aces");
-    mv.setAttribute("exposure",            "1.25");
-    mv.setAttribute("shadow-intensity",    "1.0");
-    mv.setAttribute("shadow-softness",     "0.6");
+    mv.setAttribute("environment-image",   "legacy");
+    mv.setAttribute("tone-mapping",        "neutral");
+    mv.setAttribute("exposure",            "1.4");
+    mv.setAttribute("shadow-intensity",    "0.7");
+    mv.setAttribute("shadow-softness",     "0.9");
     mv.setAttribute("bounds",              "tight");
     mv.setAttribute("interaction-prompt",  "none");
     mv.setAttribute("disable-tap",         "");
@@ -112,7 +113,8 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
      .trim() || n;
 
   return (
-    <div className="viewer-3d-wrap">
+    <div className="viewer-3d-wrap" style={{ position: "relative" }}>
+      <TypeParticles types={types} />
       {status === "loading" && (
         <div className="viewer-3d-overlay">
           <div className="pokeball-spin" />
@@ -128,7 +130,8 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
 
       <div
         ref={containerRef}
-        style={{ opacity: status === "loaded" ? 1 : 0, transition:"opacity .5s" }}
+        style={{ opacity: status === "loaded" ? 1 : 0, transition:"opacity .5s",
+                 position:"relative", zIndex:2 }}
       />
 
       {status === "loaded" && currentAnim && animations.length > 0 && (

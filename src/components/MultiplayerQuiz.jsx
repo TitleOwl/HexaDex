@@ -119,7 +119,7 @@ export default function MultiplayerQuiz({ allList, thaiArr, jpArr, lang, onClose
     if (isCorrect) {
       const points = 10 + timeLeft * 2;
       setScore(s => s + points);
-      playCry(c.id, 0.4);
+      playCry(c.id, 0.4, c.name);
     }
     setAnswers(a => [...a, { correct: isCorrect, time: 15 - timeLeft }]);
   };

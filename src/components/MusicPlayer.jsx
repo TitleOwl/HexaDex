@@ -7,101 +7,98 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const ARCHIVE = "https://archive.org/download";
 
 const REGION_MUSIC = {
-  1: [ // Kanto - pkmn-rgby-soundtrack
-    { name: "Pallet Town",      url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/03%20-%20Pallet%20Town.mp3` },
-    { name: "Route 1",          url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/11%20-%20Route%201.mp3` },
-    { name: "Pewter City",      url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/16%20-%20Pewter%20City.mp3` },
-    { name: "Viridian Forest",  url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/19%20-%20Viridian%20Forest.mp3` },
-    { name: "Mt. Moon",         url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/26%20-%20Mt.%20Moon.mp3` },
-    { name: "Cerulean City",    url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/30%20-%20Cerulean%20City.mp3` },
-    { name: "Vermilion City",   url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/35%20-%20Vermilion%20City.mp3` },
-    { name: "Lavender Town",    url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/39%20-%20Lavender%20Town.mp3` },
-    { name: "Celadon City",     url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/41%20-%20Celadon%20City.mp3` },
-    { name: "Cycling",          url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%202/04%20-%20Cycling.mp3` },
-    { name: "Pokemon Center",   url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/15%20-%20Pokemon%20Center.mp3` },
-    { name: "Route 24",         url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/27%20-%20Route%2024.mp3` },
+  1: [ // Kanto — pkmn-rgby-soundtrack — Disc 1/XX - Name.mp3
+    { name: "Pallet Town",     url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/03%20-%20Pallet%20Town.mp3` },
+    { name: "Route 1",         url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/11%20-%20Route%201.mp3` },
+    { name: "Pokemon Center",  url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/15%20-%20Pokemon%20Center.mp3` },
+    { name: "Pewter City",     url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/16%20-%20Pewter%20City.mp3` },
+    { name: "Viridian Forest", url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/19%20-%20Viridian%20Forest.mp3` },
+    { name: "Route 24",        url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/27%20-%20Route%2024.mp3` },
+    { name: "Cerulean City",   url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/30%20-%20Cerulean%20City.mp3` },
+    { name: "Vermilion City",  url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/35%20-%20Vermilion%20City.mp3` },
+    { name: "Lavender Town",   url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/39%20-%20Lavender%20Town.mp3` },
+    { name: "Celadon City",    url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/41%20-%20Celadon%20City.mp3` },
   ],
-  2: [ // Johto - pkmn-gsc-soundtrack
-    { name: "New Bark Town",    url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/03%20-%20New%20Bark%20Town.mp3` },
-    { name: "Route 29",         url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/06%20-%20Route%2029.mp3` },
-    { name: "Cherrygrove City", url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/07%20-%20Cherrygrove%20City.mp3` },
-    { name: "Violet City",      url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/12%20-%20Violet%20City.mp3` },
-    { name: "Azalea Town",      url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/17%20-%20Azalea%20Town.mp3` },
-    { name: "Goldenrod City",   url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/22%20-%20Goldenrod%20City.mp3` },
-    { name: "Ecruteak City",    url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/28%20-%20Ecruteak%20City.mp3` },
-    { name: "Bell Tower",       url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/29%20-%20Tin%20Tower.mp3` },
-    { name: "National Park",    url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/25%20-%20National%20Park.mp3` },
-    { name: "Pallet Town",      url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/03%20-%20Pallet%20Town.mp3` },
+  2: [ // Johto — pkmn-gsc-soundtrack — Disc 1/1-XX. Name.mp3
+    { name: "New Bark Town",    url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-05.%20New%20Bark%20Town.mp3` },
+    { name: "Route 29",         url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-08.%20Route%2029.mp3` },
+    { name: "Cherrygrove City", url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-12.%20Cherrygrove%20City.mp3` },
+    { name: "Route 30",         url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-16.%20Route%2030.mp3` },
+    { name: "Violet City",      url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-23.%20Violet%20City.mp3` },
+    { name: "Azalea Town",      url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-32.%20Azalea%20Town.mp3` },
+    { name: "Goldenrod City",   url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-40.%20Goldenrod%20City.mp3` },
+    { name: "Cycling",          url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-43.%20Cycling.mp3` },
+    { name: "National Park",    url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-45.%20National%20Park.mp3` },
+    { name: "Ecruteak City",    url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-48.%20Ecruteak%20City.mp3` },
+    { name: "Route 38",         url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-53.%20Route%2038.mp3` },
   ],
-  3: [ // Hoenn - pkmn-oras-ost
-    { name: "Littleroot Town",  url: `${ARCHIVE}/pkmn-oras-ost/05%20Littleroot%20Town.mp3` },
-    { name: "Route 101",        url: `${ARCHIVE}/pkmn-oras-ost/10%20Route%20101.mp3` },
-    { name: "Oldale Town",      url: `${ARCHIVE}/pkmn-oras-ost/11%20Oldale%20Town.mp3` },
-    { name: "Petalburg City",   url: `${ARCHIVE}/pkmn-oras-ost/22%20Petalburg%20City.mp3` },
-    { name: "Rustboro City",    url: `${ARCHIVE}/pkmn-oras-ost/26%20Rustboro%20City.mp3` },
-    { name: "Dewford Town",     url: `${ARCHIVE}/pkmn-oras-ost/30%20Dewford%20Town.mp3` },
-    { name: "Slateport City",   url: `${ARCHIVE}/pkmn-oras-ost/35%20Slateport%20City.mp3` },
-    { name: "Mauville City",    url: `${ARCHIVE}/pkmn-oras-ost/38%20Mauville%20City.mp3` },
-    { name: "Lavaridge Town",   url: `${ARCHIVE}/pkmn-oras-ost/43%20Lavaridge%20Town.mp3` },
-    { name: "Sootopolis City",  url: `${ARCHIVE}/pkmn-oras-ost/56%20Sootopolis%20City.mp3` },
+  3: [ // Hoenn — pkmn-oras-ost — Disc 1/XX - Name.mp3
+    { name: "Littleroot Town",  url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/05%20-%20Littleroot%20Town.mp3` },
+    { name: "Route 101",        url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/11%20-%20Route%20101.mp3` },
+    { name: "Oldale Town",      url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/12%20-%20Oldale%20Town.mp3` },
+    { name: "Petalburg City",   url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/23%20-%20Petalburg%20City.mp3` },
+    { name: "Route 104",        url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/26%20-%20Route%20104.mp3` },
+    { name: "Dewford Town",     url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/35%20-%20Dewford%20Town.mp3` },
+    { name: "Slateport City",   url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/38%20-%20Slateport%20City.mp3` },
+    { name: "Verdanturf Town",  url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/44%20-%20Verdanturf%20Town.mp3` },
   ],
-  4: [ // Sinnoh - pkmn-dppt-soundtrack
-    { name: "Twinleaf Town (Day)",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/05%20-%20Twinleaf%20Town%20%28Day%29.mp3` },
-    { name: "Route 201 (Day)",      url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/07%20-%20Route%20201%20%28Day%29.mp3` },
-    { name: "Lake",                 url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/08%20-%20Lake.mp3` },
-    { name: "Sandgem Town (Day)",   url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/14%20-%20Sandgem%20Town%20%28Day%29.mp3` },
-    { name: "Jubilife City (Day)",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/19%20-%20Jubilife%20City%20%28Day%29.mp3` },
-    { name: "Oreburgh City (Day)",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/24%20-%20Oreburgh%20City%20%28Day%29.mp3` },
-    { name: "Eterna City (Day)",    url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/31%20-%20Eterna%20City%20%28Day%29.mp3` },
-    { name: "Hearthome City (Day)", url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/38%20-%20Hearthome%20City%20%28Day%29.mp3` },
-    { name: "Snowpoint City",       url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%202/12%20-%20Snowpoint%20City.mp3` },
+  4: [ // Sinnoh — pkmn-dppt-soundtrack — Disc 1/XX - Name (Day).mp3
+    { name: "Twinleaf Town",   url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/05%20-%20Twinleaf%20Town%20%28Day%29.mp3` },
+    { name: "Route 201",       url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/07%20-%20Route%20201%20%28Day%29.mp3` },
+    { name: "Lake",            url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/08%20-%20Lake.mp3` },
+    { name: "Sandgem Town",    url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/14%20-%20Sandgem%20Town%20%28Day%29.mp3` },
+    { name: "Jubilife City",   url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/23%20-%20Jubilife%20City%20%28Day%29.mp3` },
+    { name: "Oreburgh City",   url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/30%20-%20Oreburgh%20City%20%28Day%29.mp3` },
+    { name: "Floaroma Town",   url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/38%20-%20Floaroma%20Town%20%28Day%29.mp3` },
+    { name: "Eterna City",     url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/45%20-%20Eterna%20City%20%28Day%29.mp3` },
+    { name: "Hearthome City",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/54%20-%20Hearthome%20City%20%28Day%29.mp3` },
+    { name: "Solaceon Town",   url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/57%20-%20Solaceon%20Town%20%28Day%29.mp3` },
+    { name: "Veilstone City",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/60%20-%20Veilstone%20City%20%28Day%29.mp3` },
+    { name: "Snowpoint City",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/64%20-%20Snowpoint%20City%20%28Day%29.mp3` },
   ],
-  5: [ // Unova - pkmn-black-white-soundtrack
-    { name: "Nuvema Town",      url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/07%20-%20Nuvema%20Town.mp3` },
-    { name: "Route 1",          url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/14%20-%20Route%201.mp3` },
-    { name: "Accumula Town",    url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/18%20-%20Accumula%20Town.mp3` },
-    { name: "Striaton City",    url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/20%20-%20Striaton%20City.mp3` },
-    { name: "Nacrene City",     url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/26%20-%20Nacrene%20City.mp3` },
-    { name: "Castelia City",    url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/31%20-%20Castelia%20City.mp3` },
-    { name: "Nimbasa City",     url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/35%20-%20Nimbasa%20City.mp3` },
-    { name: "Driftveil City",   url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%202/05%20-%20Driftveil%20City.mp3` },
-    { name: "Mistralton City",  url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%202/12%20-%20Mistralton%20City.mp3` },
+  5: [ // Unova — pkmn-black-white-soundtrack — Disc 1/XX - Name.mp3
+    { name: "Nuvema Town",     url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/07%20-%20Nuvema%20Town.mp3` },
+    { name: "Route 1",         url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/14%20-%20Route%201.mp3` },
+    { name: "Accumula Town",   url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/18%20-%20Accumula%20Town.mp3` },
+    { name: "Route 2 (Spring)",url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/24%20-%20Route%202%20%28Spring%29.mp3` },
+    { name: "Striaton City",   url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/32%20-%20Striaton%20City.mp3` },
+    { name: "Nacrene City",    url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/43%20-%20Nacrene%20City.mp3` },
+    { name: "Skyarrow Bridge", url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/52%20-%20Skyarrow%20Bridge.mp3` },
+    { name: "Castelia City",   url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/53%20-%20Castelia%20City.mp3` },
   ],
-  6: [ // Kalos - pkmn-xy-soundtrack
-    { name: "Vaniville Town",   url: `${ARCHIVE}/pkmn-xy-soundtrack/03%20Vaniville%20Town.mp3` },
-    { name: "Route 1",          url: `${ARCHIVE}/pkmn-xy-soundtrack/05%20Route%201.mp3` },
-    { name: "Aquacorde Town",   url: `${ARCHIVE}/pkmn-xy-soundtrack/07%20Aquacorde%20Town.mp3` },
-    { name: "Santalune City",   url: `${ARCHIVE}/pkmn-xy-soundtrack/12%20Santalune%20City.mp3` },
-    { name: "Lumiose City",     url: `${ARCHIVE}/pkmn-xy-soundtrack/24%20Lumiose%20City.mp3` },
-    { name: "Cyllage City",     url: `${ARCHIVE}/pkmn-xy-soundtrack/30%20Cyllage%20City.mp3` },
-    { name: "Shalour City",     url: `${ARCHIVE}/pkmn-xy-soundtrack/36%20Shalour%20City.mp3` },
-    { name: "Coumarine City",   url: `${ARCHIVE}/pkmn-xy-soundtrack/41%20Coumarine%20City.mp3` },
+  6: [ // Kalos — pkmn-xy-soundtrack — Disc 1/XX - Name .mp3 (some have trailing space)
+    { name: "Vaniville Town",  url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/05%20-%20Vaniville%20Town%20.mp3` },
+    { name: "Route 1",         url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/06%20-%20Route%201%20.mp3` },
+    { name: "Aquacorde Town",  url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/07%20-%20Aquacorde%20Town%20.mp3` },
+    { name: "Santalune City",  url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/23%20-%20Santalune%20City.mp3` },
+    { name: "Lumiose City",    url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/37%20-%20Lumiose%20City%20.mp3` },
+    { name: "Camphrier Town",  url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/43%20-%20Camphrier%20Town.mp3` },
+    { name: "Parfum Palace",   url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/45%20-%20Parfum%20Palace.mp3` },
   ],
-  7: [ // Alola - pkmn-sun-moon-ost
-    { name: "Alola Region",     url: `${ARCHIVE}/pkmn-sun-moon-ost/03%20Alola%20Region.mp3` },
-    { name: "Route 1",          url: `${ARCHIVE}/pkmn-sun-moon-ost/08%20Route%201.mp3` },
-    { name: "Iki Town (Day)",   url: `${ARCHIVE}/pkmn-sun-moon-ost/09%20Iki%20Town%20%28Day%29.mp3` },
-    { name: "Iki Town (Night)", url: `${ARCHIVE}/pkmn-sun-moon-ost/10%20Iki%20Town%20%28Night%29.mp3` },
-    { name: "Hau'oli City",     url: `${ARCHIVE}/pkmn-sun-moon-ost/13%20Hau%27oli%20City.mp3` },
-    { name: "Heahea City",      url: `${ARCHIVE}/pkmn-sun-moon-ost/19%20Heahea%20City.mp3` },
-    { name: "Paniola Town",     url: `${ARCHIVE}/pkmn-sun-moon-ost/22%20Paniola%20Town.mp3` },
-    { name: "Konikoni City",    url: `${ARCHIVE}/pkmn-sun-moon-ost/27%20Konikoni%20City.mp3` },
-    { name: "Malie City (Day)", url: `${ARCHIVE}/pkmn-sun-moon-ost/35%20Malie%20City%20%28Day%29.mp3` },
-    { name: "Seafolk Village",  url: `${ARCHIVE}/pkmn-sun-moon-ost/43%20Seafolk%20Village.mp3` },
+  7: [ // Alola — pkmn-sun-moon-ost — Disc 1/XX - Name.mp3
+    { name: "Alola Region",       url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%201/03%20-%20Alola%20Region.mp3` },
+    { name: "Route 1",            url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%201/08%20-%20Route%201.mp3` },
+    { name: "Iki Town (Day)",     url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%201/09%20-%20Iki%20Town%20%28Day%29.mp3` },
+    { name: "Iki Town (Night)",   url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%201/10%20-%20Iki%20Town%20%28Night%29.mp3` },
+    { name: "Hau'oli City (Day)", url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%201/44%20-%20Hau%27oli%20City%20%28Day%29.mp3` },
+    { name: "Hau'oli City (Night)",url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%201/45%20-%20Hau%27oli%20City%20%28Night%29.mp3` },
+    { name: "Route 2",            url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%202/01%20-%20Route%202.mp3` },
   ],
 };
 
-// All known-working tracks for "All Regions" mode + Gen 8/9 fallback
+// Fallback pool for "All Regions" / Gen 8 / Gen 9 (URLs verified against archive.org metadata)
 const ALL_TRACKS = [
-  // Kanto (verified)
   { name: "Pallet Town",    url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/03%20-%20Pallet%20Town.mp3`, region: 1 },
-  { name: "Route 1",        url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/11%20-%20Route%201.mp3`, region: 1 },
   { name: "Lavender Town",  url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/39%20-%20Lavender%20Town.mp3`, region: 1 },
   { name: "Celadon City",   url: `${ARCHIVE}/pkmn-rgby-soundtrack/Disc%201/41%20-%20Celadon%20City.mp3`, region: 1 },
-  // Sinnoh (verified)
+  { name: "New Bark Town",  url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-05.%20New%20Bark%20Town.mp3`, region: 2 },
+  { name: "Goldenrod City", url: `${ARCHIVE}/pkmn-gsc-soundtrack/Disc%201/1-40.%20Goldenrod%20City.mp3`, region: 2 },
+  { name: "Littleroot Town",url: `${ARCHIVE}/pkmn-oras-ost/Disc%201/05%20-%20Littleroot%20Town.mp3`, region: 3 },
   { name: "Twinleaf Town",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/05%20-%20Twinleaf%20Town%20%28Day%29.mp3`, region: 4 },
-  { name: "Route 201",      url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/07%20-%20Route%20201%20%28Day%29.mp3`, region: 4 },
-  { name: "Lake (Sinnoh)",  url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/08%20-%20Lake.mp3`, region: 4 },
+  { name: "Lake",           url: `${ARCHIVE}/pkmn-dppt-soundtrack/Disc%201/08%20-%20Lake.mp3`, region: 4 },
+  { name: "Nuvema Town",    url: `${ARCHIVE}/pkmn-black-white-soundtrack/Disc%201/07%20-%20Nuvema%20Town.mp3`, region: 5 },
+  { name: "Vaniville Town", url: `${ARCHIVE}/pkmn-xy-soundtrack/Disc%201/05%20-%20Vaniville%20Town%20.mp3`, region: 6 },
+  { name: "Alola Region",   url: `${ARCHIVE}/pkmn-sun-moon-ost/Disc%201/03%20-%20Alola%20Region.mp3`, region: 7 },
 ];
 
 const REGION_NAMES = {
@@ -116,17 +113,21 @@ const REGION_NAMES = {
   9: { en: "Paldea", th: "ปัลเดีย",   ja: "パルデア" },
 };
 
-function pickRandom(pool, excludeUrl) {
-  const filtered = pool.filter(t => t.url !== excludeUrl);
-  if (filtered.length === 0) return pool[Math.floor(Math.random() * pool.length)];
-  return filtered[Math.floor(Math.random() * filtered.length)];
+function pickRandom(pool, excludeUrl, failedUrls = new Set()) {
+  const available = pool.filter(t => t.url !== excludeUrl && !failedUrls.has(t.url));
+  if (available.length > 0) return available[Math.floor(Math.random() * available.length)];
+  // All failed → pick anything except current
+  const fallback = pool.filter(t => t.url !== excludeUrl);
+  if (fallback.length > 0) return fallback[Math.floor(Math.random() * fallback.length)];
+  return pool[0];
 }
 
 export default function MusicPlayer({ currentGen, lang = "en" }) {
   const audioRef = useRef(null);
   const userInteractedRef = useRef(false);
   const wasPlayingBeforeCatchRef = useRef(false);
-  const skipCountRef = useRef(0); // prevent infinite skip loops
+  const failedUrlsRef = useRef(new Set()); // track broken URLs this session
+  const currentTrackRef = useRef(null);    // mirror of currentTrack for use in callbacks
 
   const [expanded, setExpanded] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -143,11 +144,19 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
   const [hiddenForCatch, setHiddenForCatch] = useState(false);
 
   // ─── Pick track based on currentGen ────────────────────────
-  const pickTrackForGen = useCallback((gen, excludeUrl) => {
+  const pickTrackForGen = useCallback((gen, excludeUrl, failedUrls) => {
+    const failed = failedUrls ?? failedUrlsRef.current;
     if (gen && REGION_MUSIC[gen]) {
-      return pickRandom(REGION_MUSIC[gen], excludeUrl);
+      const pool = REGION_MUSIC[gen];
+      const available = pool.filter(t => t.url !== excludeUrl && !failed.has(t.url));
+      if (available.length > 0) return pickRandom(available, null);
+      // All region tracks are broken → fall back to ALL_TRACKS
+      const fallback = ALL_TRACKS.filter(t => t.url !== excludeUrl && !failed.has(t.url));
+      if (fallback.length > 0) return pickRandom(fallback, null);
+      // Last resort: anything in the region regardless of failed status
+      return pickRandom(pool, excludeUrl);
     }
-    return pickRandom(ALL_TRACKS, excludeUrl);
+    return pickRandom(ALL_TRACKS, excludeUrl, failed);
   }, []);
 
   // ─── Initialize first track on mount ───────────────────────
@@ -157,11 +166,14 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Mirror currentTrack to ref so callbacks always read latest ─
+  useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
+
   // ─── Switch track when currentGen changes ──────────────────
   useEffect(() => {
-    const newTrack = pickTrackForGen(currentGen, currentTrack?.url);
-    if (newTrack && newTrack.url !== currentTrack?.url) {
-      skipCountRef.current = 0;
+    failedUrlsRef.current = new Set(); // reset failed list on region switch
+    const newTrack = pickTrackForGen(currentGen, currentTrackRef.current?.url, new Set());
+    if (newTrack && newTrack.url !== currentTrackRef.current?.url) {
       setCurrentTrack(newTrack);
       setLoadError(false);
     }
@@ -235,27 +247,42 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
   }, []);
 
   // ─── Audio handlers ────────────────────────────────────────
-  const handlePlay = () => { setPlaying(true); skipCountRef.current = 0; };
+  const handlePlay = () => setPlaying(true);
   const handlePause = () => setPlaying(false);
   const handleEnded = () => {
-    const next = pickTrackForGen(currentGen, currentTrack?.url);
+    const next = pickTrackForGen(currentGen, currentTrackRef.current?.url);
     setCurrentTrack(next);
     setLoadError(false);
   };
   const handleError = () => {
-    skipCountRef.current += 1;
-    // Stop skipping after 5 failed attempts (avoid infinite loop)
-    if (skipCountRef.current > 5) {
-      setLoadError(true);
-      console.warn("MusicPlayer: too many failed loads, stopping auto-skip");
-      return;
-    }
-    setLoadError(true);
-    setTimeout(() => {
-      const next = pickTrackForGen(currentGen, currentTrack?.url);
+    // Mark this URL as broken so we never pick it again this session
+    const badUrl = currentTrackRef.current?.url;
+    if (badUrl) failedUrlsRef.current.add(badUrl);
+
+    const pool = currentGen && REGION_MUSIC[currentGen]
+      ? REGION_MUSIC[currentGen]
+      : ALL_TRACKS;
+    const remaining = pool.filter(t => !failedUrlsRef.current.has(t.url));
+
+    // If every track in the region is broken, fall back to ALL_TRACKS
+    if (remaining.length === 0) {
+      const fallback = ALL_TRACKS.filter(t => !failedUrlsRef.current.has(t.url));
+      if (fallback.length === 0) {
+        setLoadError(true); // completely out of options
+        return;
+      }
+      const next = pickRandom(fallback, null);
       setCurrentTrack(next);
       setLoadError(false);
-    }, 1200);
+      return;
+    }
+
+    setLoadError(true);
+    setTimeout(() => {
+      const next = pickTrackForGen(currentGen, badUrl);
+      setCurrentTrack(next);
+      setLoadError(false);
+    }, 800);
   };
 
   // ─── Controls ──────────────────────────────────────────────
@@ -268,8 +295,7 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
 
   const skipTrack = () => {
     userInteractedRef.current = true;
-    skipCountRef.current = 0;
-    const newTrack = pickTrackForGen(currentGen, currentTrack?.url);
+    const newTrack = pickTrackForGen(currentGen, currentTrackRef.current?.url);
     setCurrentTrack(newTrack);
     setLoadError(false);
   };

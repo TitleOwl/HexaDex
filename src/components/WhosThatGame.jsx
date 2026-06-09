@@ -140,7 +140,7 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
       setScore(v => v + gain);
       setCombo(v => v + 1);
       setRevealed(true);
-      playCry(target.id, 0.4);
+      playCry(target.id, 0.4, target.name);
       onCorrectAnswer?.();  // ⭐ Track challenge progress
     } else {
       handleWrong();

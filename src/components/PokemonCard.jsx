@@ -1,4 +1,4 @@
-import { useState, memo } from "react";
+import { useState, useRef, memo } from "react";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import { typeColor, typeGlow, padId, getArt } from "../utils.js";
 
@@ -29,6 +29,8 @@ const PokemonCard = memo(function PokemonCard({
   onCompareSelect,
 }) {
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [favAnim, setFavAnim]     = useState(false);
+  const favTimerRef = useRef(null);
   const mainType    = pokemon.types[0]?.type.name ?? "normal";
   const color       = typeColor(mainType);
   const img         = getArt(pokemon);
@@ -59,10 +61,17 @@ const PokemonCard = memo(function PokemonCard({
         style={{ background:`radial-gradient(circle at 55% 45%, ${color}1a, transparent 70%)` }}
       >
         {!compareMode && (
-          <button className="fav-btn"
-            onClick={(e)=>{ e.stopPropagation(); onFav(pokemon.id); }}
+          <button
+            className={`fav-btn${isFav ? " fav-active-state" : ""}${favAnim ? " fav-active" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFav(pokemon.id);
+              clearTimeout(favTimerRef.current);
+              setFavAnim(true);
+              favTimerRef.current = setTimeout(() => setFavAnim(false), 400);
+            }}
             aria-label="favourite"
-          >{isFav?"❤️":"🤍"}</button>
+          >{isFav ? "❤️" : "🤍"}</button>
         )}
 
         {img && (

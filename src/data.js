@@ -10,8 +10,10 @@ export const THAI_NAMES_URL = "https://raw.githubusercontent.com/sindresorhus/po
 export const JP_NAMES_URL   = "https://raw.githubusercontent.com/sindresorhus/pokemon/main/data/ja.json";
 
 export const CRY_URL = {
-  latest: (id) => `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`,
-  legacy: (id) => `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/${id}.ogg`,
+  anime:    (id)   => `https://pokemoncries.com/cries/${id}.mp3`,
+  showdown: (name) => `https://play.pokemonshowdown.com/audio/cries/${name.toLowerCase().replace(/[^a-z0-9-]/g, "")}.mp3`,
+  latest:   (id)   => `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg`,
+  legacy:   (id)   => `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/${id}.ogg`,
 };
 
 export const GLB_URL = {
@@ -240,6 +242,9 @@ export const STRINGS = {
     finalScore:"Final Score", bestScore:"Best", timeUp:"Time's up!",
     typeHint:"It's a ", typeAdvantage:"Type Advantage", noAdvantage:"Even matchup",
     higherStats:"Higher Stats", bigger:"Bigger", heavier:"Heavier", faster:"Faster",
+    favorites:"Favorites", favFilter:"My Favorites",
+    favEmpty:"No favorites yet", favEmptySub:"Tap ♡ on any Pokémon card to save it here",
+    addFav:"Add to favorites", removeFav:"Remove from favorites",
   },
   th: {
     subtitle:"ทุกภูมิภาค", searchPlaceholder:"ค้นหาชื่อหรือ ID…",
@@ -286,6 +291,9 @@ export const STRINGS = {
     finalScore:"คะแนนสุดท้าย", bestScore:"สถิติสูงสุด", timeUp:"หมดเวลา!",
     typeHint:"เป็น ", typeAdvantage:"ได้เปรียบ", noAdvantage:"เสมอกัน",
     higherStats:"สเตทดีกว่า", bigger:"ตัวใหญ่กว่า", heavier:"หนักกว่า", faster:"เร็วกว่า",
+    favorites:"รายการโปรด", favFilter:"รายการโปรด",
+    favEmpty:"ยังไม่มีรายการโปรด", favEmptySub:"กด ♡ ที่การ์ดโปเกมอนเพื่อบันทึก",
+    addFav:"เพิ่มในรายการโปรด", removeFav:"ลบออกจากรายการโปรด",
   },
   ja: {
     subtitle:"全地方", searchPlaceholder:"名前またはIDで検索…",
@@ -332,5 +340,8 @@ export const STRINGS = {
     finalScore:"最終スコア", bestScore:"最高記録", timeUp:"時間切れ!",
     typeHint:"タイプ: ", typeAdvantage:"有利", noAdvantage:"互角",
     higherStats:"種族値が高い", bigger:"大きい", heavier:"重い", faster:"速い",
+    favorites:"お気に入り", favFilter:"お気に入り",
+    favEmpty:"お気に入りがありません", favEmptySub:"カードの ♡ を押して保存しよう",
+    addFav:"お気に入りに追加", removeFav:"お気に入りから削除",
   },
 };

@@ -94,6 +94,7 @@ function ThemeToggle({ theme, onToggle, autoMode }) {
 }
 
 function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
+  cryStyle, setCryStyle,
   theme, toggleTheme, autoMode, enableAuto, s, onOpenChangelog,
   currentVersion, latestDate }) {
   if (!open) return null;
@@ -186,6 +187,7 @@ function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
           </div>
         </div>
 
+
         <div className="settings-group">
           <div className="settings-label">🌓 Theme</div>
           <div className="settings-options">
@@ -234,6 +236,7 @@ function GenFilter({ genIdx, onSet, lang }) {
 
 export default function Header({
   lang, setLang, soundOn, setSoundOn,
+  cryStyle = "anime", setCryStyle,
   theme, toggleTheme, autoMode, enableAuto,
   view, setView,
   search, setSearch, typeFilter, setTypeFilter,
@@ -243,6 +246,7 @@ export default function Header({
   onOpenBirthday, onOpenTier,
   onOpenChangelog, hasUpdate, currentVersion = "1.0.0", latestDate = "2026-06-04",
   voiceSearchEl, snapSearchEl,
+  favCount = 0, showFavsOnly = false, onToggleFavs,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const s = STRINGS[lang];
@@ -312,16 +316,26 @@ export default function Header({
                 {voiceSearchEl}
                 {snapSearchEl}
               </div>
-              <select className="type-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                <option value="all">{s.allTypes}</option>
-                {ALL_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {lang === "th" ? `${TYPE_NAMES_TH[t] ?? t}`
-                      : lang === "ja" ? `${TYPE_NAMES_JA[t] ?? t}`
-                      : t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))}
-              </select>
+              {!showFavsOnly && (
+                <select className="type-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                  <option value="all">{s.allTypes}</option>
+                  {ALL_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {lang === "th" ? `${TYPE_NAMES_TH[t] ?? t}`
+                        : lang === "ja" ? `${TYPE_NAMES_JA[t] ?? t}`
+                        : t.charAt(0).toUpperCase() + t.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <button
+                className={`fav-filter-btn${showFavsOnly ? " active" : ""}${favCount === 0 && !showFavsOnly ? " empty" : ""}`}
+                onClick={onToggleFavs}
+                title={s.favFilter}
+              >
+                <span className="fav-filter-icon">{showFavsOnly ? "❤️" : favCount > 0 ? "🤍" : "♡"}</span>
+                {favCount > 0 && <span className="fav-filter-count">{favCount}</span>}
+              </button>
               <div className="count-badge">
                 <span className="count-num">{filteredCount.toLocaleString()}</span>
                 <span className="count-label">{s.of} {totalCount.toLocaleString()}</span>
@@ -344,6 +358,7 @@ export default function Header({
 
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)}
         lang={lang} setLang={setLang} soundOn={soundOn} setSoundOn={setSoundOn}
+        cryStyle={cryStyle} setCryStyle={setCryStyle}
         theme={theme} toggleTheme={toggleTheme} autoMode={autoMode} enableAuto={enableAuto} s={s}
         onOpenChangelog={onOpenChangelog}
         currentVersion={currentVersion} latestDate={latestDate} />

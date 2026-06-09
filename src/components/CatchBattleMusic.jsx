@@ -105,22 +105,30 @@ export default function CatchBattleMusic({ pokemonId, enabled = true }) {
 
     const gen = getPokemonGen(pokemonId);
     const pool = CATCH_POOLS[gen] ?? ALL_BATTLE;
-    const url = pickRandom(pool);
+
+    // Shuffle pool so each retry tries a different track
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
 
     // Tell MusicPlayer to pause background music
     window.dispatchEvent(new CustomEvent("catch:open"));
 
-    // Create audio element with capped volume
-    const audio = new Audio(url);
-    audio.loop = true;
-    audio.volume = getCatchVolume();
-    audio.preload = "auto";
-    audioRef.current = audio;
+    let cancelled = false;
 
-    // Try to play (may fail if user hasn't interacted with page yet)
-    audio.play().catch((err) => {
-      console.debug("CatchBattleMusic autoplay blocked:", err.message);
-    });
+    // Try each URL in order; move to next on autoplay block or network error
+    const tryPlay = (idx) => {
+      if (cancelled || idx >= shuffled.length) return;
+      const url = shuffled[idx];
+      const audio = new Audio(url);
+      audio.loop = true;
+      audio.volume = getCatchVolume();
+      audio.preload = "auto";
+      audioRef.current = audio;
+
+      audio.play().catch(() => tryPlay(idx + 1));
+      audio.addEventListener("error", () => { audio.pause(); tryPlay(idx + 1); });
+    };
+
+    tryPlay(0);
 
     // Live volume sync — poll localStorage every 500ms while mounted
     const volInterval = setInterval(() => {
@@ -130,6 +138,7 @@ export default function CatchBattleMusic({ pokemonId, enabled = true }) {
     }, 500);
 
     return () => {
+      cancelled = true;
       clearInterval(volInterval);
       if (audioRef.current) {
         audioRef.current.pause();
