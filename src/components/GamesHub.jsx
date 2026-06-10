@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import WhosThatGame    from "./WhosThatGame.jsx";
 import MultiplayerQuiz from "./MultiplayerQuiz.jsx";
 import GuessTheCryGame from "./GuessTheCryGame.jsx";
+import PetCareGame     from "./PetCareGame.jsx";
 import { useModalLifecycle } from "../perfUtils.js";
+import { trackGame } from "./petQuests.js";
 
 const GAMES = [
   {
@@ -41,12 +43,35 @@ const GAMES = [
              th: ["เล่นเลย!"],
              ja: ["プレイ"] },
   },
+  {
+    id: "petcare",
+    icon: "🥚",
+    color: "#ec4899",
+    accent: "#f472b6",
+    titleEn: "Pokémon Buddy",
+    titleTh: "เลี้ยงโปเกมอน",
+    titleJa: "ポケモン育成",
+    tagEn: "🐣 Raise & Evolve",
+    tagTh: "🐣 เลี้ยงดู & วิวัฒนาการ",
+    tagJa: "🐣 育てて進化",
+    modes: { en: ["Care · Level · Evolve"],
+             th: ["ดูแล · เลเวล · วิวัฒน์"],
+             ja: ["世話 · レベル · 進化"] },
+  },
 ];
 
-export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, genIdx }) {
-  // null | "picker" | "single" | "multi" | "cry"
+export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, genIdx, autoOpenPet, onAutoOpened }) {
+  // null | "picker" | "single" | "multi" | "cry" | "pet"
   const [gameState, setGameState] = useState(null);
   const [scores, setScores] = useState({});
+
+  // Open the buddy game directly when launched from the roaming companion
+  useEffect(() => {
+    if (autoOpenPet) {
+      setGameState("pet");
+      onAutoOpened?.();
+    }
+  }, [autoOpenPet, onAutoOpened]);
 
   // Read high scores from localStorage (refresh after game closes)
   useEffect(() => {
@@ -438,7 +463,7 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
           {[
             { icon: "🏆", val: scores.whosthat_best || 0,   label: t("คะแนนสูงสุด", "Best score", "ハイスコア"), color: "#fbbf24" },
             { icon: "🔥", val: scores.whosthat_streak || 0, label: t("Streak ปัจจุบัน", "Current streak", "現在の連勝"), color: "#f97316" },
-            { icon: "🎮", val: 2,                            label: t("โหมดเล่น",       "Game modes",     "プレイモード"), color: "#a855f7" },
+            { icon: "🎮", val: GAMES.length,                 label: t("เกมทั้งหมด",     "Games",          "ゲーム"), color: "#a855f7" },
           ].map((s, i) => (
             <div key={i} style={{
               background: "rgba(255,255,255,0.08)",
@@ -469,7 +494,8 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
           return (
             <button key={g.id} className="gh-card"
               onClick={() => {
-                if (g.id === "guessthecry") setGameState("cry");
+                if (g.id === "guessthecry") { trackGame(); setGameState("cry"); }
+                else if (g.id === "petcare") setGameState("pet");
                 else setGameState("picker");
               }}
               style={{ "--gc": g.color, animationDelay: `${i * 0.08}s` }}>
@@ -521,7 +547,7 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
       {gameState === "picker" && (
         <ModePicker lang={lang}
           onClose={() => setGameState(null)}
-          onPick={(mode) => setGameState(mode)} />
+          onPick={(mode) => { trackGame(); setGameState(mode); }} />
       )}
 
       {/* ── Game Overlays ── */}
@@ -538,6 +564,11 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
       {gameState === "cry" && (
         <GuessTheCryGame allList={allList} thaiArr={thaiArr} jpArr={jpArr}
           lang={lang} genIdx={genIdx}
+          onClose={() => setGameState(null)} />
+      )}
+      {gameState === "pet" && (
+        <PetCareGame thaiArr={thaiArr} jpArr={jpArr}
+          lang={lang}
           onClose={() => setGameState(null)} />
       )}
     </main>

@@ -24,6 +24,8 @@ import Footer             from "./components/Footer.jsx";
 // ─── Hubs (main tabs) ────────────────────────────────────────
 import GoToolsHub         from "./components/GoToolsHub.jsx";
 import GamesHub           from "./components/GamesHub.jsx";
+import BuddyCompanion     from "./components/BuddyCompanion.jsx";
+import { trackView }       from "./components/petQuests.js";
 
 // ─── Overlays ────────────────────────────────────────────────
 import CardMode           from "./components/CardMode.jsx";
@@ -103,6 +105,7 @@ export default function App() {
   const [tierOpen, setTierOpen]             = useState(false);
   const [multiplayerOpen, setMultiplayerOpen] = useState(false);
   const [cardModePokemon, setCardModePokemon] = useState(null);
+  const [buddyOpenPet, setBuddyOpenPet]       = useState(false);
 
   // ─── 📋 Changelog state ────────────────────────────────────
   const [showChangelog, setShowChangelog] = useState(false);
@@ -278,7 +281,10 @@ export default function App() {
   }, [lang, debouncedSearch, typeFilter, genIdx, filtered.length]);
 
   // ─── Helpers ───────────────────────────────────────────────
-  const handleSelect = useCallback((p) => setSelected(p), []);
+  const handleSelect = useCallback((p) => {
+    setSelected(p);
+    trackView(); // buddy quest: viewing Pokémon earns food
+  }, []);
   const toggleFav = useCallback((id) => {
     setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
   }, []);
@@ -445,6 +451,8 @@ export default function App() {
           genIdx={genIdx}
           onOpen={handleSelect}
           onOpenMultiplayer={() => setMultiplayerOpen(true)}
+          autoOpenPet={buddyOpenPet}
+          onAutoOpened={() => setBuddyOpenPet(false)}
         />
       )}
 
@@ -501,6 +509,12 @@ export default function App() {
           onClose={() => setShowChangelog(false)}
         />
       )}
+
+      {/* ── 🐾 Roaming buddy ── */}
+      <BuddyCompanion
+        lang={lang}
+        onOpenGame={() => { setView("games"); setBuddyOpenPet(true); }}
+      />
 
       {/* ── 🎵 Music Player + Weather ── */}
       <ScrollToTop />
