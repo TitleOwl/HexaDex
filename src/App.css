@@ -18,15 +18,33 @@
   --text-primary:   #0d2a4a;
   --text-secondary: #4a6280;
   --text-muted:     #7fa8c4;
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
   --radius-pill: 999px;
   --font-display: "Bebas Neue", "Anuphan", "Noto Sans Thai", "Noto Sans JP", system-ui, sans-serif;
   --font-body:    "Inter", "Anuphan", "Noto Sans Thai", "Noto Sans JP", system-ui, sans-serif;
-  --shadow-sm: 0 2px 6px rgba(13, 42, 74, 0.08);
-  --shadow-md: 0 4px 14px rgba(13, 42, 74, 0.12);
-  --shadow-lg: 0 12px 32px rgba(13, 42, 74, 0.18);
+  /* Modern layered depth shadows */
+  --shadow-sm: 0 1px 2px rgba(13, 42, 74, 0.06), 0 2px 8px rgba(13, 42, 74, 0.07);
+  --shadow-md: 0 2px 4px rgba(13, 42, 74, 0.06), 0 8px 24px rgba(13, 42, 74, 0.11);
+  --shadow-lg: 0 4px 10px rgba(13, 42, 74, 0.08), 0 20px 50px rgba(13, 42, 74, 0.17);
+  /* ── Modern Pokémon-tech tokens ── */
+  --glow-cyan:  0 0 22px rgba(0, 197, 227, 0.38);
+  --glow-blue:  0 0 24px rgba(41, 121, 208, 0.32);
+  --glow-gold:  0 0 22px rgba(245, 185, 0, 0.42);
+  --glass-bg:        rgba(255, 255, 255, 0.66);
+  --glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --glass-border:    rgba(255, 255, 255, 0.6);
+  --glass-blur:      blur(16px) saturate(160%);
+  --grad-brand:  linear-gradient(135deg, var(--blue) 0%, var(--cyan) 100%);
+  --grad-aurora: linear-gradient(135deg, #2979d0 0%, #00c5e3 45%, #5ba3e8 100%);
+  --holo: linear-gradient(115deg,
+    rgba(255,0,128,0.12) 0%, rgba(255,200,0,0.12) 22%,
+    rgba(0,229,160,0.12) 44%, rgba(0,197,227,0.14) 66%,
+    rgba(120,80,255,0.12) 88%, rgba(255,0,128,0.12) 100%);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── Base ── */
@@ -2688,6 +2706,20 @@ input, select { font-family: inherit; }
   --shadow-sm: 0 2px 10px rgba(0,0,0,0.45);
   --shadow-md: 0 6px 24px rgba(0,0,0,0.55);
   --shadow-lg: 0 18px 54px rgba(0,0,0,0.72);
+  /* ── Modern Pokémon-tech tokens (dark) ── */
+  --glow-cyan:  0 0 26px rgba(0, 229, 255, 0.5);
+  --glow-blue:  0 0 28px rgba(77, 171, 255, 0.45);
+  --glow-gold:  0 0 26px rgba(255, 215, 0, 0.5);
+  --glass-bg:        rgba(14, 24, 40, 0.62);
+  --glass-bg-strong: rgba(14, 24, 40, 0.82);
+  --glass-border:    rgba(255, 255, 255, 0.1);
+  --glass-blur:      blur(18px) saturate(150%);
+  --grad-brand:  linear-gradient(135deg, #4dabff 0%, #00e5ff 100%);
+  --grad-aurora: linear-gradient(135deg, #4dabff 0%, #00e5ff 45%, #74beff 100%);
+  --holo: linear-gradient(115deg,
+    rgba(255,0,128,0.16) 0%, rgba(255,215,0,0.16) 22%,
+    rgba(0,229,160,0.16) 44%, rgba(0,229,255,0.2) 66%,
+    rgba(140,100,255,0.16) 88%, rgba(255,0,128,0.16) 100%);
 }
 
 [data-theme="dark"] body {
@@ -13442,4 +13474,181 @@ body::before {
     height: 42px;
   }
   .scroll-top-btn svg { width: 18px; height: 18px; }
+}
+/* ════════════════════════════════════════════════════════════
+   ⬡ MODERN POLISH 3.0 — Futuristic Pokédex glass + holo layer
+   Visual-only enhancements (shadow / filter / gradient / glow).
+   Uses existing class names. No layout-affecting properties.
+   ════════════════════════════════════════════════════════════ */
+
+/* ─── Header: holographic scanning beam along the top edge ─── */
+.header { position: sticky; isolation: isolate; }
+.header::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0,197,227,0) 10%,
+    rgba(0,229,255,0.9) 50%,
+    rgba(0,197,227,0) 90%,
+    transparent 100%);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: hdr-scan 5.5s linear infinite;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.8;
+}
+@keyframes hdr-scan {
+  0%   { background-position: -60% 0; }
+  100% { background-position: 160% 0; }
+}
+
+/* ─── Mode tabs: glassy rail + neon active pill ─── */
+.mode-tabs {
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+.mode-tab { transition: all 0.24s var(--ease-out) !important; }
+.mode-tab.active {
+  background: rgba(255,255,255,0.97) !important;
+  box-shadow:
+    0 2px 12px rgba(0,0,0,0.25),
+    0 0 22px rgba(0,229,255,0.35),
+    inset 0 0 0 1px rgba(0,197,227,0.25) !important;
+}
+[data-theme="dark"] .mode-tab.active {
+  background: linear-gradient(135deg, #eaf6ff, #cdeeff) !important;
+  color: #07203a !important;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.5), 0 0 26px rgba(0,229,255,0.45) !important;
+}
+
+/* ─── Search + type-select: glass with focus glow ─── */
+.search-box, .type-select {
+  transition: box-shadow 0.25s var(--ease-out), border-color 0.25s, background 0.25s !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.search-box:focus, .search-box:focus-within, .type-select:focus {
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 3px rgba(0,197,227,0.18), var(--glow-cyan) !important;
+  outline: none !important;
+}
+[data-theme="dark"] .search-box:focus,
+[data-theme="dark"] .search-box:focus-within,
+[data-theme="dark"] .type-select:focus {
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.2), var(--glow-cyan) !important;
+}
+
+/* ─── Generation buttons: refined active glow ─── */
+.gen-btn { transition: all 0.22s var(--ease-out) !important; }
+.gen-btn.active {
+  box-shadow: 0 2px 14px rgba(0,0,0,0.22), 0 0 20px rgba(0,229,255,0.4) !important;
+}
+
+/* ─── Card number: holographic data-chip ─── */
+.card-num {
+  display: inline-block;
+  background: var(--grad-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800 !important;
+  opacity: 0.85;
+}
+[data-theme="dark"] .card-num {
+  background: var(--grad-aurora);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── Card: iridescent holo sheen overlay on hover ─── */
+.poke-card { isolation: isolate; }
+.poke-card .card-img-wrap::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: var(--holo);
+  opacity: 0;
+  mix-blend-mode: overlay;
+  transition: opacity 0.4s var(--ease-out);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.poke-card:hover .card-img-wrap::after { opacity: 1; }
+
+/* ─── Section headings: glowing underline accent ─── */
+.section-heading {
+  position: relative;
+  filter: drop-shadow(0 1px 8px rgba(0,197,227,0.18));
+}
+[data-theme="dark"] .section-heading {
+  filter: drop-shadow(0 1px 12px rgba(0,229,255,0.3));
+}
+
+/* ─── Primary brand buttons: neon depth ─── */
+.load-more-btn {
+  box-shadow: 0 10px 28px rgba(41,121,208,0.4), 0 0 26px rgba(0,197,227,0.22) !important;
+}
+.load-more-btn:hover:not(:disabled) {
+  box-shadow: 0 16px 40px rgba(41,121,208,0.5), 0 0 40px rgba(0,229,255,0.34) !important;
+}
+
+/* ─── Stat bars: animated holographic shimmer fill ─── */
+.stat-bar-fill {
+  position: relative;
+  overflow: hidden;
+}
+.stat-bar-fill::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0.45) 50%,
+    transparent 100%);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: stat-shimmer 2.6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes stat-shimmer {
+  0%   { background-position: -60% 0; }
+  60%, 100% { background-position: 160% 0; }
+}
+
+/* ─── Settings button: subtle glass glow ─── */
+.settings-btn:hover {
+  box-shadow: 0 0 18px rgba(0,229,255,0.3);
+}
+
+/* ─── Modal: refined glass border halo ─── */
+.modal {
+  box-shadow:
+    0 40px 90px rgba(0,0,0,0.34),
+    0 0 0 1px rgba(255,255,255,0.07),
+    0 0 60px rgba(0,197,227,0.08) !important;
+}
+[data-theme="dark"] .modal {
+  box-shadow:
+    0 40px 100px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(0,229,255,0.12),
+    0 0 80px rgba(0,229,255,0.12) !important;
+}
+
+/* ─── Modal hero: faint hex-tech dot grid texture ─── */
+.modal-hero::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  opacity: 0.3;
+  z-index: 0;
+}
+
+/* ─── Honor reduced motion: kill the ambient animations ─── */
+@media (prefers-reduced-motion: reduce) {
+  .header::before,
+  .stat-bar-fill::after { animation: none !important; }
 }
