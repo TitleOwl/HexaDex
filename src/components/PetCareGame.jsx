@@ -687,7 +687,7 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
     <div className="pet-overlay">
       <style>{PET_CSS}</style>
 
-      <div className="pet-room">
+      <div className={`pet-room${editingRoom ? " editing" : ""}`}>
         {/* Top bar */}
         <div className="pet-topbar">
           <button className="pet-icon-btn" onClick={onClose} title={t("ปิด","Close","閉じる")}>✕</button>
@@ -738,7 +738,7 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
         )}
 
         {/* Stage / room */}
-        <div className="pet-stage" ref={stageRef}>
+        <div className={`pet-stage${editingRoom ? " editing" : ""}`} ref={stageRef}>
           {(() => {
             const th = THEME_BY_ID[room.theme] ?? ROOM_THEMES[0];
             return (
@@ -772,7 +772,8 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
                 className={`pet-placed${editingRoom ? " editing" : ""}${drag?.uid === inst.uid ? " grabbing" : ""}`}
                 style={{
                   left: `${pos.xPct}%`, top: `${pos.yPct}%`,
-                  zIndex: editingRoom ? 8 : 2 + Math.round(pos.yPct / 12),
+                  // furniture rests behind the buddy; the piece being dragged pops up briefly
+                  zIndex: drag?.uid === inst.uid ? 9 : 2,
                 }}
                 onPointerDown={editingRoom ? (e) => {
                   e.preventDefault();
@@ -1147,6 +1148,14 @@ const PET_CSS = `
     animation: pet-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
     overflow: hidden;
   }
+  /* Editing: lock the room height; palette scrolls inside (never overflows) */
+  .pet-room.editing {
+    display: flex; flex-direction: column;
+    max-height: 92vh; padding-bottom: 14px;
+  }
+  .pet-room.editing .pet-stage { flex-shrink: 0; height: 190px; }
+  /* Buddy fades + lets pointers through so you can arrange furniture behind it */
+  .pet-stage.editing .pet-walker { pointer-events: none; opacity: 0.45; }
   .pet-topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
   .pet-icon-btn {
     width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
@@ -1457,13 +1466,16 @@ const PET_CSS = `
   }
 
   /* ── Room editor sheet ── */
-  /* Editor palette — sits below the (still visible & draggable) room */
+  /* Editor palette — scrolls inside the room, never overflows the screen */
   .pet-palette {
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 16px; padding: 12px 12px 14px; margin-top: 2px;
+    border-radius: 16px; padding: 10px 10px 12px; margin-top: 8px;
+    flex: 1; min-height: 0; overflow-y: auto;
     animation: pet-editor-in 0.3s cubic-bezier(0.34,1.56,0.64,1);
   }
+  .pet-palette::-webkit-scrollbar { width: 6px; }
+  .pet-palette::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px; }
   @keyframes pet-editor-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
   /* Placed furniture in the room */
@@ -1525,13 +1537,19 @@ const PET_CSS = `
   .pet-editor-done:active { transform: scale(0.95); }
   .pet-editor-label {
     font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
-    color: rgba(255,255,255,0.55); margin: 12px 0 8px;
+    color: rgba(255,255,255,0.55); margin: 10px 0 7px;
     text-transform: uppercase;
   }
-  .pet-theme-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  /* Themes scroll horizontally — compact, no tall wrapping */
+  .pet-theme-row {
+    display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+  .pet-theme-row::-webkit-scrollbar { height: 5px; }
+  .pet-theme-row::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px; }
   .pet-theme-chip {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
-    padding: 7px 6px 8px; min-width: 72px;
+    padding: 7px 6px 8px; min-width: 70px; flex-shrink: 0; scroll-snap-align: start;
     border-radius: 13px; cursor: pointer; font-family: inherit;
     font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.85);
     background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
