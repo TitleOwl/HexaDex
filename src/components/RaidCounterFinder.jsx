@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { Target, X, Swords, AlertTriangle, RefreshCw, Trophy, Zap, Lightbulb } from "lucide-react";
 import { STRINGS, TYPE_NAMES_TH, TYPE_NAMES_JA, TYPE_OFFENSE } from "../data.js";
 import { typeColor, getArt, getLocalName, useDebouncedValue, padId } from "../utils.js";
 
@@ -121,19 +122,20 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9000,
-      background: "radial-gradient(ellipse at top, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.95))",
-      backdropFilter: "blur(10px)",
+      background: "rgba(20, 19, 22, 0.55)",
+      backdropFilter: "blur(8px)",
       overflowY: "auto", padding: "20px 12px",
     }}>
       <style>{`
-        :root { --rcf-bg: #fff; --rcf-fg: #1e293b; --rcf-muted: #64748b; }
-        [data-theme="dark"] { --rcf-bg: #0f172a; --rcf-fg: #f1f5f9; --rcf-muted: #94a3b8; }
+        :root { --rcf-bg: #fff; --rcf-fg: #1f1d20; --rcf-muted: #7a766e; }
+        [data-theme="dark"] { --rcf-bg: #1a1816; --rcf-fg: #efece4; --rcf-muted: #9c988e; }
       `}</style>
       <div onClick={(e) => e.stopPropagation()} style={{
         maxWidth: 1100, margin: "0 auto",
         background: "var(--rcf-bg, #fff)",
-        borderRadius: 22, padding: 18,
-        boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
+        borderRadius: 20, padding: 18,
+        boxShadow: "0 24px 60px rgba(20,19,22,0.3)",
+        border: "1px solid var(--border)",
         position: "relative",
       }}>
         {/* Sticky top bar with close button */}
@@ -144,32 +146,32 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
           background: "var(--rcf-bg, #fff)",
         }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0,
-                         color: "var(--rcf-fg, #1e293b)", letterSpacing: "-0.01em" }}>
-              🎯 Raid Counter Finder
+            <h1 style={{ fontSize: 21, fontWeight: 800, margin: 0,
+                         color: "var(--rcf-fg, #1f1d20)", letterSpacing: "-0.01em",
+                         display: "inline-flex", alignItems: "center", gap: 9 }}>
+              <Target size={20} strokeWidth={2.2} style={{ color: "var(--blue)" }} /> Raid Counter Finder
             </h1>
-            <div style={{ fontSize: 12, color: "var(--rcf-muted, #64748b)", marginTop: 4, fontWeight: 600 }}>
+            <div style={{ fontSize: 12, color: "var(--rcf-muted, #7a766e)", marginTop: 4, fontWeight: 600 }}>
               {lang==="th" ? "หาตัวสู้ที่ดีที่สุดสำหรับ Raid Boss"
                : lang==="ja" ? "レイドボス対策"
                : "Find optimal counters for any raid boss"}
             </div>
           </div>
           <button onClick={onClose} style={{
-            padding: "9px 16px", borderRadius: 12, border: "none",
-            background: "linear-gradient(135deg, #ef4444, #b91c1c)",
-            color: "white", fontWeight: 800, fontSize: 13, cursor: "pointer",
-            flexShrink: 0,
-            boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)",
+            padding: "8px 14px", borderRadius: 999, cursor: "pointer", flexShrink: 0,
+            background: "var(--bg-muted)", border: "1px solid var(--border)",
+            color: "var(--rcf-fg)", fontWeight: 700, fontSize: 13,
+            display: "inline-flex", alignItems: "center", gap: 6,
           }}>
-            ✕ {lang==="th" ? "ปิด" : lang==="ja" ? "閉じる" : "Close"}
+            <X size={15} strokeWidth={2.4} /> {lang==="th" ? "ปิด" : lang==="ja" ? "閉じる" : "Close"}
           </button>
         </div>
 
         {picking ? (
           <>
             {!debSearch && (
-              <div className="raid-popular-label">
-                ⚔️ {lang==="th"?"Raid Boss ยอดนิยม":lang==="ja"?"人気のレイドボス":"Popular Raid Bosses"}
+              <div className="raid-popular-label" style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <Swords size={15} strokeWidth={2.2} /> {lang==="th"?"Raid Boss ยอดนิยม":lang==="ja"?"人気のレイドボス":"Popular Raid Bosses"}
               </div>
             )}
             <input className="team-add-search" placeholder={s.searchPlaceholder}
@@ -195,7 +197,7 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
             }}>
               <img src={getArt(boss)} alt={boss.name} className="raid-boss-img" />
               <div className="raid-boss-info">
-                <div className="raid-boss-label">⚠️ RAID BOSS</div>
+                <div className="raid-boss-label" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><AlertTriangle size={12} strokeWidth={2.4} /> RAID BOSS</div>
                 <div className="raid-boss-name">
                   {getLocalName(boss.id, lang, thaiArr, jpArr) ?? boss.name}
                 </div>
@@ -207,7 +209,7 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
                   ))}
                 </div>
               </div>
-              <button className="iv-change-btn" onClick={() => setPicking(true)}>🔄</button>
+              <button className="iv-change-btn" onClick={() => setPicking(true)}><RefreshCw size={15} strokeWidth={2.4} /></button>
             </div>
 
             {counters.length === 0 ? (
@@ -217,8 +219,8 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
               </div>
             ) : (
               <>
-                <div className="modal-section-title">
-                  🏆 {lang==="th"?"ตัวสู้ที่แนะนำ Top 18":lang==="ja"?"おすすめ対策 Top 18":"Top 18 Counters"}
+                <div className="modal-section-title" style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                  <Trophy size={15} strokeWidth={2.2} /> {lang==="th"?"ตัวสู้ที่แนะนำ Top 18":lang==="ja"?"おすすめ対策 Top 18":"Top 18 Counters"}
                 </div>
                 <div className="raid-counters-grid">
                   {counters.map((c, i) => {
@@ -233,7 +235,7 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
                         <img src={getArt(p)} alt={name} className="raid-counter-img" />
                         <div className="raid-counter-name">{name}</div>
                         <div className="raid-counter-stats">
-                          <span className="raid-stat-dps">⚡ DPS {c.dps}</span>
+                          <span className="raid-stat-dps" style={{ display: "inline-flex", alignItems: "center", gap: 3 }}><Zap size={11} strokeWidth={2.6} /> DPS {c.dps}</span>
                         </div>
                         {c.bestType.type && c.bestType.eff >= 2 && (
                           <div className="raid-counter-move"
@@ -242,15 +244,15 @@ export default function RaidCounterFinder({ allList, loaded, thaiArr, jpArr, lan
                           </div>
                         )}
                         {c.bossEff >= 2 && (
-                          <div className="raid-counter-warn">⚠️ Weak to {boss.types.map(t => typeName(t.type.name)).join("/")}</div>
+                          <div className="raid-counter-warn" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><AlertTriangle size={11} strokeWidth={2.4} /> Weak to {boss.types.map(t => typeName(t.type.name)).join("/")}</div>
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                <div className="raid-help">
-                  💡 {lang==="th"?"คะแนนคำนวณจาก ATK × ประสิทธิภาพธาตุ × ความอึด (กดเพื่อดูรายละเอียด)":
+                <div className="raid-help" style={{ display: "inline-flex", alignItems: "flex-start", gap: 6 }}>
+                  <Lightbulb size={13} strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} /> {lang==="th"?"คะแนนคำนวณจาก ATK × ประสิทธิภาพธาตุ × ความอึด (กดเพื่อดูรายละเอียด)":
                       lang==="ja"?"ATK × タイプ相性 × 耐久 で計算":
                       "Score = ATK × Type effectiveness × Survivability · Click to view details"}
                 </div>

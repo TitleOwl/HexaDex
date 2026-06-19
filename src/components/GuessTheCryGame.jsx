@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  X, Volume2, Clock, Target, ClipboardList, Trophy, Flame, Music,
+  CheckCircle2, XCircle, RotateCw, Medal, Gamepad2, Play,
+} from "lucide-react";
 import { getLocalName } from "../utils.js";
 import { CRY_URL } from "../data.js";
 import { useModalLifecycle } from "../perfUtils.js";
@@ -9,6 +13,9 @@ const NUM_CHOICES = 4;
 
 const BEST_KEY = "pkdx_guess_cry_best";
 const STREAK_KEY = "pkdx_guess_cry_streak";
+
+const artwork = (id) =>
+  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
 
 function getCryUrl(id, name) {
   if (name) {
@@ -206,415 +213,292 @@ export default function GuessTheCryGame({ allList, thaiArr, jpArr, lang, genIdx,
   const timerColor = timeLeft > 8 ? "#22c55e" : timeLeft > 4 ? "#f59e0b" : "#ef4444";
 
   return (
-    <div className="gtc-overlay">
+    <div className="game-overlay">
       <style>{`
-        .gtc-overlay {
-          position: fixed; inset: 0; z-index: 9600;
-          background: radial-gradient(ellipse at 30% 20%, #0f172a 0%, #020617 80%);
-          display: flex; flex-direction: column; align-items: center;
-          overflow-y: auto;
-          padding: 0;
+        .gtc-rules {
+          text-align: left; width: 100%;
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 14px 16px;
+          display: flex; flex-direction: column; gap: 9px;
         }
-        .gtc-wrap {
-          width: 100%; max-width: 520px;
-          padding: 20px 16px 40px;
-          display: flex; flex-direction: column; gap: 16px;
-          min-height: 100%;
+        .gtc-rule {
+          display: flex; align-items: center; gap: 10px;
+          font-size: 13px; font-weight: 600; color: var(--text-secondary);
         }
-        .gtc-topbar {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 12px 16px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 16px;
-          color: white;
+        .gtc-rule-icon {
+          display: flex; align-items: center; justify-content: center;
+          width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0;
+          background: var(--gold-light); color: var(--blue);
         }
-        .gtc-topbar-score {
-          font-size: 20px; font-weight: 900;
-          background: linear-gradient(135deg, #fde047, #f97316);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .gtc-topbar-streak {
-          display: flex; align-items: center; gap: 4px;
-          font-size: 13px; font-weight: 700; color: #fdba74;
-        }
-        .gtc-topbar-round {
-          font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.6);
-        }
-        .gtc-close {
-          background: rgba(239, 68, 68, 0.8); border: none; border-radius: 50%;
-          width: 32px; height: 32px; color: white; font-size: 14px; font-weight: 900;
-          cursor: pointer; display: flex; align-items: center; justify-content: center;
-          transition: transform 0.2s;
-        }
-        .gtc-close:hover { transform: scale(1.1); }
 
         /* Timer bar */
         .gtc-timer-bar {
-          height: 6px; border-radius: 3px;
-          background: rgba(255,255,255,0.1);
-          overflow: hidden;
+          height: 6px; border-radius: 999px;
+          background: var(--bg-muted);
+          overflow: hidden; margin-bottom: 18px;
         }
         .gtc-timer-fill {
-          height: 100%; border-radius: 3px;
+          height: 100%; border-radius: 999px;
           transition: width 1s linear, background 0.5s;
         }
 
         /* Cry card */
         .gtc-cry-card {
-          background: linear-gradient(165deg, rgba(15,23,42,0.96), rgba(30,41,59,0.92));
-          border: 2px solid rgba(251,191,36,0.3);
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
           border-radius: 24px;
-          padding: 32px 24px;
+          padding: 26px 20px 22px;
           text-align: center;
-          color: white;
-          position: relative;
-          overflow: hidden;
-        }
-        .gtc-cry-card::before {
-          content: "";
-          position: absolute; inset: 0;
-          background: radial-gradient(circle at 50% 50%, rgba(251,191,36,0.06) 0%, transparent 70%);
-          pointer-events: none;
+          margin-bottom: 16px;
         }
         .gtc-cry-q {
-          font-size: 12px; font-weight: 800; letter-spacing: 2px;
-          color: rgba(251,191,36,0.8); margin-bottom: 20px;
+          font-size: 11px; font-weight: 900; letter-spacing: 1.5px;
+          text-transform: uppercase;
+          color: var(--text-secondary); margin-bottom: 18px;
         }
-        .gtc-cry-play-wrap {
+        .gtc-play-wrap {
           position: relative; display: inline-flex; align-items: center; justify-content: center;
-          width: 120px; height: 120px; margin-bottom: 16px;
+          width: 110px; height: 110px; margin-bottom: 12px;
         }
-        .gtc-cry-ring {
-          position: absolute; inset: 0; border-radius: 50%;
-          border: 2px solid rgba(251,191,36,0.35);
+        .gtc-ring {
+          position: absolute; inset: 12px; border-radius: 50%;
+          border: 2px solid var(--blue);
           animation: gtc-ring 2s ease-out infinite;
         }
-        .gtc-cry-ring-2 { animation-delay: 0.7s; }
+        .gtc-ring-2 { animation-delay: 0.7s; }
         @keyframes gtc-ring {
-          0%   { transform: scale(0.8); opacity: 0.8; }
-          100% { transform: scale(1.7); opacity: 0; }
+          0%   { transform: scale(0.85); opacity: 0.5; }
+          100% { transform: scale(1.8); opacity: 0; }
         }
         .gtc-play-btn {
           position: relative; z-index: 2;
-          width: 80px; height: 80px; border-radius: 50%;
-          background: linear-gradient(135deg, rgba(251,191,36,0.3), rgba(249,115,22,0.3));
-          border: 2px solid rgba(251,191,36,0.6);
-          font-size: 36px; cursor: pointer;
+          width: 76px; height: 76px; border-radius: 50%;
+          background: var(--blue);
+          border: none; cursor: pointer; color: #fff;
           display: flex; align-items: center; justify-content: center;
-          transition: all 0.2s;
-          box-shadow: 0 8px 28px rgba(251,191,36,0.35);
-          color: white;
+          box-shadow: var(--shadow-sm);
+          transition: transform 0.18s, filter 0.18s;
         }
-        .gtc-play-btn.playing {
-          background: linear-gradient(135deg, rgba(251,191,36,0.5), rgba(249,115,22,0.5));
-          animation: gtc-mic-pulse 0.6s ease-in-out infinite;
-        }
-        .gtc-play-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-        .gtc-play-btn:not(:disabled):hover {
-          transform: scale(1.08);
-          box-shadow: 0 12px 36px rgba(251,191,36,0.55);
-        }
+        .gtc-play-btn.playing { animation: gtc-mic-pulse 0.6s ease-in-out infinite; }
+        .gtc-play-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .gtc-play-btn:not(:disabled):hover { transform: scale(1.07); filter: brightness(1.08); }
+        .gtc-play-btn:not(:disabled):active { transform: scale(0.96); }
         @keyframes gtc-mic-pulse {
           0%, 100% { transform: scale(1); }
-          50%       { transform: scale(1.1); }
+          50%       { transform: scale(1.08); }
         }
-        .gtc-plays-left {
-          font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.5);
-          letter-spacing: 1px; margin-top: 6px;
-        }
-        .gtc-plays-dots {
-          display: flex; gap: 5px; justify-content: center; margin-top: 4px;
-        }
-        .gtc-plays-dot {
+        .gtc-dots { display: flex; gap: 6px; justify-content: center; margin-top: 4px; }
+        .gtc-dot {
           width: 8px; height: 8px; border-radius: 50%;
-          background: rgba(251,191,36,0.8);
-          transition: opacity 0.3s;
+          background: var(--blue); transition: opacity 0.3s;
         }
-        .gtc-plays-dot.used { opacity: 0.2; }
+        .gtc-dot.used { opacity: 0.2; }
+        .gtc-plays-left {
+          font-size: 11px; font-weight: 700; color: var(--text-muted);
+          letter-spacing: 0.5px; margin-top: 6px; min-height: 14px;
+        }
         .gtc-timer-txt {
-          font-size: 28px; font-weight: 900;
-          color: var(--tc);
-          text-shadow: 0 0 16px var(--tc);
-          transition: color 0.5s;
-          margin-top: 8px;
-        }
-
-        /* Choices */
-        .gtc-choices {
-          display: grid; grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-        .gtc-choice {
-          padding: 14px 12px;
-          border-radius: 16px;
-          border: 2px solid rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.05);
-          color: white;
-          font-size: 15px; font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-          text-align: center;
-          line-height: 1.3;
-          position: relative; overflow: hidden;
-        }
-        .gtc-choice:not(.disabled):hover {
-          transform: translateY(-3px);
-          border-color: rgba(255,255,255,0.3);
-          background: rgba(255,255,255,0.1);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-        }
-        .gtc-choice.correct {
-          background: rgba(34,197,94,0.25);
-          border-color: #22c55e;
-          box-shadow: 0 0 24px rgba(34,197,94,0.4);
-          animation: gtc-correct-flash 0.5s ease;
-        }
-        .gtc-choice.wrong {
-          background: rgba(239,68,68,0.2);
-          border-color: #ef4444;
-          opacity: 0.65;
-        }
-        .gtc-choice.disabled { cursor: not-allowed; }
-        @keyframes gtc-correct-flash {
-          0%   { transform: scale(1); }
-          40%  { transform: scale(1.07); }
-          100% { transform: scale(1); }
-        }
-
-        /* Result feedback */
-        .gtc-result-msg {
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          padding: 10px 20px; border-radius: 999px;
-          font-size: 14px; font-weight: 900;
-          animation: gtc-msg-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
-        }
-        .gtc-result-msg.correct {
-          background: rgba(34,197,94,0.2); color: #86efac;
-          border: 1.5px solid rgba(34,197,94,0.4);
-        }
-        .gtc-result-msg.wrong {
-          background: rgba(239,68,68,0.2); color: #fca5a5;
-          border: 1.5px solid rgba(239,68,68,0.4);
-        }
-        .gtc-result-msg.timeout {
-          background: rgba(251,191,36,0.15); color: #fde68a;
-          border: 1.5px solid rgba(251,191,36,0.3);
-        }
-        @keyframes gtc-msg-pop {
-          from { opacity: 0; transform: scale(0.8) translateY(10px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        /* Setup screen */
-        .gtc-setup {
-          display: flex; flex-direction: column; align-items: center;
-          gap: 20px; padding: 32px 24px; text-align: center;
-          background: linear-gradient(165deg, rgba(15,23,42,0.96), rgba(30,41,59,0.92));
-          border: 2px solid rgba(251,191,36,0.25);
-          border-radius: 24px; color: white;
-        }
-        .gtc-setup-icon { font-size: 64px; filter: drop-shadow(0 8px 20px rgba(251,191,36,0.5)); }
-        .gtc-setup-title {
           font-size: 26px; font-weight: 900;
-          background: linear-gradient(135deg, #fbbf24, #f97316);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .gtc-setup-desc { font-size: 13.5px; opacity: 0.75; line-height: 1.6; max-width: 300px; }
-        .gtc-rules {
-          text-align: left; width: 100%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 14px; padding: 16px 18px;
-          display: flex; flex-direction: column; gap: 8px;
-        }
-        .gtc-rule {
-          display: flex; align-items: center; gap: 8px;
-          font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.85);
-        }
-        .gtc-rule-icon { font-size: 16px; flex-shrink: 0; }
-        .gtc-start-btn {
-          width: 100%;
-          background: linear-gradient(135deg, #fbbf24, #f97316);
-          border: none; border-radius: 16px;
-          color: white; font-size: 16px; font-weight: 900;
-          padding: 16px; cursor: pointer;
-          box-shadow: 0 10px 28px rgba(251,191,36,0.45);
-          transition: transform 0.2s, box-shadow 0.2s;
-          letter-spacing: 1px;
-        }
-        .gtc-start-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 16px 40px rgba(251,191,36,0.6);
+          color: var(--tc); transition: color 0.5s; margin-top: 8px; min-height: 30px;
         }
 
-        /* Game over */
-        .gtc-gameover {
-          display: flex; flex-direction: column; align-items: center;
-          gap: 18px; padding: 32px 24px; text-align: center;
-          background: linear-gradient(165deg, rgba(15,23,42,0.96), rgba(30,41,59,0.92));
-          border: 2px solid rgba(251,191,36,0.3);
-          border-radius: 24px; color: white;
+        /* Reveal image (shown after answering) */
+        .gtc-reveal { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .gtc-reveal img {
+          width: 120px; height: 120px; object-fit: contain;
+          animation: gtc-reveal-pop 0.45s cubic-bezier(0.34,1.56,0.64,1);
+          filter: drop-shadow(0 8px 14px rgba(0,0,0,0.18));
         }
-        .gtc-gameover-trophy { font-size: 72px; filter: drop-shadow(0 10px 24px rgba(251,191,36,0.6)); animation: gtc-trophy 1s ease-in-out infinite; }
-        @keyframes gtc-trophy {
-          0%, 100% { transform: rotate(-8deg) scale(1); }
-          50%       { transform: rotate(8deg) scale(1.05); }
+        .gtc-reveal-name {
+          font-size: 17px; font-weight: 900; color: var(--text-primary);
+          text-transform: capitalize;
         }
-        .gtc-gameover-title {
-          font-size: 28px; font-weight: 900;
-          background: linear-gradient(135deg, #fde047, #ec4899);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        @keyframes gtc-reveal-pop {
+          0%   { transform: scale(0.6) rotate(-5deg); opacity: 0; }
+          60%  { transform: scale(1.08); }
+          100% { transform: scale(1) rotate(0); opacity: 1; }
         }
-        .gtc-gameover-score {
-          font-size: 52px; font-weight: 900;
-          background: linear-gradient(135deg, #fbbf24, #f97316);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-          line-height: 1;
+
+        /* Image choices */
+        .gtc-choice {
+          display: flex; flex-direction: column; align-items: center; gap: 6px;
+          padding: 12px 8px 10px;
+          border-radius: 14px;
+          border: 1px solid var(--border);
+          background: var(--bg-card);
+          color: var(--text-primary);
+          cursor: pointer;
+          font-weight: 800; font-size: 13px;
+          text-transform: capitalize; line-height: 1.2;
+          transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
         }
-        .gtc-gameover-chips {
-          display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+        .gtc-choice img {
+          width: 62px; height: 62px; object-fit: contain;
+          transition: transform 0.18s;
         }
-        .gtc-gameover-chip {
+        .gtc-choice:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--blue); box-shadow: var(--shadow-sm); }
+        .gtc-choice:hover:not(:disabled) img { transform: scale(1.08); }
+        .gtc-choice:disabled { cursor: not-allowed; }
+        .gtc-choice.revealed { opacity: 0.5; }
+        .gtc-choice.correct { background: rgba(34,197,94,0.14); border-color: #22c55e; color: #15803d; opacity: 1; }
+        .gtc-choice.wrong   { background: rgba(239,68,68,0.14); border-color: #ef4444; color: #991b1b; opacity: 1; }
+
+        /* Game over chips */
+        .gtc-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+        .gtc-chip {
           padding: 6px 14px; border-radius: 999px;
           font-size: 12px; font-weight: 800;
-          background: rgba(255,255,255,0.07);
-          border: 1px solid rgba(255,255,255,0.15);
-          color: rgba(255,255,255,0.9);
+          background: var(--bg-muted); border: 1px solid var(--border);
+          color: var(--text-secondary);
         }
-        .gtc-gameover-btn {
-          width: 100%; padding: 14px;
-          border-radius: 14px; border: none; cursor: pointer;
-          font-size: 15px; font-weight: 900; letter-spacing: 1px;
-          transition: transform 0.2s;
-        }
-        .gtc-gameover-btn:hover { transform: translateY(-3px); }
-        .gtc-gameover-btn.primary {
-          background: linear-gradient(135deg, #fbbf24, #f97316);
-          color: white; box-shadow: 0 8px 24px rgba(251,191,36,0.4);
-        }
-        .gtc-gameover-btn.secondary {
-          background: rgba(255,255,255,0.07);
-          border: 1.5px solid rgba(255,255,255,0.15);
-          color: rgba(255,255,255,0.85);
+        .gtc-back-btn {
+          width: 100%; margin-top: 10px; padding: 12px;
+          border-radius: var(--radius-pill); cursor: pointer;
+          border: 1.5px solid var(--border); background: transparent;
+          color: var(--text-secondary); font-weight: 800; font-size: 13px;
         }
       `}</style>
 
-      <div className="gtc-wrap">
+      <div className="game-content">
+        <button className="modal-close game-close" onClick={onClose}><X size={16} strokeWidth={2.4} /></button>
+
         {/* ── Setup ── */}
         {phase === "setup" && (
-          <div className="gtc-setup">
-            <button className="gtc-close" onClick={onClose} style={{ alignSelf: "flex-end" }}>✕</button>
-            <div className="gtc-setup-icon">🔊</div>
-            <div className="gtc-setup-title">{t("ทายเสียงโปเกมอน", "Guess the Cry!", "鳴き声クイズ")}</div>
-            <div className="gtc-setup-desc">
-              {t(
-                "ฟังเสียงร้องของโปเกมอน แล้วเลือกว่ามันคือตัวไหน มีเวลา 15 วินาทีต่อข้อ!",
-                "Listen to the Pokémon's cry and pick the right name. 15 seconds per question!",
-                "ポケモンの鳴き声を聞いて、どのポケモンか当てよう！1問15秒！"
-              )}
+          <>
+            <div className="game-header">
+              <h1 className="game-title" style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+                <Volume2 size={22} strokeWidth={2.2} /> {t("ทายเสียงโปเกมอน", "Guess the Cry!", "鳴き声クイズ")}
+              </h1>
+              <p className="game-sub">
+                {t(
+                  "ฟังเสียงร้อง แล้วเลือกว่าเป็นโปเกมอนตัวไหน — มีเวลา 15 วินาทีต่อข้อ!",
+                  "Listen to the cry and pick the right Pokémon. 15 seconds per question!",
+                  "鳴き声を聞いて当てよう！1問15秒！"
+                )}
+              </p>
             </div>
-            <div className="gtc-rules">
-              {[
-                { icon: "🔊", text: t("กดปุ่มลำโพงเพื่อเล่นเสียง (ฟังได้สูงสุด 3 ครั้ง)", "Press speaker to play cry (up to 3 times)", "スピーカーで鳴き声を再生 (最大3回)") },
-                { icon: "⏱", text: t("มีเวลา 15 วินาทีต่อข้อ", "15 seconds per question", "1問15秒") },
-                { icon: "🎯", text: t("ตอบเร็ว + Streak = คะแนนโบนัส", "Faster + streak = bonus points", "速答 + 連続正解 = ボーナス") },
-                { icon: "📋", text: t(`ทั้งหมด ${TOTAL_ROUNDS} ข้อ`, `${TOTAL_ROUNDS} questions total`, `全${TOTAL_ROUNDS}問`) },
-              ].map((r, i) => (
-                <div key={i} className="gtc-rule">
-                  <span className="gtc-rule-icon">{r.icon}</span>
-                  <span>{r.text}</span>
-                </div>
-              ))}
+
+            <div className="setup-section">
+              <div className="gtc-rules">
+                {[
+                  { Icon: Volume2, text: t("กดปุ่มลำโพงเพื่อเล่นเสียง (ฟังได้สูงสุด 3 ครั้ง)", "Press speaker to play cry (up to 3 times)", "スピーカーで鳴き声を再生 (最大3回)") },
+                  { Icon: Clock, text: t("มีเวลา 15 วินาทีต่อข้อ", "15 seconds per question", "1問15秒") },
+                  { Icon: Target, text: t("ตอบเร็ว + Streak = คะแนนโบนัส", "Faster + streak = bonus points", "速答 + 連続正解 = ボーナス") },
+                  { Icon: ClipboardList, text: t(`ทั้งหมด ${TOTAL_ROUNDS} ข้อ`, `${TOTAL_ROUNDS} questions total`, `全${TOTAL_ROUNDS}問`) },
+                ].map((r, i) => (
+                  <div key={i} className="gtc-rule">
+                    <span className="gtc-rule-icon"><r.Icon size={15} strokeWidth={2.4} /></span>
+                    <span>{r.text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
+
             {bestScore > 0 && (
-              <div style={{ fontSize: 13, color: "#fbbf24", fontWeight: 700 }}>
-                🏆 {t("คะแนนสูงสุด", "Best", "ベスト")}: {bestScore}
+              <div className="setup-section">
+                <div className="setup-label" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 0 }}>
+                  <Trophy size={14} strokeWidth={2.4} /> {t("คะแนนสูงสุด", "Best", "ベスト")}: <strong>{bestScore}</strong>
+                </div>
               </div>
             )}
-            <button className="gtc-start-btn" onClick={() => { setRound(0); setScore(0); setStreak(0); setPhase("next"); }}>
-              ▶ {t("เริ่มเลย!", "START GAME", "スタート！")}
+
+            <button className="game-start-btn" onClick={() => { setRound(0); setScore(0); setStreak(0); setPhase("next"); }}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <Play size={16} strokeWidth={2.6} fill="currentColor" /> {t("เริ่มเล่น!", "Start Game!", "スタート!")}
             </button>
-          </div>
+          </>
         )}
 
         {/* ── Playing ── */}
         {phase === "playing" && target && (
           <>
-            {/* Top bar */}
-            <div className="gtc-topbar">
-              <div>
-                <div className="gtc-topbar-round">{t("ข้อ", "Q", "問")} {round + 1} / {TOTAL_ROUNDS}</div>
-                <div className="gtc-topbar-score">{score} {t("คะแนน", "pts", "点")}</div>
+            <div className="game-hud">
+              <div className="game-hud-stats">
+                <span className="game-stat-pill">{t("ข้อ", "Q", "問")} {round + 1}/{TOTAL_ROUNDS}</span>
+                <span className="game-stat-pill" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Target size={13} strokeWidth={2.4} /> {score}
+                </span>
               </div>
               {streak >= 2 && (
-                <div className="gtc-topbar-streak">🔥 {streak}x streak</div>
+                <span className="game-stat-pill" style={{ background: "linear-gradient(135deg, #f97316, #f59e0b)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Flame size={13} strokeWidth={2.4} /> {streak}x
+                </span>
               )}
-              <button className="gtc-close" onClick={onClose}>✕</button>
             </div>
 
-            {/* Timer */}
             <div className="gtc-timer-bar">
               <div className="gtc-timer-fill" style={{ width: `${timerPct}%`, background: timerColor }} />
             </div>
 
-            {/* Cry card */}
             <div className="gtc-cry-card">
-              <div className="gtc-cry-q">
-                {t("🔊 นี่คือเสียงร้องของโปเกมอนตัวไหน?", "🔊 WHICH POKÉMON IS THIS CRY?", "🔊 この鳴き声はどのポケモン?")}
+              <div className="gtc-cry-q" style={{ display: "inline-flex", alignItems: "center", gap: 7, justifyContent: "center" }}>
+                <Volume2 size={14} strokeWidth={2.4} /> {revealed
+                  ? t("คำตอบคือ", "The answer is", "答えは")
+                  : t("นี่คือเสียงของโปเกมอนตัวไหน?", "Which Pokémon is this cry?", "この鳴き声はどのポケモン?")}
               </div>
 
-              <div className="gtc-cry-play-wrap">
-                {isPlaying && <>
-                  <div className="gtc-cry-ring" />
-                  <div className="gtc-cry-ring gtc-cry-ring-2" />
-                </>}
-                <button
-                  className={`gtc-play-btn${isPlaying ? " playing" : ""}`}
-                  onClick={handlePlay}
-                  disabled={playsLeft <= 0 || revealed || isPlaying}
-                >
-                  {isPlaying ? "🎵" : "🔊"}
-                </button>
-              </div>
+              {revealed ? (
+                <div className="gtc-reveal">
+                  <img src={artwork(target.id)} alt={getName(target)} />
+                  <div className="gtc-reveal-name">{getName(target)}</div>
+                </div>
+              ) : (
+                <>
+                  <div className="gtc-play-wrap">
+                    {isPlaying && <>
+                      <div className="gtc-ring" />
+                      <div className="gtc-ring gtc-ring-2" />
+                    </>}
+                    <button
+                      className={`gtc-play-btn${isPlaying ? " playing" : ""}`}
+                      onClick={handlePlay}
+                      disabled={playsLeft <= 0 || isPlaying}
+                    >
+                      {isPlaying ? <Music size={28} strokeWidth={2.2} /> : <Volume2 size={28} strokeWidth={2.2} />}
+                    </button>
+                  </div>
 
-              <div className="gtc-plays-dots">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className={`gtc-plays-dot${i >= playsLeft ? " used" : ""}`} />
-                ))}
-              </div>
-              <div className="gtc-plays-left">
-                {revealed ? "" : t(`เล่นได้อีก ${playsLeft} ครั้ง`, `${playsLeft} plays left`, `残り${playsLeft}回`)}
-              </div>
+                  <div className="gtc-dots">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className={`gtc-dot${i >= playsLeft ? " used" : ""}`} />
+                    ))}
+                  </div>
+                  <div className="gtc-plays-left">
+                    {t(`เล่นได้อีก ${playsLeft} ครั้ง`, `${playsLeft} plays left`, `残り${playsLeft}回`)}
+                  </div>
 
-              <div className="gtc-timer-txt" style={{ "--tc": timerColor }}>
-                {!revealed ? `${timeLeft}s` : ""}
-              </div>
+                  <div className="gtc-timer-txt" style={{ "--tc": timerColor }}>
+                    {timeLeft}s
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Result feedback */}
             {resultMsg && (
-              <div className={`gtc-result-msg ${resultMsg.correct ? "correct" : picked === null ? "timeout" : "wrong"}`}>
+              <div className={`game-reveal-banner ${resultMsg.correct ? "correct" : "wrong"}`}
+                style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
                 {resultMsg.correct
-                  ? `✅ ${t("ถูกต้อง!", "Correct!", "正解！")} +${resultMsg.pts} ${t("คะแนน", "pts", "点")}`
+                  ? <><CheckCircle2 size={15} strokeWidth={2.4} /> {t("ถูกต้อง!", "Correct!", "正解！")} +{resultMsg.pts} {t("คะแนน", "pts", "点")}</>
                   : picked === null
-                  ? `⏰ ${t("หมดเวลา!", "Time's up!", "時間切れ！")} — ${getName(target)}`
-                  : `❌ ${t("ผิด!", "Wrong!", "不正解！")} — ${getName(target)}`
+                  ? <><Clock size={15} strokeWidth={2.4} /> {t("หมดเวลา!", "Time's up!", "時間切れ！")} — {getName(target)}</>
+                  : <><XCircle size={15} strokeWidth={2.4} /> {t("ผิด!", "Wrong!", "不正解！")} — {getName(target)}</>
                 }
               </div>
             )}
 
-            {/* Choices */}
-            <div className="gtc-choices">
+            <div className="game-choices" style={{ gridTemplateColumns: "1fr 1fr" }}>
               {choices.map((c) => {
                 let cls = "gtc-choice";
                 if (revealed) {
+                  cls += " revealed";
                   if (c.name === target?.name) cls += " correct";
                   else if (c.name === picked) cls += " wrong";
-                  cls += " disabled";
                 }
                 return (
-                  <button key={c.name} className={cls} onClick={() => handlePick(c.name)}>
+                  <button key={c.name} className={cls} onClick={() => handlePick(c.name)} disabled={revealed}>
+                    <img src={artwork(c.id)} alt={getName(c)} loading="lazy" />
                     {getName(c)}
                   </button>
                 );
@@ -625,35 +509,45 @@ export default function GuessTheCryGame({ allList, thaiArr, jpArr, lang, genIdx,
 
         {/* ── Game Over ── */}
         {phase === "gameover" && (
-          <div className="gtc-gameover">
-            <button className="gtc-close" onClick={onClose} style={{ alignSelf: "flex-end" }}>✕</button>
-            <div className="gtc-gameover-trophy">
-              {score >= 1200 ? "🏆" : score >= 600 ? "🥈" : "🎮"}
+          <div className="game-over-screen">
+            <div className="game-over-icon" style={{ display: "flex", justifyContent: "center",
+              color: score >= 1200 ? "#e0a92e" : score >= 600 ? "var(--text-muted)" : "var(--blue)" }}>
+              {score >= 1200 ? <Trophy size={48} strokeWidth={1.8} /> : score >= 600 ? <Medal size={48} strokeWidth={1.8} /> : <Gamepad2 size={48} strokeWidth={1.8} />}
             </div>
-            <div className="gtc-gameover-title">
+            <h1 className="game-over-title" style={{ marginBottom: 16 }}>
               {score >= 1200
                 ? t("เก่งมาก! ผู้เชี่ยวชาญเสียง!", "Amazing! Cry Master!", "すごい！鳴き声マスター！")
                 : score >= 600
                 ? t("ดีมาก! เก่งขึ้นเรื่อยๆ!", "Nice! Getting better!", "いいね！上達してる！")
                 : t("ยังไม่แม่น ลองอีกครั้ง!", "Keep practicing!", "もっと練習しよう！")}
+            </h1>
+
+            <div className="game-over-stats">
+              <div className="game-over-stat">
+                <span className="game-over-stat-label">{t("คะแนนรวม", "Final", "最終")}</span>
+                <span className="game-over-stat-val">{score}</span>
+              </div>
+              <div className="game-over-stat">
+                <span className="game-over-stat-label">{t("คะแนนสูงสุด", "Best", "ベスト")}</span>
+                <span className="game-over-stat-val">{bestScore}</span>
+              </div>
             </div>
-            <div style={{ fontSize: 13, opacity: 0.65, marginTop: -8 }}>
-              {t("คะแนนรวม", "Final Score", "最終スコア")}
-            </div>
-            <div className="gtc-gameover-score">{score}</div>
-            <div className="gtc-gameover-chips">
+
+            <div className="gtc-chips">
               {score >= bestScore && score > 0 && (
-                <div className="gtc-gameover-chip" style={{ background: "rgba(251,191,36,0.2)", borderColor: "rgba(251,191,36,0.4)", color: "#fde68a" }}>
-                  🏆 {t("New Best!", "New Best!", "新記録！")}
+                <div className="gtc-chip" style={{ background: "var(--gold-light)", borderColor: "var(--gold)", color: "#7a5000", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Trophy size={12} strokeWidth={2.4} /> {t("สถิติใหม่!", "New Best!", "新記録！")}
                 </div>
               )}
-              <div className="gtc-gameover-chip">🔥 Max streak: {streak}</div>
-              <div className="gtc-gameover-chip">📋 {TOTAL_ROUNDS} {t("ข้อ", "Qs", "問")}</div>
+              <div className="gtc-chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Flame size={12} strokeWidth={2.4} /> {t("สตรีค", "Streak", "連続")}: {streak}</div>
+              <div className="gtc-chip" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><ClipboardList size={12} strokeWidth={2.4} /> {TOTAL_ROUNDS} {t("ข้อ", "Qs", "問")}</div>
             </div>
-            <button className="gtc-gameover-btn primary" onClick={() => { setRound(0); setScore(0); setStreak(0); setPhase("next"); }}>
-              🔄 {t("เล่นอีกครั้ง", "PLAY AGAIN", "もう一度")}
+
+            <button className="game-next-btn" onClick={() => { setRound(0); setScore(0); setStreak(0); setPhase("next"); }}
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <RotateCw size={16} strokeWidth={2.4} /> {t("เล่นอีกครั้ง", "Play Again", "もう一度")}
             </button>
-            <button className="gtc-gameover-btn secondary" onClick={onClose}>
+            <button className="gtc-back-btn" onClick={onClose}>
               {t("กลับหน้าเกม", "Back to Games", "ゲーム一覧へ")}
             </button>
           </div>

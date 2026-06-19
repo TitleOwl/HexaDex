@@ -9,6 +9,11 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Gem, Star, Moon, Sparkles, HelpCircle, X, Swords, ClipboardList,
+  AlertTriangle, Ban, Users, MessageCircle, MessagesSquare, Clock,
+  RotateCw, Loader2,
+} from "lucide-react";
 import { useModalLifecycle, matchPokemonId, pokeApiArtwork } from "../perfUtils.js";
 
 const RAIDS_URL = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/raids.json";
@@ -16,29 +21,58 @@ const CACHE_KEY = "pkdx_raids_cache_v1";
 const CACHE_TTL = 60 * 60 * 1000;
 
 // ─── Tier configuration ────────────────────────────────────────────────
+// Raid-tier egg images (Pokémon GO Wiki / Fandom CDN — CORS-open, hotlinkable)
+const WIKIA = "https://static.wikia.nocookie.net/pokemongo/images";
 const TIER_META = {
-  "Mega Raids":         { order: 0, emoji: "💎",
-    color: "#e11d48", bg: "linear-gradient(135deg, #fda4af 0%, #f43f5e 50%, #be123c 100%)",
+  "Mega Raids":         { order: 0, Icon: Gem,      color: "#e11d48",
+    img: `${WIKIA}/c/c2/Egg_Raid_Mega.png/revision/latest?cb=20200825193419`,
     label: { en: "MEGA RAIDS", th: "MEGA RAIDS", ja: "メガレイド" } },
-  "5-Star Raids":       { order: 2, emoji: "⭐",
-    color: "#7c3aed", bg: "linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #6b21a8 100%)",
+  "5-Star Raids":       { order: 2, Icon: Star,     color: "#900603",
+    img: `${WIKIA}/c/cd/Egg_Raid_Legendary.png/revision/latest?cb=20170620230139`,
     label: { en: "5-STAR RAIDS", th: "5-STAR RAIDS", ja: "5★レイド" } },
-  "Shadow 5-Star Raids":{ order: 3, emoji: "🌑",
-    color: "#1f2937", bg: "linear-gradient(135deg, #6b7280 0%, #374151 50%, #111827 100%)",
+  "Shadow 5-Star Raids":{ order: 3, Icon: Moon,     color: "#3f3f46",
+    img: `${WIKIA}/a/a4/Egg_Raid_Legendary_shadow.png/revision/latest?cb=20230519112814`,
     label: { en: "SHADOW 5-STAR", th: "SHADOW 5-STAR", ja: "シャドウ5★" } },
-  "3-Star Raids":       { order: 4, emoji: "🌟",
-    color: "#a16207", bg: "linear-gradient(135deg, #fde047 0%, #ca8a04 50%, #713f12 100%)",
+  "3-Star Raids":       { order: 4, Icon: Star,     color: "#eab308",
+    img: `${WIKIA}/e/e3/Egg_Raid_Rare.png/revision/latest?cb=20170620230126`,
     label: { en: "3-STAR RAIDS", th: "3-STAR RAIDS", ja: "3★レイド" } },
-  "Shadow 3-Star Raids":{ order: 5, emoji: "🌑",
-    color: "#3f3f46", bg: "linear-gradient(135deg, #a1a1aa 0%, #52525b 50%, #18181b 100%)",
+  "Shadow 3-Star Raids":{ order: 5, Icon: Moon,     color: "#3f3f46",
+    img: `${WIKIA}/1/1b/Egg_Raid_Rare_shadow.png/revision/latest?cb=20230519112814`,
     label: { en: "SHADOW 3-STAR", th: "SHADOW 3-STAR", ja: "シャドウ3★" } },
-  "1-Star Raids":       { order: 6, emoji: "✨",
-    color: "#0369a1", bg: "linear-gradient(135deg, #7dd3fc 0%, #0284c7 50%, #075985 100%)",
+  "1-Star Raids":       { order: 6, Icon: Sparkles, color: "#e9568f",
+    img: `${WIKIA}/5/5a/Egg_Raid_Normal.png/revision/latest?cb=20170620230659`,
     label: { en: "1-STAR RAIDS", th: "1-STAR RAIDS", ja: "1★レイド" } },
-  "Shadow 1-Star Raids":{ order: 7, emoji: "🌑",
-    color: "#3730a3", bg: "linear-gradient(135deg, #a5b4fc 0%, #4f46e5 50%, #312e81 100%)",
+  "Shadow 1-Star Raids":{ order: 7, Icon: Moon,     color: "#6d4b8c",
+    img: `${WIKIA}/7/7f/Egg_Raid_Normal_shadow.png/revision/latest?cb=20230519112813`,
     label: { en: "SHADOW 1-STAR", th: "SHADOW 1-STAR", ja: "シャドウ1★" } },
 };
+
+// Self-drawn raid-tier egg (fallback if the Wiki image fails to load)
+function TierEgg({ color = "#888", size = 18 }) {
+  return (
+    <svg width={size} height={Math.round(size * 1.26)} viewBox="0 0 32 40" aria-hidden
+      style={{ display: "block", flexShrink: 0 }}>
+      <path d="M16 1.5C9.6 1.5 3.6 14.6 3.6 25a12.4 13 0 0 0 24.8 0C28.4 14.6 22.4 1.5 16 1.5Z" fill={color} />
+      <circle cx="20.5" cy="22" r="2.6" fill="rgba(0,0,0,0.14)" />
+      <circle cx="13" cy="28" r="2" fill="rgba(0,0,0,0.14)" />
+      <circle cx="11.5" cy="17" r="3" fill="rgba(255,255,255,0.36)" />
+      <path d="M9.5 10C11.2 6.6 13.6 4.2 16 3.4" stroke="rgba(255,255,255,0.48)" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+// Tier icon: real Wiki egg image, falls back to the drawn egg on error
+function TierIcon({ meta, size = 18 }) {
+  const [failed, setFailed] = useState(false);
+  if (failed || !meta?.img) return <TierEgg color={meta?.color ?? "#888"} size={size} />;
+  return (
+    <img src={meta.img} alt="" width={size} height={size} loading="lazy"
+      referrerPolicy="no-referrer"
+      style={{ objectFit: "contain", display: "block", flexShrink: 0,
+               filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.18))" }}
+      onError={() => setFailed(true)} />
+  );
+}
 
 const TYPE_COLORS = {
   Normal:"#A8A878", Fire:"#F08030", Water:"#6890F0", Electric:"#F8D030",
@@ -74,10 +108,10 @@ function getNextRaidHour() {
 }
 
 const TH_COMMUNITIES = [
-  { name: "Pokemon Go Thailand",   url: "https://www.facebook.com/groups/pokemongo.thailand/", icon: "📘", color: "#1877F2" },
-  { name: "PoGO Bangkok Discord",  url: "https://discord.gg/pokemongo",                       icon: "💬", color: "#5865F2" },
-  { name: "PoGO Thailand Reddit",  url: "https://www.reddit.com/r/PokemonGOThailand/",        icon: "🔴", color: "#FF4500" },
-  { name: "PvPoke Counters",       url: "https://pvpoke.com/",                                icon: "⚔️", color: "#0891b2" },
+  { name: "Pokemon Go Thailand",   url: "https://www.facebook.com/groups/pokemongo.thailand/", Icon: Users,          color: "#1877F2" },
+  { name: "PoGO Bangkok Discord",  url: "https://discord.gg/pokemongo",                       Icon: MessageCircle,  color: "#5865F2" },
+  { name: "PoGO Thailand Reddit",  url: "https://www.reddit.com/r/PokemonGOThailand/",        Icon: MessagesSquare, color: "#FF4500" },
+  { name: "PvPoke Counters",       url: "https://pvpoke.com/",                                Icon: Swords,         color: "#0891b2" },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -146,8 +180,7 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
     return Object.entries(groups)
       .map(([tier, bosses]) => ({
         tier,
-        meta: TIER_META[tier] ?? { order: 99, color: "#64748b",
-          bg: "linear-gradient(135deg, #94a3b8, #475569)", emoji: "❔",
+        meta: TIER_META[tier] ?? { order: 99, color: "var(--text-secondary)", Icon: HelpCircle,
           label: { en: tier, th: tier, ja: tier } },
         bosses,
       }))
@@ -207,28 +240,32 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
       <div className="rg-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="rg-header">
-          <button className="rg-close" onClick={onClose} aria-label="Close">✕</button>
+          <span className="rg-title-emoji"><Swords size={20} strokeWidth={2.3} /></span>
           <div className="rg-title-block">
             <div className="rg-title">
-              <span className="rg-title-emoji">⚔️</span>
               <span className="rg-title-text">
                 {t("คู่มือ Raid", "Raid Battle Guide", "レイドガイド")}
               </span>
             </div>
             <div className="rg-subtitle">
-              {t("Raid Boss ทั้งหมดในตอนนี้", "All active Raid Bosses", "現在開催中のレイドボス")}
+              {totalBosses > 0
+                ? t(`${totalBosses} บอสกำลังเปิดอยู่`, `${totalBosses} bosses active now`, `${totalBosses}体 開催中`)
+                : t("Raid Boss ทั้งหมดในตอนนี้", "All active Raid Bosses", "現在開催中のレイドボス")}
             </div>
           </div>
-          <button className="rg-refresh" onClick={() => fetchRaids(true)} disabled={loading}
-            title={t("รีเฟรช", "Refresh", "更新")}>
-            {loading ? "⏳" : "↻"}
-          </button>
+          <div className="rg-head-actions">
+            <button className="rg-refresh" onClick={() => fetchRaids(true)} disabled={loading}
+              title={t("รีเฟรช", "Refresh", "更新")}>
+              {loading ? <Loader2 size={16} strokeWidth={2.4} style={{ animation: "rg-spin 1s linear infinite" }} /> : <RotateCw size={16} strokeWidth={2.4} />}
+            </button>
+            <button className="rg-close" onClick={onClose} aria-label="Close"><X size={16} strokeWidth={2.4} /></button>
+          </div>
         </div>
 
         {/* TH Raid Hour Banner */}
         <div className={`rg-raidhour ${isRaidHourActive ? "active" : ""}`}>
           <div className="rg-raidhour-left">
-            <span className="rg-raidhour-flag">🇹🇭</span>
+            <span className="rg-raidhour-flag"><Clock size={20} strokeWidth={2.2} /></span>
             <div className="rg-raidhour-text">
               <div className="rg-raidhour-label">
                 {t("Raid Hour ไทย", "Thailand Raid Hour", "タイレイドアワー")}
@@ -247,7 +284,7 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
             <button
               className={`rg-chip${activeFilters.size === 0 ? " active" : ""}`}
               onClick={() => setActiveFilters(new Set())}>
-              <span className="rg-chip-emoji">📋</span>
+              <span className="rg-chip-emoji"><ClipboardList size={13} strokeWidth={2.2} /></span>
               <span>{t("ทั้งหมด", "All", "全て")}</span>
               <span className="rg-chip-count">{raids?.length ?? 0}</span>
             </button>
@@ -259,8 +296,8 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
                 <button key={tier}
                   className={`rg-chip${active ? " active" : ""}`}
                   onClick={() => toggleFilter(tier)}
-                  style={active ? { background: meta.bg, color: "white", borderColor: meta.color } : { borderColor: meta.color + "44" }}>
-                  <span className="rg-chip-emoji">{meta.emoji}</span>
+                  style={active ? { background: meta.color, color: "white", borderColor: meta.color } : { borderColor: (meta.color ?? "#888") + "55", color: meta.color }}>
+                  <span className="rg-chip-emoji"><TierIcon meta={meta} size={16} /></span>
                   <span>{meta.label?.[lang] ?? tier}</span>
                   <span className="rg-chip-count">{count}</span>
                 </button>
@@ -273,7 +310,7 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
         {lastUpdated && (
           <div className="rg-updated">
             {t("อัปเดต:", "Updated:", "更新:")} {formatAge(lastUpdated)}
-            {error && <span className="rg-error"> · ⚠️ {error}</span>}
+            {error && <span className="rg-error" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}> · <AlertTriangle size={12} strokeWidth={2.4} /> {error}</span>}
           </div>
         )}
 
@@ -288,7 +325,7 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
         {/* Empty State */}
         {!loading && !grouped.length && (
           <div className="rg-empty">
-            <div className="rg-empty-icon">🚫</div>
+            <div className="rg-empty-icon"><Ban size={44} strokeWidth={1.8} /></div>
             <div className="rg-empty-title">
               {activeFilters.size > 0
                 ? t("ไม่มี Raid ใน Tier ที่เลือก", "No raids in selected tiers", "選択中のティアにレイドなし")
@@ -300,8 +337,12 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
         {/* Tier Sections */}
         {grouped.map(({ tier, meta, bosses }) => (
           <section key={tier} className="rg-tier">
-            <div className="rg-tier-header" style={{ background: meta.bg }}>
-              <span className="rg-tier-emoji">{meta.emoji}</span>
+            <div className="rg-tier-header" style={{
+              background: `color-mix(in srgb, ${meta.color ?? "#888"} 10%, var(--rg-bg, #fff))`,
+              borderLeft: `3px solid ${meta.color ?? "#888"}`,
+              color: "var(--rg-fg, var(--text-primary))",
+            }}>
+              <span className="rg-tier-emoji"><TierIcon meta={meta} size={40} /></span>
               <span className="rg-tier-label">{meta.label?.[lang] ?? tier}</span>
               <span className="rg-tier-count">{bosses.length}</span>
             </div>
@@ -317,15 +358,13 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
                     className="rg-boss"
                     onClick={() => pokeId && onOpenPokemon?.(boss)}>
                     <div className="rg-boss-bg" style={{
-                      background: types[0]
-                        ? `radial-gradient(circle at 50% 35%, ${TYPE_COLORS[types[0].name] ?? meta.color}55, transparent 70%)`
-                        : "none"
+                      background: `radial-gradient(circle, ${TYPE_COLORS[types[0]?.name] ?? meta.color}, transparent 72%)`
                     }} />
                     <img src={art} alt={boss.name} className="rg-boss-img" loading="lazy"
                       onError={(e) => { e.target.style.opacity = 0.3; }} />
                     <div className="rg-boss-name">
                       {boss.name}
-                      {boss.shiny && <span className="rg-boss-shiny">✨</span>}
+                      {boss.shiny && <span className="rg-boss-shiny" style={{ color: "#e0a92e" }}><Sparkles size={11} strokeWidth={2.4} /></span>}
                     </div>
                     <div className="rg-boss-types">
                       {types.map((tp, ti) => (
@@ -345,7 +384,7 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
         {/* TH Community Footer */}
         <div className="rg-community">
           <div className="rg-community-title">
-            🇹🇭 {t("ชุมชน PoGO ไทย", "Thai PoGO Community", "タイPoGOコミュニティ")}
+            {t("ชุมชน PoGO ไทย", "Thai PoGO Community", "タイPoGOコミュニティ")}
           </div>
           <div className="rg-community-grid">
             {TH_COMMUNITIES.map(c => (
@@ -353,7 +392,7 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
                 className="rg-community-link"
                 style={{ borderColor: c.color + "55" }}>
                 <span className="rg-community-icon"
-                  style={{ background: c.color + "22", color: c.color }}>{c.icon}</span>
+                  style={{ background: c.color + "1f", color: c.color }}><c.Icon size={16} strokeWidth={2.2} /></span>
                 <span className="rg-community-name">{c.name}</span>
               </a>
             ))}
@@ -385,71 +424,74 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
 
         .rg-overlay {
           position: fixed; inset: 0; z-index: 9000;
-          background: radial-gradient(ellipse at top, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.96));
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          background: rgba(20, 19, 22, 0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           overflow-y: auto;
           padding: 20px 12px;
           animation: rg-overlay-in 0.3s ease;
         }
         .rg-modal {
+          --rg-bg: var(--bg-card); --rg-fg: var(--text-primary);
           max-width: 1080px;
           margin: 0 auto;
-          background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.95));
-          border: 1px solid rgba(148, 163, 184, 0.2);
-          border-radius: 28px;
-          padding: 24px;
-          color: #f1f5f9;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 22px;
+          color: var(--text-primary);
           position: relative;
-          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+          box-shadow: 0 24px 60px rgba(20, 19, 22, 0.3);
           animation: rg-modal-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         /* ─── Header ──────────────────────────────────────────── */
         .rg-header {
           display: flex; align-items: center; gap: 14px;
-          padding-bottom: 18px; margin-bottom: 18px;
-          border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+          padding-bottom: 16px; margin-bottom: 16px;
+          border-bottom: 1px solid var(--border);
         }
         .rg-close {
-          width: 36px; height: 36px;
-          border-radius: 50%; border: none;
-          background: rgba(239, 68, 68, 0.15);
-          color: #fca5a5; font-size: 16px; font-weight: 900;
+          width: 34px; height: 34px;
+          border-radius: 50%; border: 1px solid var(--border);
+          background: var(--bg-muted);
+          color: var(--text-secondary);
           cursor: pointer;
           transition: all 0.25s ease;
           flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
         }
         .rg-close:hover {
-          background: rgba(239, 68, 68, 0.35); color: white;
-          transform: scale(1.1) rotate(90deg);
+          background: rgba(210,58,74,0.12); color: #d23a4a; border-color: rgba(210,58,74,0.4);
+          transform: scale(1.08);
         }
+        .rg-head-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .rg-title-block { flex: 1; min-width: 0; }
         .rg-title {
           display: flex; align-items: center; gap: 10px;
-          font-size: 22px; font-weight: 900; letter-spacing: -0.02em;
+          font-size: 19px; font-weight: 800; letter-spacing: -0.02em;
         }
-        .rg-title-emoji { font-size: 26px; filter: drop-shadow(0 2px 8px rgba(251, 146, 60, 0.5)); }
-        .rg-title-text {
-          background: linear-gradient(135deg, #fff, #fde68a, #fb923c);
-          -webkit-background-clip: text; background-clip: text;
-          -webkit-text-fill-color: transparent; color: transparent;
+        .rg-title-emoji {
+          width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: linear-gradient(135deg, #b5302d, #6e0402); color: #fff;
+          box-shadow: 0 4px 12px rgba(144,6,3,0.35);
         }
+        .rg-title-text { color: var(--text-primary); }
         .rg-subtitle {
-          font-size: 12px; color: #94a3b8; font-weight: 600;
+          font-size: 12px; color: var(--text-secondary); font-weight: 600;
           letter-spacing: 0.02em; margin-top: 3px;
         }
         .rg-refresh {
-          width: 38px; height: 38px;
-          border-radius: 50%; border: 1px solid rgba(148, 163, 184, 0.25);
-          background: rgba(99, 102, 241, 0.15); color: #c7d2fe;
-          font-size: 18px; font-weight: 800;
+          width: 34px; height: 34px;
+          border-radius: 50%; border: 1px solid var(--border);
+          background: var(--bg-muted); color: var(--text-secondary);
           cursor: pointer; flex-shrink: 0;
           transition: all 0.3s ease;
+          display: inline-flex; align-items: center; justify-content: center;
         }
         .rg-refresh:hover:not(:disabled) {
-          background: rgba(99, 102, 241, 0.3); color: white;
-          transform: rotate(90deg);
+          background: var(--bg-muted); color: var(--text-primary);
         }
         .rg-refresh:disabled { opacity: 0.5; cursor: wait; }
 
@@ -459,29 +501,25 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
           gap: 14px;
           padding: 14px 18px;
           margin-bottom: 16px;
-          border-radius: 18px;
-          background:
-            linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%),
-            linear-gradient(135deg, #ef4444 0%, #f97316 60%, #f59e0b 100%);
-          background-size: 250% 100%, 100% 100%;
-          animation: rg-shimmer 6s linear infinite;
-          box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+          border-radius: 14px;
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
+          border-left: 3px solid var(--blue, #900603);
         }
-        .rg-raidhour.active {
-          animation: rg-shimmer 3s linear infinite, rg-pulse 1.5s ease-in-out infinite;
-        }
+        .rg-raidhour.active { border-left-color: #dc2626; background: rgba(220,38,38,0.06); }
         .rg-raidhour-left { display: flex; align-items: center; gap: 12px; }
-        .rg-raidhour-flag { font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
-        .rg-raidhour-label { font-size: 14px; font-weight: 900; color: white; }
-        .rg-raidhour-detail { font-size: 11px; color: rgba(255,255,255,0.85); font-weight: 600; }
+        .rg-raidhour-flag { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+          display: inline-flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--blue) 12%, transparent); color: var(--blue, #900603); }
+        .rg-raidhour-label { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+        .rg-raidhour-detail { font-size: 11px; color: var(--text-secondary); font-weight: 600; }
         .rg-raidhour-count {
-          font-size: 18px; font-weight: 900; color: white;
-          padding: 8px 16px;
-          background: rgba(0, 0, 0, 0.25);
+          font-size: 17px; font-weight: 900; color: var(--text-primary);
+          padding: 7px 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
           border-radius: 999px;
-          backdrop-filter: blur(8px);
           letter-spacing: 0.02em;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
 
         /* ─── Filter Chips ────────────────────────────────────── */
@@ -491,11 +529,11 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
         }
         .rg-chip {
           display: inline-flex; align-items: center; gap: 6px;
-          padding: 7px 14px;
+          padding: 7px 13px;
           border-radius: 999px;
-          border: 1.5px solid rgba(148, 163, 184, 0.25);
-          background: rgba(30, 41, 59, 0.6);
-          color: #cbd5e1;
+          border: 1px solid var(--border);
+          background: var(--bg-muted);
+          color: var(--text-secondary);
           font-size: 12px; font-weight: 800;
           cursor: pointer;
           transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -503,34 +541,33 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
         }
         .rg-chip:hover {
           transform: translateY(-2px);
-          color: white;
-          background: rgba(30, 41, 59, 0.9);
+          color: var(--text-primary);
+          background: var(--bg-muted);
         }
         .rg-chip.active {
           transform: translateY(-2px);
-          box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+          box-shadow: 0 4px 12px rgba(20,19,22,0.18);
         }
-        .rg-chip-emoji { font-size: 13px; }
+        .rg-chip-emoji { display: inline-flex; }
         .rg-chip-count {
           padding: 2px 8px;
-          background: rgba(255, 255, 255, 0.15);
+          background: color-mix(in srgb, var(--text-primary) 8%, transparent);
           border-radius: 999px;
           font-size: 10px;
           font-weight: 900;
-          backdrop-filter: blur(4px);
         }
         .rg-chip.active .rg-chip-count {
-          background: rgba(0, 0, 0, 0.25);
+          background: rgba(255, 255, 255, 0.28);
         }
 
         /* ─── Updated info ────────────────────────────────────── */
         .rg-updated {
-          font-size: 11px; color: #94a3b8;
+          font-size: 11px; color: var(--text-muted);
           margin-bottom: 18px;
           font-weight: 600;
           letter-spacing: 0.02em;
         }
-        .rg-error { color: #fca5a5; }
+        .rg-error { color: #dc2626; }
 
         /* ─── Loading / Empty ─────────────────────────────────── */
         .rg-loading {
@@ -540,148 +577,143 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
         .rg-spinner {
           width: 50px; height: 50px;
           margin: 0 auto 16px;
-          border: 4px solid rgba(99, 102, 241, 0.2);
-          border-top-color: #818cf8;
+          border: 4px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+          border-top-color: var(--blue, #900603);
           border-radius: 50%;
           animation: rg-spin 0.9s linear infinite;
         }
         .rg-loading-text {
-          color: #94a3b8; font-size: 13px; font-weight: 700;
+          color: var(--text-secondary); font-size: 13px; font-weight: 700;
         }
         .rg-empty {
           padding: 60px 20px;
           text-align: center;
-          color: #94a3b8;
+          color: var(--text-secondary);
         }
-        .rg-empty-icon { font-size: 56px; margin-bottom: 12px; opacity: 0.6; }
+        .rg-empty-icon { display: flex; justify-content: center; margin-bottom: 12px; opacity: 0.4; color: var(--text-muted); }
         .rg-empty-title { font-size: 15px; font-weight: 700; }
 
         /* ─── Tier Section ────────────────────────────────────── */
         .rg-tier { margin-bottom: 22px; }
         .rg-tier-header {
           display: flex; align-items: center; gap: 10px;
-          padding: 12px 18px;
-          border-radius: 16px;
+          padding: 11px 16px;
+          border-radius: 12px;
           margin-bottom: 14px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
-          color: white;
+          box-shadow: none;
         }
-        .rg-tier-emoji {
-          font-size: 22px;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-        }
+        .rg-tier-emoji { display: inline-flex; }
         .rg-tier-label {
           flex: 1;
           font-size: 14px;
-          font-weight: 900;
-          letter-spacing: 0.1em;
-          text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+          font-weight: 800;
+          letter-spacing: 0.08em;
         }
         .rg-tier-count {
-          padding: 4px 12px;
-          background: rgba(0, 0, 0, 0.25);
-          backdrop-filter: blur(6px);
+          padding: 3px 11px;
+          background: color-mix(in srgb, var(--text-primary) 8%, transparent);
           border-radius: 999px;
           font-size: 12px;
-          font-weight: 900;
-          color: white;
+          font-weight: 800;
         }
         .rg-tier-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
           gap: 12px;
         }
 
-        /* ─── Boss Card — LIGHT like Pokedex page (flat 2D) ─── */
+        /* ─── Boss Card — minimal, soft type halo + floating sprite ─── */
         .rg-boss {
           position: relative;
-          padding: 16px 12px 12px;
-          background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-          border: 1px solid rgba(148, 163, 184, 0.25);
-          border-radius: 18px;
+          padding: 16px 12px 13px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 16px;
           cursor: pointer;
-          color: #1e293b;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          color: var(--text-primary);
+          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s, border-color 0.2s;
           overflow: hidden;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+          gap: 9px;
+          box-shadow: 0 2px 6px rgba(20,19,22,0.05);
         }
         .rg-boss:hover {
           transform: translateY(-4px);
-          border-color: rgba(251, 146, 60, 0.5);
-          box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
+          border-color: var(--blue, #b5302d);
+          box-shadow: 0 12px 26px rgba(20,19,22,0.16);
         }
+        /* soft type-coloured halo behind the sprite */
         .rg-boss-bg {
           position: absolute;
-          inset: 0;
+          top: 6px; left: 50%; transform: translateX(-50%);
+          width: 88px; height: 88px; border-radius: 50%;
           pointer-events: none;
-          opacity: 0.45;
+          opacity: 0.42;
+          filter: blur(9px);
         }
         .rg-boss-img {
           position: relative;
           z-index: 1;
-          width: 90px;
-          height: 90px;
+          width: 82px;
+          height: 82px;
           object-fit: contain;
-          /* NO drop-shadow — true flat 2D like Pokedex */
-          transition: transform 0.25s ease;
+          filter: drop-shadow(0 7px 7px rgba(0,0,0,0.18));
+          transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .rg-boss:hover .rg-boss-img {
-          transform: scale(1.05);
+          transform: scale(1.09) translateY(-3px);
         }
         .rg-boss-name {
           position: relative;
           z-index: 1;
           font-weight: 800;
-          font-size: 12.5px;
+          font-size: 13px;
           text-align: center;
           line-height: 1.2;
           display: flex;
           align-items: center;
           gap: 4px;
           letter-spacing: -0.01em;
-          color: #1e293b;
+          color: var(--text-primary);
+          text-transform: capitalize;
         }
         .rg-boss-shiny {
-          color: #fbbf24;
-          filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.7));
+          display: inline-flex;
+          color: #e0a92e;
         }
         .rg-boss-types {
           position: relative;
           z-index: 1;
           display: flex;
-          gap: 4px;
+          gap: 5px;
           flex-wrap: wrap;
           justify-content: center;
         }
         .rg-boss-type {
-          padding: 2px 8px;
-          font-size: 9px;
-          font-weight: 900;
-          letter-spacing: 0.08em;
+          padding: 3px 10px;
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: 0.03em;
           color: white;
-          border-radius: 999px;
-          text-transform: uppercase;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+          border-radius: 7px;
+          text-transform: capitalize;
+          box-shadow: none;
         }
 
         /* ─── Thai Community Footer ───────────────────────────── */
         .rg-community {
           margin-top: 24px;
           padding: 18px;
-          border-radius: 20px;
-          background:
-            radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.12), transparent 40%),
-            linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.4));
-          border: 1px solid rgba(148, 163, 184, 0.18);
+          border-radius: 16px;
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
         }
         .rg-community-title {
           font-size: 14px;
-          font-weight: 900;
-          color: #f1f5f9;
+          font-weight: 800;
+          color: var(--text-primary);
           margin-bottom: 12px;
           letter-spacing: -0.01em;
         }
@@ -694,26 +726,24 @@ export default function RaidGuide({ lang = "en", onClose, onOpenPokemon, allList
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 14px;
-          background: rgba(30, 41, 59, 0.5);
-          border: 1.5px solid;
-          border-radius: 14px;
+          padding: 11px 14px;
+          background: var(--bg-card);
+          border: 1px solid;
+          border-radius: 12px;
           text-decoration: none;
-          color: #f1f5f9;
+          color: var(--text-primary);
           transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .rg-community-link:hover {
           transform: translateY(-3px);
-          background: rgba(30, 41, 59, 0.8);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 8px 18px rgba(20, 19, 22, 0.12);
         }
         .rg-community-icon {
-          width: 38px; height: 38px;
-          border-radius: 12px;
+          width: 36px; height: 36px;
+          border-radius: 11px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
           flex-shrink: 0;
         }
         .rg-community-name {

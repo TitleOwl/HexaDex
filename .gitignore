@@ -23,3 +23,6 @@ dist-ssr
 *.sw?
 .env.local
 .env
+
+# elemental video picker temp
+public/effects/_candidates/

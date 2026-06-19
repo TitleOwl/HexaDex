@@ -1,4 +1,5 @@
 import { useState, useRef, memo } from "react";
+import { Heart } from "lucide-react";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import { typeColor, typeGlow, padId, getArt } from "../utils.js";
 
@@ -6,7 +7,7 @@ import { typeColor, typeGlow, padId, getArt } from "../utils.js";
 export function SkeletonCard() {
   return (
     <div className="poke-card" style={{ cursor:"default", pointerEvents:"none" }}>
-      <div className="card-img-wrap" style={{ background:"rgba(41,121,208,0.04)" }}>
+      <div className="card-img-wrap" style={{ background:"rgba(144,6,3,0.04)" }}>
         <div className="skeleton-pulse skel-img-circle" />
       </div>
       <div className="card-body">
@@ -51,14 +52,12 @@ const PokemonCard = memo(function PokemonCard({
       onClick={handleClick}
       style={{ "--card-type-color":color, "--card-type-glow":typeGlow(mainType) }}
     >
-      <div className="card-ball-bg" />
-
       {compareSlot && (
         <div className="card-compare-badge">{compareSlot}</div>
       )}
 
       <div className="card-img-wrap"
-        style={{ background:`radial-gradient(circle at 55% 45%, ${color}1a, transparent 70%)` }}
+        style={{ background:`linear-gradient(180deg, ${color}14 0%, ${color}05 55%, transparent 100%)` }}
       >
         {!compareMode && (
           <button
@@ -71,7 +70,7 @@ const PokemonCard = memo(function PokemonCard({
               favTimerRef.current = setTimeout(() => setFavAnim(false), 400);
             }}
             aria-label="favourite"
-          >{isFav ? "❤️" : "🤍"}</button>
+          ><Heart size={15} strokeWidth={2.2} fill={isFav ? "currentColor" : "none"} /></button>
         )}
 
         {img && (

@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
+  X, Gamepad2, Star, Heart, HeartCrack, Trophy, Target, Flame,
+  Lightbulb, CheckCircle2, XCircle, RotateCw, Play, Clock,
+} from "lucide-react";
+import {
   STRINGS, DIFFICULTIES, ALL_TYPES, TYPE_COLORS,
   TYPE_NAMES_TH, TYPE_NAMES_JA, GENERATIONS,
 } from "../data.js";
@@ -56,7 +60,10 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
 
   // Generate new round
   const newRound = useCallback(async () => {
-    if (pool.length < difficulty.choices) return;
+    if (pool.length < 2) return;
+    // never request more unique picks than the pool can supply (avoids an
+    // infinite do/while loop + lets small pools still play)
+    const nChoices = Math.min(difficulty.choices, pool.length);
     const used = new Set();
     const pick = () => {
       let idx;
@@ -67,7 +74,7 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
       return { id, name: p.name, url: p.url };
     };
     const targetPick = pick();
-    const distractors = Array.from({ length: difficulty.choices - 1 }, () => pick());
+    const distractors = Array.from({ length: nChoices - 1 }, () => pick());
     const all = [targetPick, ...distractors].sort(() => Math.random() - 0.5);
 
     setTarget(targetPick);
@@ -116,16 +123,18 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
     setCombo(0);
     setLives(v => {
       const next = v - 1;
-      if (next <= 0) {
-        if (score > bestScore) {
-          setBestScore(score);
-          localStorage.setItem("pkdx_whosthat_best", String(score));
-        }
-        setGameOver(true);
-      }
+      if (next <= 0) setGameOver(true);
       return next;
     });
   };
+
+  // Persist best score reliably once the game ends (uses fresh score)
+  useEffect(() => {
+    if (gameOver && score > bestScore) {
+      setBestScore(score);
+      try { localStorage.setItem("pkdx_whosthat_best", String(score)); } catch {}
+    }
+  }, [gameOver, score, bestScore]);
 
   const handlePick = (choice) => {
     if (revealed) return;
@@ -161,16 +170,16 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
     return (
       <div className="game-overlay">
         <div className="game-content">
-          <button className="modal-close game-close" onClick={onClose}>✕</button>
+          <button className="modal-close game-close" onClick={onClose}><X size={16} strokeWidth={2.4} /></button>
 
           <div className="game-header">
-            <h1 className="game-title">🎮 {s.whosThatTitle}</h1>
+            <h1 className="game-title" style={{ display: "inline-flex", alignItems: "center", gap: 9 }}><Gamepad2 size={22} strokeWidth={2.2} /> {s.whosThatTitle}</h1>
             <p className="game-sub">{s.whosThatSub}</p>
           </div>
 
           {/* Difficulty selector */}
           <div className="setup-section">
-            <div className="setup-label">⭐ {s.difficulty}</div>
+            <div className="setup-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Star size={14} strokeWidth={2.4} /> {s.difficulty}</div>
             <div className="difficulty-grid">
               {DIFFICULTIES.map(d => {
                 const label = lang === "th" ? d.th : lang === "ja" ? d.ja : d.en;
@@ -181,9 +190,9 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
                     onClick={() => setDifficulty(d)}
                   >
                     <div className="difficulty-name">{label}</div>
-                    <div className="difficulty-info">
-                      ❤️ {d.lives} · ×{d.scoreMul} pts
-                      {d.time > 0 && <> · ⏱ {d.time}s</>}
+                    <div className="difficulty-info" style={{ display: "inline-flex", alignItems: "center", gap: 4, justifyContent: "center", flexWrap: "wrap" }}>
+                      <Heart size={11} strokeWidth={2.4} fill="currentColor" /> {d.lives} · ×{d.scoreMul} pts
+                      {d.time > 0 && <> · {d.time}s</>}
                     </div>
                     <div className="difficulty-info2">
                       {d.choices} choices
@@ -195,11 +204,11 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
           </div>
 
           <div className="setup-section">
-            <div className="setup-label">🏆 {s.bestScore}: <strong>{bestScore}</strong></div>
+            <div className="setup-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Trophy size={14} strokeWidth={2.4} /> {s.bestScore}: <strong>{bestScore}</strong></div>
           </div>
 
-          <button className="game-start-btn" onClick={startGame}>
-            🎯 {lang === "th" ? "เริ่มเล่น!" : lang === "ja" ? "スタート!" : "Start Game!"}
+          <button className="game-start-btn" onClick={startGame} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Play size={16} strokeWidth={2.6} fill="currentColor" /> {lang === "th" ? "เริ่มเล่น!" : lang === "ja" ? "スタート!" : "Start Game!"}
           </button>
         </div>
       </div>
@@ -212,10 +221,12 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
     return (
       <div className="game-overlay">
         <div className="game-content">
-          <button className="modal-close game-close" onClick={onClose}>✕</button>
+          <button className="modal-close game-close" onClick={onClose}><X size={16} strokeWidth={2.4} /></button>
 
           <div className="game-over-screen">
-            <div className="game-over-icon">{isNewBest ? "🏆" : "💔"}</div>
+            <div className="game-over-icon" style={{ display: "flex", justifyContent: "center", color: isNewBest ? "#e0a92e" : "var(--text-muted)" }}>
+              {isNewBest ? <Trophy size={48} strokeWidth={1.8} /> : <HeartCrack size={48} strokeWidth={1.8} />}
+            </div>
             <h1 className="game-over-title">
               {isNewBest
                 ? (lang === "th" ? "สถิติใหม่!" : lang === "ja" ? "新記録!" : "New Best!")
@@ -231,8 +242,8 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
                 <span className="game-over-stat-val">{bestScore}</span>
               </div>
             </div>
-            <button className="game-next-btn" onClick={() => setSetupMode(true)}>
-              🔄 {s.playAgain}
+            <button className="game-next-btn" onClick={() => setSetupMode(true)} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <RotateCw size={16} strokeWidth={2.4} /> {s.playAgain}
             </button>
           </div>
         </div>
@@ -249,25 +260,26 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
   return (
     <div className="game-overlay">
       <div className="game-content">
-        <button className="modal-close game-close" onClick={onClose}>✕</button>
+        <button className="modal-close game-close" onClick={onClose}><X size={16} strokeWidth={2.4} /></button>
 
         {/* HUD */}
         <div className="game-hud">
           <div className="game-hud-lives">
             {Array.from({ length: difficulty.lives }).map((_, i) => (
-              <span key={i} className="game-life">
-                {i < lives ? "❤️" : "🖤"}
+              <span key={i} className="game-life" style={{ display: "inline-flex" }}>
+                <Heart size={17} strokeWidth={2.2} fill={i < lives ? "currentColor" : "none"}
+                  style={{ color: i < lives ? "#e0364a" : "var(--text-muted, #9c988e)" }} />
               </span>
             ))}
           </div>
           <div className="game-hud-stats">
-            <span className="game-stat-pill">🎯 {score}</span>
-            <span className="game-stat-pill" style={{ background: "linear-gradient(135deg, #f97316, #f59e0b)" }}>
-              🔥 {combo}
+            <span className="game-stat-pill" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Target size={13} strokeWidth={2.4} /> {score}</span>
+            <span className="game-stat-pill" style={{ background: "linear-gradient(135deg, #f97316, #f59e0b)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Flame size={13} strokeWidth={2.4} /> {combo}
             </span>
             {difficulty.time > 0 && (
-              <span className="game-stat-pill" style={{ background: timeLeft <= 3 ? "#ef4444" : "linear-gradient(135deg, #06b6d4, #0891b2)" }}>
-                ⏱ {timeLeft}s
+              <span className="game-stat-pill" style={{ background: timeLeft <= 3 ? "#ef4444" : "var(--blue)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <Clock size={13} strokeWidth={2.4} /> {timeLeft}s
               </span>
             )}
           </div>
@@ -277,14 +289,18 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
         <div className="game-silhouette-wrap" style={{ width: difficulty.silSize, height: difficulty.silSize }}>
           <img src={imgUrl} alt="silhouette"
             className={`game-silhouette ${revealed ? "revealed" : ""}`}
-            style={{ width: difficulty.silSize - 20, height: difficulty.silSize - 20 }} />
+            style={{ width: difficulty.silSize - 20, height: difficulty.silSize - 20 }}
+            onError={(e) => {
+              const fb = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${target.id}.png`;
+              if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
+            }} />
           <div className="game-silhouette-ring" />
         </div>
 
         {/* Hint */}
         {showHint && targetType && (
-          <div className="game-hint-banner">
-            💡 {s.typeHint}
+          <div className="game-hint-banner" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Lightbulb size={14} strokeWidth={2.4} /> {s.typeHint}
             <span className="type-tag" style={{ background: typeColor(targetType), marginLeft: 6 }}>
               {lang === "th" ? (TYPE_NAMES_TH[targetType] ?? targetType) :
                lang === "ja" ? (TYPE_NAMES_JA[targetType] ?? targetType) : targetType}
@@ -296,8 +312,8 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
         {revealed && (
           <div className={`game-reveal-banner ${isCorrect ? "correct" : "wrong"}`}>
             {isCorrect
-              ? <>✅ {s.correct} <strong>{targetLabel}</strong></>
-              : <>❌ {s.wrong} {s.itWas} <strong>{targetLabel}</strong></>
+              ? <><CheckCircle2 size={15} strokeWidth={2.4} style={{ verticalAlign: "-2px" }} /> {s.correct} <strong>{targetLabel}</strong></>
+              : <><XCircle size={15} strokeWidth={2.4} style={{ verticalAlign: "-2px" }} /> {s.wrong} {s.itWas} <strong>{targetLabel}</strong></>
             }
           </div>
         )}
@@ -323,8 +339,8 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
         {/* Action buttons */}
         <div className="game-actions">
           {!revealed && !hintUsed && difficulty.id !== "easy" && (
-            <button className="game-hint-btn" onClick={useHintBtn}>
-              💡 {s.useHint} (-3 pts)
+            <button className="game-hint-btn" onClick={useHintBtn} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <Lightbulb size={14} strokeWidth={2.4} /> {s.useHint} (-3 pts)
             </button>
           )}
           {revealed && (

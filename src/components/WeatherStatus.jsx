@@ -7,6 +7,21 @@
 import { useState, useEffect } from "react";
 import WeatherOverlay from "./WeatherOverlay.jsx";
 import { useWeather, getConditionInfo } from "../useWeather.js";
+import {
+  Sun, Moon, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow,
+  CloudLightning, Droplets, Wind, RefreshCw, MapPin, AlertTriangle, Loader2,
+} from "lucide-react";
+
+const WEATHER_ICONS = {
+  "clear": Sun, "mostly-clear": CloudSun, "partly-cloudy": CloudSun,
+  "cloudy": Cloud, "fog": CloudFog, "drizzle": CloudDrizzle,
+  "rain": CloudRain, "snow": CloudSnow, "thunderstorm": CloudLightning, "unknown": Cloud,
+};
+function WeatherIcon({ condition = "unknown", isDay = true, size = 18, color }) {
+  let I = WEATHER_ICONS[condition] ?? Cloud;
+  if (condition === "clear") I = isDay ? Sun : Moon;
+  return <I size={size} strokeWidth={2.2} color={color} />;
+}
 
 export default function WeatherStatus({ lang = "en" }) {
   const [expanded, setExpanded] = useState(false);
@@ -72,14 +87,14 @@ export default function WeatherStatus({ lang = "en" }) {
       }}>
         {expanded && (
           <div style={{
-            background: "rgba(15, 23, 42, 0.94)",
+            background: "rgba(28, 27, 30, 0.96)",
             backdropFilter: "blur(12px)",
             color: "white",
-            borderRadius: 16,
+            borderRadius: 19,
             padding: "14px 16px",
             minWidth: 240,
             maxWidth: 280,
-            boxShadow: "0 14px 38px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.1)",
+            boxShadow: "0 14px 38px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)",
             animation: "ws-panel-in 0.25s ease",
           }}>
             <style>{`
@@ -91,8 +106,10 @@ export default function WeatherStatus({ lang = "en" }) {
             `}</style>
 
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <span style={{ fontSize: 36, filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4))" }}>
-                {loading ? "⏳" : (info?.emoji ?? "🌤️")}
+              <span style={{ display: "inline-flex", color: info?.color ?? "#cbd5e1" }}>
+                {loading
+                  ? <Loader2 size={34} strokeWidth={2} style={{ animation: "ws-spin 1s linear infinite" }} />
+                  : <WeatherIcon condition={weather?.condition} isDay={weather?.isDay} size={34} />}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.1 }}>
@@ -108,11 +125,13 @@ export default function WeatherStatus({ lang = "en" }) {
               <div style={{
                 background: "rgba(248, 113, 113, 0.15)",
                 border: "1px solid rgba(248, 113, 113, 0.3)",
-                borderRadius: 8, padding: "8px 10px", fontSize: 11,
+                borderRadius: 11, padding: "8px 10px", fontSize: 11,
                 color: "#fca5a5", marginBottom: 10, lineHeight: 1.4,
+                display: "flex", gap: 6, alignItems: "flex-start",
               }}>
-                ⚠️ {t("กรุณาอนุญาตการเข้าถึงตำแหน่งในการตั้งค่าเบราว์เซอร์",
-                       "Please enable location access in browser settings")}
+                <AlertTriangle size={13} strokeWidth={2.2} style={{ flexShrink: 0, marginTop: 1 }} />
+                {t("กรุณาอนุญาตการเข้าถึงตำแหน่งในการตั้งค่าเบราว์เซอร์",
+                   "Please enable location access in browser settings")}
               </div>
             )}
 
@@ -120,10 +139,11 @@ export default function WeatherStatus({ lang = "en" }) {
               <div style={{
                 background: "rgba(250, 200, 50, 0.12)",
                 border: "1px solid rgba(250, 200, 50, 0.3)",
-                borderRadius: 8, padding: "8px 10px", fontSize: 11,
+                borderRadius: 11, padding: "8px 10px", fontSize: 11,
                 color: "#fcd34d", marginBottom: 10,
+                display: "flex", gap: 6, alignItems: "center",
               }}>
-                ⚠️ {error}
+                <AlertTriangle size={13} strokeWidth={2.2} style={{ flexShrink: 0 }} /> {error}
               </div>
             )}
 
@@ -132,18 +152,18 @@ export default function WeatherStatus({ lang = "en" }) {
                 fontSize: 11, opacity: 0.85, marginBottom: 12,
                 display: "grid", gridTemplateColumns: "1fr 1fr",
                 gap: "6px 12px", background: "rgba(255,255,255,0.04)",
-                padding: "8px 10px", borderRadius: 8,
+                padding: "8px 10px", borderRadius: 11,
               }}>
-                <div>💧 {t("ฝน", "Precip")}: <strong>{weather.precipitation} mm</strong></div>
-                <div>☁️ {t("เมฆ", "Clouds")}: <strong>{weather.cloudCover}%</strong></div>
-                <div>💨 {t("ลม", "Wind")}: <strong>{weather.wind} km/h</strong></div>
-                <div>{weather.isDay ? "☀️" : "🌙"} {weather.isDay ? t("กลางวัน","Day") : t("กลางคืน","Night")}</div>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Droplets size={13} strokeWidth={2.2} /> {t("ฝน", "Precip")}: <strong>{weather.precipitation} mm</strong></div>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Cloud size={13} strokeWidth={2.2} /> {t("เมฆ", "Clouds")}: <strong>{weather.cloudCover}%</strong></div>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Wind size={13} strokeWidth={2.2} /> {t("ลม", "Wind")}: <strong>{weather.wind} km/h</strong></div>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>{weather.isDay ? <Sun size={13} strokeWidth={2.2} /> : <Moon size={13} strokeWidth={2.2} />} {weather.isDay ? t("กลางวัน","Day") : t("กลางคืน","Night")}</div>
               </div>
             )}
 
             {weather && (
               <button onClick={refresh} disabled={loading} style={{
-                width: "100%", padding: "8px 12px", borderRadius: 10,
+                width: "100%", padding: "8px 12px", borderRadius: 13,
                 border: "1px solid rgba(255,255,255,0.18)",
                 background: "rgba(255,255,255,0.08)",
                 color: "white", fontSize: 12, fontWeight: 700,
@@ -151,20 +171,21 @@ export default function WeatherStatus({ lang = "en" }) {
                 display: "inline-flex", alignItems: "center",
                 justifyContent: "center", gap: 6,
               }}>
-                <span style={{ display: "inline-block", animation: loading ? "ws-spin 1s linear infinite" : "none" }}>🔄</span>
+                <RefreshCw size={13} strokeWidth={2.2} style={{ animation: loading ? "ws-spin 1s linear infinite" : "none" }} />
                 {t("รีเฟรชข้อมูล", "Refresh")}
               </button>
             )}
 
             {permissionState === "denied" && (
               <button onClick={requestLocation} style={{
-                width: "100%", padding: "8px 12px", borderRadius: 10,
+                width: "100%", padding: "8px 12px", borderRadius: 13,
                 border: "none",
-                background: "linear-gradient(135deg, #06b6d4, #2563eb)",
+                background: "linear-gradient(135deg, #900603, #6e0402)",
                 color: "white", fontSize: 12, fontWeight: 800,
                 cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
               }}>
-                📍 {t("ลองอีกครั้ง", "Try Again")}
+                <MapPin size={13} strokeWidth={2.2} /> {t("ลองอีกครั้ง", "Try Again")}
               </button>
             )}
 
@@ -179,21 +200,22 @@ export default function WeatherStatus({ lang = "en" }) {
 
         <button onClick={() => setExpanded(e => !e)} style={{
           display: "inline-flex", alignItems: "center", gap: 8,
-          padding: "10px 14px", borderRadius: 999, border: "none",
-          background: weather
-            ? `linear-gradient(135deg, ${info.color}ee 0%, ${info.color}aa 100%)`
-            : "linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)",
-          color: "white", fontWeight: 800, cursor: "pointer",
-          boxShadow: "0 6px 22px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.15)",
-          backdropFilter: "blur(8px)", transition: "transform 0.2s",
-          fontFamily: "inherit", letterSpacing: 0.2,
+          padding: "9px 14px", borderRadius: 999,
+          background: "var(--glass-bg-strong, var(--bg-card))",
+          border: "1px solid var(--border)",
+          color: "var(--text-primary)", fontWeight: 700, cursor: "pointer",
+          boxShadow: "var(--shadow-md)",
+          backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
+          transition: "transform 0.2s", fontFamily: "inherit", letterSpacing: 0.2,
         }}
           onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
           onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}>
-          <span style={{ fontSize: 18, filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.3))" }}>
-            {loading ? "⏳" : (info?.emoji ?? "🌦️")}
+          <span style={{ display: "inline-flex", color: weather ? info.color : "var(--blue)" }}>
+            {loading
+              ? <Loader2 size={17} strokeWidth={2.2} style={{ animation: "ws-spin 1s linear infinite" }} />
+              : <WeatherIcon condition={weather?.condition} isDay={weather?.isDay} size={18} />}
           </span>
-          <span style={{ fontSize: 12 }}>
+          <span style={{ fontSize: 12.5 }}>
             {weather ? `${weather.temp}°`
               : loading ? t("กำลังโหลด...", "Loading...")
               : t("เปิดตำแหน่ง", "Enable Location")}
@@ -201,8 +223,7 @@ export default function WeatherStatus({ lang = "en" }) {
           {weather && (
             <span style={{
               width: 6, height: 6, borderRadius: "50%",
-              background: "#34d399",
-              boxShadow: "0 0 6px #34d399",
+              background: "#3aa76d",
               animation: "ws-dot-pulse 2s ease-in-out infinite",
             }} />
           )}
@@ -211,6 +232,7 @@ export default function WeatherStatus({ lang = "en" }) {
               0%, 100% { opacity: 1; }
               50%      { opacity: 0.4; }
             }
+            @keyframes ws-spin { to { transform: rotate(360deg); } }
           `}</style>
         </button>
       </div>

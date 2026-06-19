@@ -1,26 +1,36 @@
 import { useState } from "react";
 import { STRINGS, GENERATIONS, ALL_TYPES, TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import { setSoundEnabled } from "../utils.js";
+import { getPerfMode, setPerfMode } from "../perfMode.js";
 import HexaDexLogo from "./HexaDexLogo.jsx";
+import {
+  LayoutGrid, Swords, Target, Gamepad2, Search, Settings, Sun, Moon, Sparkles, Heart,
+  BarChart3, Cake, Globe, Volume2, VolumeX, Palette, Info, Newspaper, SunMedium, Gauge,
+} from "lucide-react";
+
+// tiny helper: inline icon aligned with text
+const Ico = ({ as: C, size = 15 }) => (
+  <C size={size} strokeWidth={2.2} style={{ verticalAlign: "-2px", marginRight: 6, flexShrink: 0 }} />
+);
 
 export function ModeTabs({ view, setView, s, lang }) {
   const goLabel    = lang === "th" ? "GO Tools" : lang === "ja" ? "GOツール" : "GO Tools";
   const gamesLabel = lang === "th" ? "เกม"     : lang === "ja" ? "ゲーム"    : "Games";
 
   const tabs = [
-    { id:"pokedex",  icon:"🏠", label:s.pokedex },
-    { id:"team",     icon:"⚔️", label:s.teamBuilder },
-    { id:"gotools",  icon:"🎯", label:goLabel },
-    { id:"games",    icon:"🎮", label:gamesLabel },
+    { id:"pokedex",  Icon: LayoutGrid, label:s.pokedex },
+    { id:"team",     Icon: Swords,     label:s.teamBuilder },
+    { id:"gotools",  Icon: Target,     label:goLabel },
+    { id:"games",    Icon: Gamepad2,   label:gamesLabel },
   ];
 
   return (
     <div className="mode-tabs">
       {tabs.map(t => (
         <button key={t.id}
-          className={`mode-tab${view === t.id ? " active" : ""}${t.highlight ? " mode-tab-go" : ""}`}
+          className={`mode-tab${view === t.id ? " active" : ""}`}
           onClick={() => setView(t.id)}>
-          <span className="mode-tab-icon">{t.icon}</span>
+          <span className="mode-tab-icon"><t.Icon size={17} strokeWidth={2.2} /></span>
           <span className="mode-tab-label">{t.label}</span>
         </button>
       ))}
@@ -33,31 +43,33 @@ function MoreMenu({ onOpenBirthday, onOpenTier, lang }) {
   const [open, setOpen] = useState(false);
 
   const groups = lang === "th" ? [
-    { title: "📊 สำรวจ & จัดอันดับ", items: [
-      { icon: "📊", label: "Meta Tier List",  fn: onOpenTier,     desc: "ระบบ tier S/A/B/C/D + Custom" },
+    { title: "สำรวจ & จัดอันดับ", items: [
+      { Icon: BarChart3, label: "Meta Tier List",  fn: onOpenTier,     desc: "ระบบ tier S/A/B/C/D + Custom" },
     ]},
-    { title: "✨ พิเศษ", items: [
-      { icon: "🎂", label: "โปเกมอนคู่ดวง",   fn: onOpenBirthday, desc: "ค้นหาโปเกมอนคู่ดวงจากวันเกิด" },
+    { title: "พิเศษ", items: [
+      { Icon: Cake, label: "โปเกมอนคู่ดวง",   fn: onOpenBirthday, desc: "ค้นหาโปเกมอนคู่ดวงจากวันเกิด" },
     ]},
   ] : lang === "ja" ? [
-    { title: "📊 ランキング", items: [
-      { icon: "📊", label: "メタティアリスト", fn: onOpenTier,     desc: "S/A/B/C/Dティア + カスタム" },
+    { title: "ランキング", items: [
+      { Icon: BarChart3, label: "メタティアリスト", fn: onOpenTier,     desc: "S/A/B/C/Dティア + カスタム" },
     ]},
-    { title: "✨ スペシャル", items: [
-      { icon: "🎂", label: "誕生日ポケモン",   fn: onOpenBirthday, desc: "誕生日からポケモンを占う" },
+    { title: "スペシャル", items: [
+      { Icon: Cake, label: "誕生日ポケモン",   fn: onOpenBirthday, desc: "誕生日からポケモンを占う" },
     ]},
   ] : [
-    { title: "📊 Rankings", items: [
-      { icon: "📊", label: "Meta Tier List",  fn: onOpenTier,     desc: "S/A/B/C/D tiers + Custom builder" },
+    { title: "Rankings", items: [
+      { Icon: BarChart3, label: "Meta Tier List",  fn: onOpenTier,     desc: "S/A/B/C/D tiers + Custom builder" },
     ]},
-    { title: "✨ Special", items: [
-      { icon: "🎂", label: "Birthday Pokémon", fn: onOpenBirthday, desc: "Find your destiny Pokémon from your birthday" },
+    { title: "Special", items: [
+      { Icon: Cake, label: "Birthday Pokémon", fn: onOpenBirthday, desc: "Find your destiny Pokémon from your birthday" },
     ]},
   ];
 
   return (
     <div className="more-menu-wrap">
-      <button className="more-menu-btn" onClick={() => setOpen(v => !v)} title="More features">✨</button>
+      <button className="more-menu-btn" onClick={() => setOpen(v => !v)} title="More features">
+        <Sparkles size={18} strokeWidth={2.2} />
+      </button>
       {open && (
         <>
           <div className="more-menu-overlay" onClick={() => setOpen(false)} />
@@ -68,7 +80,7 @@ function MoreMenu({ onOpenBirthday, onOpenTier, lang }) {
                 {g.items.map((it, i) => (
                   <button key={i} className="more-menu-item more-menu-item-rich"
                     onClick={() => { it.fn(); setOpen(false); }}>
-                    <span className="more-menu-item-icon">{it.icon}</span>
+                    <span className="more-menu-item-icon"><it.Icon size={20} strokeWidth={2} /></span>
                     <span className="more-menu-item-text">
                       <span className="more-menu-item-label">{it.label}</span>
                       <span className="more-menu-item-desc">{it.desc}</span>
@@ -88,7 +100,7 @@ function ThemeToggle({ theme, onToggle, autoMode }) {
   return (
     <button className={`theme-toggle${autoMode ? " auto" : ""}`} onClick={onToggle}
       title={autoMode ? `Auto (${theme})` : theme}>
-      {theme === "dark" ? "🌙" : "☀️"}
+      {theme === "dark" ? <Moon size={17} strokeWidth={2.2} /> : <Sun size={17} strokeWidth={2.2} />}
     </button>
   );
 }
@@ -97,20 +109,22 @@ function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
   cryStyle, setCryStyle,
   theme, toggleTheme, autoMode, enableAuto, s, onOpenChangelog,
   currentVersion, latestDate }) {
+  const [perf, setPerf] = useState(getPerfMode());
   if (!open) return null;
 
   const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
+  const pickPerf = (m) => { setPerfMode(m); setPerf(m); };
 
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-drawer" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close settings-close" onClick={onClose}>✕</button>
-        <h2 className="settings-title">⚙️ {s.settings}</h2>
+        <h2 className="settings-title"><Ico as={Settings} size={18} />{s.settings}</h2>
 
         {/* ─── NEW: Version / What's New ─── */}
         <div className="settings-group">
           <div className="settings-label">
-            📋 {t("What's New", "อัปเดตล่าสุด", "アップデート")}
+            <Ico as={Newspaper} />{t("What's New", "อัปเดตล่าสุด", "アップデート")}
           </div>
           <button
             onClick={() => { onClose(); onOpenChangelog(); }}
@@ -120,40 +134,37 @@ function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
               alignItems: "center",
               gap: 14,
               padding: "14px 16px",
-              background: "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(168,85,247,0.04))",
-              border: "1.5px solid rgba(124,58,237,0.25)",
-              borderRadius: 14,
+              background: "var(--bg-muted)",
+              border: "1px solid var(--border)",
+              borderRadius: 17,
               cursor: "pointer",
               textAlign: "left",
-              transition: "all 0.25s ease",
+              transition: "background 0.2s ease, box-shadow 0.2s ease",
               color: "inherit",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(168,85,247,0.08))";
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = "0 8px 20px rgba(124,58,237,0.2)";
+              e.currentTarget.style.background = "var(--bg-card)";
+              e.currentTarget.style.boxShadow = "var(--shadow-sm)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(168,85,247,0.04))";
-              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.background = "var(--bg-muted)";
               e.currentTarget.style.boxShadow = "none";
             }}
           >
             <div style={{
               width: 44, height: 44,
-              borderRadius: 12,
-              background: "linear-gradient(135deg, #7c3aed, #a855f7)",
+              borderRadius: 15,
+              background: "linear-gradient(135deg, #900603, #b5302d)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 22,
-              boxShadow: "0 4px 12px rgba(124,58,237,0.4)",
+              boxShadow: "0 4px 12px rgba(144,6,3,0.35)",
               flexShrink: 0,
-            }}>📋</div>
+            }}><Newspaper size={22} color="#fff" strokeWidth={2.2} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                 <span style={{
                   fontFamily: "'SF Mono', monospace",
-                  fontSize: 14, fontWeight: 900, color: "#7c3aed",
-                  background: "rgba(124,58,237,0.12)",
+                  fontSize: 14, fontWeight: 900, color: "#900603",
+                  background: "rgba(144,6,3,0.1)",
                   padding: "2px 8px", borderRadius: 999,
                 }}>v{currentVersion}</span>
                 <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 700 }}>{latestDate}</span>
@@ -166,41 +177,58 @@ function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
         </div>
 
         <div className="settings-group">
-          <div className="settings-label">🌐 {s.language}</div>
+          <div className="settings-label"><Ico as={Globe} />{s.language}</div>
           <div className="settings-options">
             {["en","th","ja"].map(l => (
               <button key={l} className={`settings-option${lang === l ? " active" : ""}`}
                 onClick={() => setLang(l)}>
-                {l === "en" ? "🇺🇸 English" : l === "th" ? "🇹🇭 ไทย" : "🇯🇵 日本語"}
+                {l === "en" ? "English" : l === "th" ? "ไทย" : "日本語"}
               </button>
             ))}
           </div>
         </div>
 
         <div className="settings-group">
-          <div className="settings-label">🔊 {s.sound}</div>
+          <div className="settings-label"><Ico as={Volume2} />{s.sound}</div>
           <div className="settings-options">
             <button className={`settings-option${soundOn ? " active" : ""}`}
-              onClick={() => { setSoundOn(true); setSoundEnabled(true); }}>🔊 ON</button>
+              onClick={() => { setSoundOn(true); setSoundEnabled(true); }}><Ico as={Volume2} size={14} />ON</button>
             <button className={`settings-option${!soundOn ? " active" : ""}`}
-              onClick={() => { setSoundOn(false); setSoundEnabled(false); }}>🔇 OFF</button>
+              onClick={() => { setSoundOn(false); setSoundEnabled(false); }}><Ico as={VolumeX} size={14} />OFF</button>
           </div>
         </div>
 
 
         <div className="settings-group">
-          <div className="settings-label">🌓 Theme</div>
+          <div className="settings-label"><Ico as={Palette} />Theme</div>
           <div className="settings-options">
-            <button className={`settings-option${autoMode ? " active" : ""}`} onClick={enableAuto}>🌅 Auto</button>
+            <button className={`settings-option${autoMode ? " active" : ""}`} onClick={enableAuto}><Ico as={SunMedium} size={14} />Auto</button>
             <button className={`settings-option${!autoMode && theme === "light" ? " active" : ""}`}
-              onClick={() => { if (theme !== "light") toggleTheme(); }}>☀️ Light</button>
+              onClick={() => { if (theme !== "light") toggleTheme(); }}><Ico as={Sun} size={14} />Light</button>
             <button className={`settings-option${!autoMode && theme === "dark" ? " active" : ""}`}
-              onClick={() => { if (theme !== "dark") toggleTheme(); }}>🌙 Dark</button>
+              onClick={() => { if (theme !== "dark") toggleTheme(); }}><Ico as={Moon} size={14} />Dark</button>
           </div>
         </div>
 
         <div className="settings-group">
-          <div className="settings-label">ℹ️ {s.about}</div>
+          <div className="settings-label"><Ico as={Gauge} />{t("Economy mode", "โหมดประหยัด", "省電力モード")}</div>
+          <div className="settings-options">
+            <button className={`settings-option${perf === "auto" ? " active" : ""}`}
+              onClick={() => pickPerf("auto")}>{t("Auto", "อัตโนมัติ", "自動")}</button>
+            <button className={`settings-option${perf === "lite" ? " active" : ""}`}
+              onClick={() => pickPerf("lite")}>{t("On", "เปิด", "オン")}</button>
+            <button className={`settings-option${perf === "full" ? " active" : ""}`}
+              onClick={() => pickPerf("full")}>{t("Off", "ปิด", "オフ")}</button>
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "8px 2px 0", lineHeight: 1.5 }}>
+            {t("Reduces blur & animations to stop stutter on slower devices.",
+               "ลดเอฟเฟกต์เบลอและอนิเมชัน เพื่อไม่ให้กระตุกบนเครื่องที่ช้า",
+               "重い端末でのカクつきを抑えるため、ぼかしとアニメを減らします。")}
+          </p>
+        </div>
+
+        <div className="settings-group">
+          <div className="settings-label"><Ico as={Info} />{s.about}</div>
           <p className="settings-about">
             Data: <strong>PokéAPI</strong><br/>
             3D Models: <strong>Pokemon-3D-api</strong><br/>
@@ -265,6 +293,10 @@ export default function Header({
           .logo > * {
             min-width: auto !important;
           }
+          /* lucide icons — crisp + centred in their buttons */
+          .header svg { display: block; }
+          .mode-tab-icon, .search-icon, .fav-filter-icon { display: inline-flex; align-items: center; justify-content: center; }
+          .settings-btn, .theme-toggle, .more-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
           /* Red notification dot on settings button */
           .settings-btn { position: relative; }
           .settings-btn .settings-dot {
@@ -300,7 +332,7 @@ export default function Header({
             <MoreMenu onOpenBirthday={onOpenBirthday} onOpenTier={onOpenTier} lang={lang} />
             <ThemeToggle theme={theme} onToggle={toggleTheme} autoMode={autoMode} />
             <button className="settings-btn" onClick={() => setSettingsOpen(true)} title={s.settings}>
-              ⚙️
+              <Settings size={18} strokeWidth={2.2} />
               {hasUpdate && <span className="settings-dot" />}
             </button>
           </div>
@@ -310,7 +342,7 @@ export default function Header({
           <>
             <div className="header-row header-row-filters">
               <div className="search-wrap">
-                <span className="search-icon">🔍</span>
+                <span className="search-icon"><Search size={16} strokeWidth={2.4} /></span>
                 <input className="search-box" placeholder={s.searchPlaceholder}
                   value={search} onChange={(e) => setSearch(e.target.value)} />
                 {voiceSearchEl}
@@ -333,7 +365,9 @@ export default function Header({
                 onClick={onToggleFavs}
                 title={s.favFilter}
               >
-                <span className="fav-filter-icon">{showFavsOnly ? "❤️" : favCount > 0 ? "🤍" : "♡"}</span>
+                <span className="fav-filter-icon">
+                  <Heart size={17} strokeWidth={2.2} fill={showFavsOnly ? "currentColor" : "none"} />
+                </span>
                 {favCount > 0 && <span className="fav-filter-count">{favCount}</span>}
               </button>
               <div className="count-badge">
@@ -350,7 +384,7 @@ export default function Header({
         {isLangLoading && (
           <div className="thai-loading-bar">
             <span className="thai-loading-text">
-              🌏 {lang === "th" ? s.loadingThaiNames : s.loadingJpNames}
+              <Ico as={Globe} size={14} />{lang === "th" ? s.loadingThaiNames : s.loadingJpNames}
             </span>
           </div>
         )}

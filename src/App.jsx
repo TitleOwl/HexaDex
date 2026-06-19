@@ -15,6 +15,7 @@ import { useTheme } from "./useTheme.js";
 // ─── Core Components ─────────────────────────────────────────
 import Header             from "./components/Header.jsx";
 import ScrollToTop        from "./components/ScrollToTop.jsx";
+import PerfWatcher        from "./components/PerfWatcher.jsx";
 import PokemonCard, { SkeletonCard } from "./components/PokemonCard.jsx";
 import PokemonModal       from "./components/PokemonModal.jsx";
 import TeamBuilder        from "./components/TeamBuilder.jsx";
@@ -284,6 +285,11 @@ export default function App() {
   const handleSelect = useCallback((p) => {
     setSelected(p);
     trackView(); // buddy quest: viewing Pokémon earns food
+    // let the roaming buddy react when you view its own evolution line
+    try {
+      const id = p?.id ?? parseInt(String(p?.url ?? "").split("/").filter(Boolean).pop(), 10);
+      if (id) window.dispatchEvent(new CustomEvent("pokemon:viewed", { detail: { id } }));
+    } catch {}
   }, []);
   const toggleFav = useCallback((id) => {
     setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
@@ -518,6 +524,7 @@ export default function App() {
 
       {/* ── 🎵 Music Player + Weather ── */}
       <ScrollToTop />
+      <PerfWatcher lang={lang} />
       <MusicPlayer currentGen={currentGen} lang={lang} />
       <WeatherStatus lang={lang} />
       <Footer lang={lang} />

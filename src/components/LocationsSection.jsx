@@ -20,7 +20,7 @@ const REGIONS = {
   hoenn: {
     name: { en: "Hoenn", th: "โฮเอ็น", ja: "ホウエン" },
     emoji: "🌊",
-    color: "#0ea5e9",
+    color: "#a31a16",
     mapUrl: "https://archives.bulbagarden.net/media/upload/thumb/2/28/Hoenn_ORAS.png/500px-Hoenn_ORAS.png",
     mapAspect: "4/3",
   },
@@ -34,7 +34,7 @@ const REGIONS = {
   unova: {
     name: { en: "Unova", th: "อูโนวา", ja: "イッシュ" },
     emoji: "🏙️",
-    color: "#a855f7",
+    color: "#b5302d",
     mapUrl: "https://archives.bulbagarden.net/media/upload/thumb/3/3b/Unova_B2W2_alt.png/500px-Unova_B2W2_alt.png",
     mapAspect: "3/4",
   },
@@ -55,7 +55,7 @@ const REGIONS = {
   galar: {
     name: { en: "Galar", th: "กาลาร์", ja: "ガラル" },
     emoji: "🏰",
-    color: "#7c3aed",
+    color: "#900603",
     mapUrl: "https://archives.bulbagarden.net/media/upload/thumb/3/3a/Galar_artwork.png/500px-Galar_artwork.png",
     mapAspect: "3/4",
   },
@@ -288,23 +288,23 @@ function prettyAreaName(area) {
 
 // ─── Version → game color ────────────────────────────────
 const VERSION_COLORS = {
-  "red": "#ef4444", "blue": "#3b82f6", "yellow": "#facc15",
+  "red": "#ef4444", "blue": "#900603", "yellow": "#facc15",
   "firered": "#dc2626", "leafgreen": "#16a34a",
   "lets-go-pikachu": "#fbbf24", "lets-go-eevee": "#a3826b",
   "gold": "#d4af37", "silver": "#94a3b8", "crystal": "#06b6d4",
   "heartgold": "#fbbf24", "soulsilver": "#cbd5e1",
-  "ruby": "#dc2626", "sapphire": "#2563eb", "emerald": "#10b981",
-  "omega-ruby": "#dc2626", "alpha-sapphire": "#2563eb",
+  "ruby": "#dc2626", "sapphire": "#6e0402", "emerald": "#10b981",
+  "omega-ruby": "#dc2626", "alpha-sapphire": "#6e0402",
   "diamond": "#7dd3fc", "pearl": "#f9a8d4", "platinum": "#94a3b8",
   "brilliant-diamond": "#7dd3fc", "shining-pearl": "#f9a8d4",
   "black": "#1e293b", "white": "#e2e8f0",
   "black-2": "#1e293b", "white-2": "#e2e8f0",
-  "x": "#3b82f6", "y": "#ef4444",
+  "x": "#900603", "y": "#ef4444",
   "sun": "#f59e0b", "moon": "#6366f1",
   "ultra-sun": "#f59e0b", "ultra-moon": "#6366f1",
   "sword": "#06b6d4", "shield": "#ec4899",
   "legends-arceus": "#14b8a6",
-  "scarlet": "#dc2626", "violet": "#a855f7",
+  "scarlet": "#dc2626", "violet": "#b5302d",
 };
 
 export default function LocationsSection({ pokemonId, lang, s }) {
@@ -400,7 +400,7 @@ export default function LocationsSection({ pokemonId, lang, s }) {
         padding: "32px 20px",
         textAlign: "center",
         background: "linear-gradient(135deg, #f1f5f9, #e2e8f0)",
-        borderRadius: 16,
+        borderRadius: 19,
         color: "#64748b",
       }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>🗺️</div>
@@ -475,7 +475,7 @@ export default function LocationsSection({ pokemonId, lang, s }) {
       {activeData && activeRegionInfo && (
         <div style={{
           background: "var(--loc-card-bg, white)",
-          borderRadius: 18,
+          borderRadius: 20,
           padding: 16,
           border: "1.5px solid var(--loc-card-border, #e2e8f0)",
           boxShadow: "0 4px 18px rgba(0,0,0,0.05)",
@@ -483,7 +483,7 @@ export default function LocationsSection({ pokemonId, lang, s }) {
           {/* Stylized SVG Map */}
           <div style={{
             position: "relative",
-            borderRadius: 14,
+            borderRadius: 17,
             overflow: "hidden",
             marginBottom: 14,
             aspectRatio: "4/3",
@@ -529,7 +529,7 @@ export default function LocationsSection({ pokemonId, lang, s }) {
                         background: "rgba(15,23,42,0.95)",
                         color: "white",
                         padding: "7px 12px",
-                        borderRadius: 8,
+                        borderRadius: 11,
                         fontSize: 11,
                         fontWeight: 700,
                         whiteSpace: "nowrap",
@@ -604,7 +604,7 @@ export default function LocationsSection({ pokemonId, lang, s }) {
                   onMouseLeave={() => setHoveredArea(null)}
                   style={{
                     padding: 12,
-                    borderRadius: 12,
+                    borderRadius: 15,
                     background: isHovered
                       ? `linear-gradient(135deg, ${activeRegionInfo?.color ?? "#06b6d4"}11, ${activeRegionInfo?.color ?? "#06b6d4"}22)`
                       : "var(--loc-item-bg, #f8fafc)",
@@ -697,12 +697,12 @@ export default function LocationsSection({ pokemonId, lang, s }) {
           --loc-area-color: #1e293b;
         }
         [data-theme="dark"] {
-          --loc-tab-bg: #334155;
-          --loc-tab-color: #cbd5e1;
-          --loc-card-bg: #1e293b;
-          --loc-card-border: #334155;
-          --loc-item-bg: #0f172a;
-          --loc-area-color: #f1f5f9;
+          --loc-tab-bg: #2a2627;
+          --loc-tab-color: rgba(241,239,233,0.7);
+          --loc-card-bg: #1c1b1c;
+          --loc-card-border: rgba(255,255,255,0.08);
+          --loc-item-bg: #201e1f;
+          --loc-area-color: #f1efe9;
         }
       `}</style>
     </div>
@@ -998,10 +998,10 @@ function JohtoMap() {
 
       {/* Bell Tower (purple tower - Tin Tower) */}
       <g transform="translate(170, 115)">
-        <rect x="-3" y="-2" width="6" height="14" fill="#a78bfa" stroke="#7c3aed" strokeWidth="0.5" />
-        <polygon points="-5,-2 5,-2 0,-12" fill="#7c3aed" stroke="#5b21b6" strokeWidth="0.5" />
-        <rect x="-3" y="2" width="6" height="1" fill="#7c3aed" />
-        <rect x="-3" y="6" width="6" height="1" fill="#7c3aed" />
+        <rect x="-3" y="-2" width="6" height="14" fill="#a78bfa" stroke="#900603" strokeWidth="0.5" />
+        <polygon points="-5,-2 5,-2 0,-12" fill="#900603" stroke="#5b21b6" strokeWidth="0.5" />
+        <rect x="-3" y="2" width="6" height="1" fill="#900603" />
+        <rect x="-3" y="6" width="6" height="1" fill="#900603" />
       </g>
 
       {/* Lake of Rage */}
@@ -1253,12 +1253,12 @@ function KalosMap() {
 
       {/* Lumiose Tower (Eiffel-like, center) */}
       <g transform="translate(200, 155)">
-        <polygon points="-8,15 8,15 4,-15 -4,-15" fill="#a78bfa" stroke="#7c3aed" strokeWidth="0.8" />
-        <line x1="0" y1="-15" x2="0" y2="-30" stroke="#7c3aed" strokeWidth="2" />
+        <polygon points="-8,15 8,15 4,-15 -4,-15" fill="#a78bfa" stroke="#900603" strokeWidth="0.8" />
+        <line x1="0" y1="-15" x2="0" y2="-30" stroke="#900603" strokeWidth="2" />
         <circle cx="0" cy="-30" r="2" fill="#fbbf24" />
         {/* Crossbeams */}
-        <line x1="-6" y1="0" x2="6" y2="0" stroke="#7c3aed" strokeWidth="0.5" />
-        <line x1="-7" y1="8" x2="7" y2="8" stroke="#7c3aed" strokeWidth="0.5" />
+        <line x1="-6" y1="0" x2="6" y2="0" stroke="#900603" strokeWidth="0.5" />
+        <line x1="-7" y1="8" x2="7" y2="8" stroke="#900603" strokeWidth="0.5" />
       </g>
 
       {/* Mountain (north - Mt. Chamber) */}
@@ -1380,10 +1380,10 @@ function GalarMap() {
 
       {/* Castle (Wyndon - top) */}
       <g transform="translate(195, 55)">
-        <rect x="-10" y="-5" width="20" height="14" fill="#a78bfa" stroke="#7c3aed" strokeWidth="0.8" />
-        <polygon points="-12,-5 -6,-5 -6,-12 -10,-12 Z" fill="#7c3aed" />
-        <polygon points="-3,-5 3,-5 3,-15 -3,-15 Z" fill="#7c3aed" />
-        <polygon points="6,-5 12,-5 12,-12 8,-12 Z" fill="#7c3aed" />
+        <rect x="-10" y="-5" width="20" height="14" fill="#a78bfa" stroke="#900603" strokeWidth="0.8" />
+        <polygon points="-12,-5 -6,-5 -6,-12 -10,-12 Z" fill="#900603" />
+        <polygon points="-3,-5 3,-5 3,-15 -3,-15 Z" fill="#900603" />
+        <polygon points="6,-5 12,-5 12,-12 8,-12 Z" fill="#900603" />
         <rect x="-2" y="3" width="3" height="5" fill="#fef3c7" />
       </g>
 

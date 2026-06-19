@@ -97,123 +97,156 @@ class CatchSounds {
     thud.connect(thudGain); thudGain.connect(ctx.destination);
     thud.start(now); thud.stop(now + 0.3);
 
-    // Layer 2: metallic ping
+    // Layer 2: impact transient ("tok" — short noise burst)
+    const len = Math.floor(ctx.sampleRate * 0.04);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const noise = ctx.createBufferSource(); noise.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 900; bp.Q.value = 1.2;
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.35, now);
+    nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+    noise.connect(bp); bp.connect(nGain); nGain.connect(ctx.destination);
+    noise.start(now); noise.stop(now + 0.05);
+
+    // Layer 3: soft metallic ping (less shrill)
     const ping = ctx.createOscillator();
     ping.type = "triangle";
-    ping.frequency.value = 2200;
+    ping.frequency.value = 1650;
     const pingGain = ctx.createGain();
     pingGain.gain.setValueAtTime(0.001, now);
-    pingGain.gain.exponentialRampToValueAtTime(0.25, now + 0.003);
+    pingGain.gain.exponentialRampToValueAtTime(0.18, now + 0.003);
     pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
     ping.connect(pingGain); pingGain.connect(ctx.destination);
     ping.start(now); ping.stop(now + 0.15);
   }
 
-  // ─── Pokemon energy beam into ball ────────────────────────
+  // ─── Pokemon energy beam into ball ("pshoooo" warbling zap) ───
   playSuckIn() {
     if (!this._enabled()) return;
     const ctx = this._ctx(); if (!ctx) return;
     const now = ctx.currentTime;
-    const dur = 0.65;
+    const dur = 0.6;
 
-    // Rising sawtooth (energy buildup)
+    // Main beam tone — descending, with fast vibrato for the classic warble
     const osc = ctx.createOscillator();
     osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(120, now);
-    osc.frequency.exponentialRampToValueAtTime(1800, now + dur);
+    osc.frequency.setValueAtTime(1250, now);
+    osc.frequency.exponentialRampToValueAtTime(430, now + dur);
 
-    // Lowpass that opens up
+    const lfo = ctx.createOscillator();
+    lfo.type = "sine";
+    lfo.frequency.value = 24;                 // warble speed
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 70;                  // warble depth (Hz)
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+
     const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.Q.value = 8;
-    filter.frequency.setValueAtTime(400, now);
-    filter.frequency.exponentialRampToValueAtTime(3000, now + dur);
+    filter.type = "bandpass";
+    filter.Q.value = 6;
+    filter.frequency.setValueAtTime(1700, now);
+    filter.frequency.exponentialRampToValueAtTime(650, now + dur);
 
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.exponentialRampToValueAtTime(0.22, now + 0.08);
-    gain.gain.setValueAtTime(0.22, now + dur - 0.1);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.17, now + 0.05);
+    gain.gain.setValueAtTime(0.17, now + dur - 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
     osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
     osc.start(now); osc.stop(now + dur);
+    lfo.start(now); lfo.stop(now + dur);
+
+    // Shimmer sparkle layer (airy high tail)
+    const shimmer = ctx.createOscillator();
+    shimmer.type = "triangle";
+    shimmer.frequency.setValueAtTime(2600, now);
+    shimmer.frequency.exponentialRampToValueAtTime(1500, now + dur);
+    const sGain = ctx.createGain();
+    sGain.gain.setValueAtTime(0.0001, now);
+    sGain.gain.exponentialRampToValueAtTime(0.05, now + 0.08);
+    sGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    shimmer.connect(sGain); sGain.connect(ctx.destination);
+    shimmer.start(now); shimmer.stop(now + dur);
   }
 
-  // ─── Mechanical wobble click ──────────────────────────────
+  // ─── Mechanical wobble click ("tk" — crisp & tight) ───────
   playWobble() {
     if (!this._enabled()) return;
     const ctx = this._ctx(); if (!ctx) return;
     const now = ctx.currentTime;
 
-    // Sharp two-tone click
-    const osc1 = ctx.createOscillator();
-    osc1.type = "triangle";
-    osc1.frequency.setValueAtTime(1400, now);
-    osc1.frequency.exponentialRampToValueAtTime(600, now + 0.06);
-    const gain1 = ctx.createGain();
-    gain1.gain.setValueAtTime(0.001, now);
-    gain1.gain.exponentialRampToValueAtTime(0.32, now + 0.003);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-    osc1.connect(gain1); gain1.connect(ctx.destination);
-    osc1.start(now); osc1.stop(now + 0.12);
+    // Transient noise tick (the "k" of the click)
+    const len = Math.floor(ctx.sampleRate * 0.03);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const noise = ctx.createBufferSource(); noise.buffer = buf;
+    const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1800;
+    const nGain = ctx.createGain();
+    nGain.gain.setValueAtTime(0.3, now);
+    nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+    noise.connect(hp); hp.connect(nGain); nGain.connect(ctx.destination);
+    noise.start(now); noise.stop(now + 0.04);
 
-    // Lower body
-    const osc2 = ctx.createOscillator();
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(450, now);
-    osc2.frequency.exponentialRampToValueAtTime(220, now + 0.1);
-    const gain2 = ctx.createGain();
-    gain2.gain.setValueAtTime(0.001, now);
-    gain2.gain.exponentialRampToValueAtTime(0.2, now + 0.005);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
-    osc2.connect(gain2); gain2.connect(ctx.destination);
-    osc2.start(now); osc2.stop(now + 0.16);
+    // Short pitched body (the "t" — woody plastic knock)
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(1300, now);
+    osc.frequency.exponentialRampToValueAtTime(520, now + 0.05);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.26, now + 0.002);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 0.08);
   }
 
-  // ─── Ball locks shut (catch confirmed!) ───────────────────
-  // The iconic 4-note ascending "ding-ding-ding-DING" jingle
+  // ─── Ball locks shut (catch confirmed!) — "ka-chk" + bright DING✨ ──
   playBallLock() {
     if (!this._enabled()) return;
     const ctx = this._ctx(); if (!ctx) return;
     const now = ctx.currentTime;
 
-    // 4 ascending notes: F5, G5, A5, C6 (Pokemon classic catch jingle)
-    const notes = [
-      { freq: 698.46, time: 0.00, dur: 0.12 }, // F5
-      { freq: 783.99, time: 0.12, dur: 0.12 }, // G5
-      { freq: 880.00, time: 0.24, dur: 0.12 }, // A5
-      { freq: 1046.5, time: 0.36, dur: 0.40, sustained: true }, // C6 (high)
-    ];
+    // 1) Mechanical lock "ka-chk" (low woody knock)
+    const lock = ctx.createOscillator();
+    lock.type = "square";
+    lock.frequency.setValueAtTime(320, now);
+    lock.frequency.exponentialRampToValueAtTime(90, now + 0.09);
+    const lockGain = ctx.createGain();
+    lockGain.gain.setValueAtTime(0.0001, now);
+    lockGain.gain.exponentialRampToValueAtTime(0.28, now + 0.004);
+    lockGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+    lock.connect(lockGain); lockGain.connect(ctx.destination);
+    lock.start(now); lock.stop(now + 0.13);
 
-    notes.forEach(n => {
-      const osc = ctx.createOscillator();
-      osc.type = "square";
-      osc.frequency.value = n.freq;
+    // 2) Bright bell "DING" (two partials, ringing decay)
+    const ding = now + 0.1;
+    [1318.5, 1976.0].forEach((f, i) => {
+      const o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, ding);
+      g.gain.exponentialRampToValueAtTime(i === 0 ? 0.16 : 0.07, ding + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, ding + 0.55);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(ding); o.stop(ding + 0.6);
+    });
 
-      // Sub-octave for body
-      const sub = ctx.createOscillator();
-      sub.type = "triangle";
-      sub.frequency.value = n.freq / 2;
-
-      const gain = ctx.createGain();
-      const subGain = ctx.createGain();
-      const startT = now + n.time;
-      const endT = startT + n.dur;
-
-      gain.gain.setValueAtTime(0.0001, startT);
-      gain.gain.exponentialRampToValueAtTime(0.15, startT + 0.01);
-      gain.gain.setValueAtTime(0.15, endT - 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, endT);
-
-      subGain.gain.setValueAtTime(0.0001, startT);
-      subGain.gain.exponentialRampToValueAtTime(0.08, startT + 0.01);
-      subGain.gain.setValueAtTime(0.08, endT - 0.03);
-      subGain.gain.exponentialRampToValueAtTime(0.0001, endT);
-
-      osc.connect(gain); gain.connect(ctx.destination);
-      sub.connect(subGain); subGain.connect(ctx.destination);
-      osc.start(startT); osc.stop(endT + 0.05);
-      sub.start(startT); sub.stop(endT + 0.05);
+    // 3) Sparkle — quick ascending high blips (the catch ✨)
+    [2093, 2637, 3136].forEach((f, k) => {
+      const t = ding + 0.06 + k * 0.05;
+      const o = ctx.createOscillator();
+      o.type = "triangle";
+      o.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.06, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.14);
     });
   }
 
@@ -285,6 +318,19 @@ class CatchSounds {
 
     playNotes(melody, "square", 0.12);
     playNotes(bass, "triangle", 0.10);
+
+    // ✨ Sparkle shimmer cascade at the climax (magical "caught!" feel)
+    [2093, 2637, 3136, 4186].forEach((f, i) => {
+      const t = now + 1.45 + i * 0.09;
+      const o = ctx.createOscillator(); o.type = "triangle"; o.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.055, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.connect(g); g.connect(reverb.input); g.connect(ctx.destination);
+      o.start(t); o.stop(t + 0.55);
+      this._activeNodes.push(o, g);
+    });
 
     // Restore trainer music after celebration ends (~3.5s)
     const totalDur = 2.78;

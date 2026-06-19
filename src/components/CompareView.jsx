@@ -29,7 +29,7 @@ function CompareSlotPicker({ allWithMeta, thaiArr, jpArr, lang, onPick, onClose,
         <button className="modal-close" onClick={onClose}>✕</button>
         <div className="modal-body">
           <h2 style={{ fontFamily: "var(--font-display)", color: "var(--blue-deep)", marginTop: 0 }}>
-            {s.selectPokemon} <span style={{ color: slot === "A" ? "#3b82f6" : "#f59e0b" }}>{slot}</span>
+            {s.selectPokemon} <span style={{ color: slot === "A" ? "#900603" : "#f59e0b" }}>{slot}</span>
           </h2>
           <input
             className="team-add-search"
@@ -64,7 +64,7 @@ function CompareSlot({ pokemon, lang, thaiArr, jpArr, slot, onSelect, onRemove }
   if (!pokemon) {
     return (
       <div className="compare-slot compare-slot-empty" onClick={onSelect}>
-        <div className="compare-slot-letter" style={{ background: slot === "A" ? "#3b82f6" : "#f59e0b" }}>
+        <div className="compare-slot-letter" style={{ background: slot === "A" ? "#900603" : "#f59e0b" }}>
           {slot}
         </div>
         <div className="compare-slot-empty-icon">➕</div>
@@ -85,7 +85,7 @@ function CompareSlot({ pokemon, lang, thaiArr, jpArr, slot, onSelect, onRemove }
       background: `linear-gradient(160deg, ${color}aa, ${color}66 60%, ${color}22 100%)`,
       borderColor: color,
     }}>
-      <div className="compare-slot-letter" style={{ background: slot === "A" ? "#3b82f6" : "#f59e0b" }}>
+      <div className="compare-slot-letter" style={{ background: slot === "A" ? "#900603" : "#f59e0b" }}>
         {slot}
       </div>
       <button className="compare-slot-remove" onClick={onRemove}>✕</button>
@@ -188,7 +188,7 @@ export default function CompareView({ allList, thaiArr, jpArr, lang, cachedFetch
     };
   }, [slotA, slotB]);
 
-  const colorA = slotA ? typeColor(slotA.types[0]?.type.name) : "#3b82f6";
+  const colorA = slotA ? typeColor(slotA.types[0]?.type.name) : "#900603";
   const colorB = slotB ? typeColor(slotB.types[0]?.type.name) : "#f59e0b";
 
   return (

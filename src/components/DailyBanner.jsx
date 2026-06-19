@@ -51,17 +51,34 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
   const img      = getArt(pokemon);
   const name     = getLocalName(pokemon.id, lang, thaiArr, jpArr) ?? pokemon.name;
 
+  // Streak milestone tier → flame colour + medal
+  const tier  = streak >= 100 ? "legend" : streak >= 30 ? "master" : streak >= 7 ? "week" : null;
+  const medal = tier === "legend" ? "👑" : tier === "master" ? "🏅" : tier === "week" ? "🔥" : null;
+
   return (
     <div className="daily-banner"
       onClick={() => onOpen(pokemon)}
       style={{ background: `linear-gradient(110deg, ${color}f0 0%, ${color}b0 55%, ${color}66 100%)` }}>
       <div className="daily-glow" />
+      <div className="daily-ball-wm" aria-hidden />
       <div className="daily-img-wrap">
+        <div className="daily-aura" aria-hidden />
         {img && <img src={img} alt={name} className="daily-img" />}
-    <div className="daily-img-ring" />
+        <div className="daily-img-ring" />
+        <div className="daily-sparkles" aria-hidden>
+          <span /><span /><span /><span />
+        </div>
       </div>
       <div className="daily-info">
-        <div className="daily-tag">⭐ {s.dailyPokemon}</div>
+        <div className="daily-tag-row">
+          <span className="daily-tag">⭐ {s.dailyPokemon}</span>
+          <span className="daily-date">
+            {new Date().toLocaleDateString(
+              lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-US",
+              { day: "numeric", month: "short" }
+            )}
+          </span>
+        </div>
         <div className="daily-name">{name}</div>
         <div className="daily-meta">
           <span className="daily-num">#{String(pokemon.id).padStart(4, "0")}</span>
@@ -76,8 +93,9 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
           ))}
         </div>
       </div>
-      <div className="daily-streak">
-        <div className="daily-streak-flame">🔥</div>
+      <div className={`daily-streak${tier ? " tier-" + tier : ""}`}>
+        {medal && <span className="daily-medal" aria-hidden>{medal}</span>}
+        <span className="daily-flame" aria-hidden><span className="daily-flame-core" /></span>
         <div className="daily-streak-num">{streak}</div>
         <div className="daily-streak-label">{s.visitStreak}</div>
       </div>

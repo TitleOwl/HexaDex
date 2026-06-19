@@ -41,117 +41,53 @@ export default function HexaDexLogo({
 
   const MarkSVG = (
     <svg
-      viewBox="0 0 110 110"
+      viewBox="0 0 100 100"
       width={cfg.mark}
       height={cfg.mark}
       style={{
         display: "block",
         flexShrink: 0,
-        filter: "drop-shadow(0 6px 16px rgba(220, 38, 38, 0.35))",
-        transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        filter: "drop-shadow(0 3px 6px rgba(0, 0, 0, 0.28))",
+        transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
       }}
       className={animated ? `hexadex-mark-${id}` : undefined}
       aria-label="HexaDex logo"
       role="img"
     >
       <defs>
-        {/* Main hex gradient — yellow → orange → red */}
-        <linearGradient id={`hf-${id}`} x1="20%" y1="0%" x2="80%" y2="100%">
-          <stop offset="0%"   stopColor="#fde047" />
-          <stop offset="35%"  stopColor="#fb923c" />
-          <stop offset="70%"  stopColor="#ef4444" />
-          <stop offset="100%" stopColor="#b91c1c" />
+        <clipPath id={`ball-${id}`}><circle cx="50" cy="50" r="44" /></clipPath>
+        <linearGradient id={`red-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#a81510" />
+          <stop offset="100%" stopColor="#6e0402" />
         </linearGradient>
-        {/* Stroke gradient — deep amber → dark red */}
-        <linearGradient id={`hs-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%"   stopColor="#b45309" />
-          <stop offset="100%" stopColor="#7f1d1d" />
-        </linearGradient>
-        {/* Glassy top highlight */}
-        <radialGradient id={`hg-${id}`} cx="38%" cy="22%" r="48%">
-          <stop offset="0%"   stopColor="white" stopOpacity="0.7" />
-          <stop offset="60%"  stopColor="white" stopOpacity="0.1" />
-          <stop offset="100%" stopColor="white" stopOpacity="0" />
-        </radialGradient>
-        {/* Halo blur */}
-        <filter id={`halo-${id}`} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="3.5" />
-        </filter>
       </defs>
 
-      {/* White outer halo — makes logo pop on any background */}
-      <polygon
-        points="55,9 95,32 95,78 55,101 15,78 15,32"
-        fill="white"
-        opacity="0.55"
-        filter={`url(#halo-${id})`}
-        transform="translate(0, 0) scale(1.08) translate(-4.4, -4.4)"
-      />
-
-      {/* Main hexagon (offset slightly down for floating feel) */}
-      <g transform="translate(0, 3)">
-        <polygon
-          points="55,9 95,32 95,78 55,101 15,78 15,32"
-          fill={`url(#hf-${id})`}
-          stroke={`url(#hs-${id})`}
-          strokeWidth="2.8"
-          strokeLinejoin="round"
-        />
-
-        {/* Glassy top highlight */}
-        <polygon
-          points="55,9 95,32 95,78 55,101 15,78 15,32"
-          fill={`url(#hg-${id})`}
-        />
-
-        {/* Inner radar spokes — 6 white lines */}
-        <g stroke="white" strokeWidth="1.3" opacity="0.7" strokeLinecap="round">
-          <line x1="55" y1="55" x2="55" y2="22" />
-          <line x1="55" y1="55" x2="83" y2="38" />
-          <line x1="55" y1="55" x2="83" y2="72" />
-          <line x1="55" y1="55" x2="55" y2="88" />
-          <line x1="55" y1="55" x2="27" y2="72" />
-          <line x1="55" y1="55" x2="27" y2="38" />
-        </g>
-
-        {/* Inner hexagon */}
-        <polygon
-          points="55,33 73,44 73,66 55,77 37,66 37,44"
-          fill="none"
-          stroke="white"
-          strokeWidth="1.3"
-          opacity="0.85"
-          strokeLinejoin="round"
-        />
-
-        {/* 6 stat dots at vertices */}
-        <g fill="white">
-          <circle cx="55" cy="22" r="2.9" />
-          <circle cx="83" cy="38" r="2.9" />
-          <circle cx="83" cy="72" r="2.9" />
-          <circle cx="55" cy="88" r="2.9" />
-          <circle cx="27" cy="72" r="2.9" />
-          <circle cx="27" cy="38" r="2.9" />
-        </g>
-
-        {/* Center "Pokeball" core (classic red + white) */}
-        <circle cx="55" cy="55" r="10" fill="white" />
-        <circle cx="55" cy="55" r="7" fill="#dc2626"
-          className={animated ? `hexadex-core-${id}` : undefined}
-        />
-        <circle cx="55" cy="55" r="2.6" fill="white" />
+      {/* Pokéball body */}
+      <g clipPath={`url(#ball-${id})`}>
+        <rect x="0" y="0"  width="100" height="50" fill={`url(#red-${id})`} />
+        <rect x="0" y="50" width="100" height="50" fill="#f6f7f9" />
+        <rect x="0" y="45" width="100" height="10" fill="#202733" />
+        {/* soft top-left sheen */}
+        <ellipse cx="34" cy="28" rx="14" ry="8" fill="#fff" opacity="0.3"
+          transform="rotate(-28 34 28)" />
       </g>
+
+      {/* Outer outline */}
+      <circle cx="50" cy="50" r="44" fill="none" stroke="#202733" strokeWidth="4" />
+
+      {/* Centre button */}
+      <circle cx="50" cy="50" r="14" fill="#202733" />
+      <circle cx="50" cy="50" r="10" fill="#fff" />
+      <circle cx="50" cy="50" r="5"  fill="#f6f7f9" stroke="#202733" strokeWidth="1.6"
+        className={animated ? `hexadex-core-${id}` : undefined} />
 
       {animated && (
         <style>{`
-          .hexadex-mark-${id}:hover { transform: rotate(60deg) scale(1.05); }
-          .hexadex-core-${id} {
-            animation: hex-pulse-${id} 2.4s ease-in-out infinite;
-            transform-origin: 55px 58px;
-          }
+          .hexadex-mark-${id}:hover { transform: rotate(360deg); }
+          .hexadex-core-${id} { animation: hex-pulse-${id} 2.6s ease-in-out infinite; transform-origin: 50px 50px; }
           @keyframes hex-pulse-${id} {
-            0%, 100% { opacity: 1; r: 7; }
-            50%      { opacity: 0.85; r: 8.2; }
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.7; }
           }
         `}</style>
       )}
@@ -182,13 +118,12 @@ export default function HexaDexLogo({
           Hexa
         </span>
         <span style={{
-          background: "linear-gradient(135deg, #fde047 0%, #fb923c 40%, #ef4444 75%, #dc2626 100%)",
+          background: "linear-gradient(180deg, #a81510 0%, #900603 100%)",
           WebkitBackgroundClip: "text",
           backgroundClip: "text",
           WebkitTextFillColor: "transparent",
           color: "transparent",
           fontWeight: 900,
-          filter: "drop-shadow(0 2px 4px rgba(220, 38, 38, 0.5))",
         }}>
           Dex
         </span>

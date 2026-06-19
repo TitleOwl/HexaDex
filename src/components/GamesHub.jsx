@@ -1,6 +1,10 @@
 // ─── GamesHub — Arcade-themed mini-games hub ──────────
 
 import { useState, useEffect } from "react";
+import {
+  Gamepad2, HelpCircle, Volume2, Egg, Trophy, Flame, X, Sparkles,
+  Globe, Users, Target, Music, Bird, Play,
+} from "lucide-react";
 import WhosThatGame    from "./WhosThatGame.jsx";
 import MultiplayerQuiz from "./MultiplayerQuiz.jsx";
 import GuessTheCryGame from "./GuessTheCryGame.jsx";
@@ -11,49 +15,49 @@ import { trackGame } from "./petQuests.js";
 const GAMES = [
   {
     id: "whosthat",
-    icon: "🎮",
-    color: "#3b82f6",
-    accent: "#60a5fa",
+    Icon: HelpCircle, TagIcon: Target,
+    color: "#900603",
+    accent: "#b5302d",
     bestKey: "pkdx_whosthat_best",
     streakKey: "pkdx_streak",
     titleEn: "Who's That Pokémon?",
     titleTh: "นี่ Pokémon อะไร?",
     titleJa: "だれだ?",
-    tagEn: "🎯 Silhouette Guessing",
-    tagTh: "🎯 เกมเดาเงา",
-    tagJa: "🎯 シルエットクイズ",
+    tagEn: "Silhouette Guessing",
+    tagTh: "เกมเดาเงา",
+    tagJa: "シルエットクイズ",
     modes: { en: ["Single Player", "Multiplayer"],
              th: ["เล่นคนเดียว", "เล่นกับเพื่อน"],
              ja: ["シングル", "マルチプレイヤー"] },
   },
   {
     id: "guessthecry",
-    icon: "🔊",
-    color: "#f59e0b",
-    accent: "#fbbf24",
+    Icon: Volume2, TagIcon: Music,
+    color: "#ab8a52",
+    accent: "#b89a5a",
     bestKey: "pkdx_guess_cry_best",
     streakKey: "pkdx_guess_cry_streak",
     titleEn: "Guess the Cry!",
     titleTh: "ทายเสียงโปเกมอน",
     titleJa: "鳴き声クイズ",
-    tagEn: "🎵 Sound Guessing",
-    tagTh: "🎵 เกมทายเสียงร้อง",
-    tagJa: "🎵 鳴き声当てゲーム",
-    modes: { en: ["Play Now"],
-             th: ["เล่นเลย!"],
-             ja: ["プレイ"] },
+    tagEn: "Sound Guessing",
+    tagTh: "เกมทายเสียงร้อง",
+    tagJa: "鳴き声当てゲーム",
+    modes: { en: ["Single Player", "Multiplayer"],
+             th: ["เล่นคนเดียว", "เล่นกับเพื่อน"],
+             ja: ["シングル", "マルチプレイヤー"] },
   },
   {
     id: "petcare",
-    icon: "🥚",
-    color: "#ec4899",
-    accent: "#f472b6",
+    Icon: Egg, TagIcon: Bird,
+    color: "#b5302d",
+    accent: "#cf5a52",
     titleEn: "Pokémon Buddy",
     titleTh: "เลี้ยงโปเกมอน",
     titleJa: "ポケモン育成",
-    tagEn: "🐣 Raise & Evolve",
-    tagTh: "🐣 เลี้ยงดู & วิวัฒนาการ",
-    tagJa: "🐣 育てて進化",
+    tagEn: "Raise & Evolve",
+    tagTh: "เลี้ยงดู & วิวัฒนาการ",
+    tagJa: "育てて進化",
     modes: { en: ["Care · Level · Evolve"],
              th: ["ดูแล · เลเวล · วิวัฒน์"],
              ja: ["世話 · レベル · 進化"] },
@@ -63,6 +67,7 @@ const GAMES = [
 export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, genIdx, autoOpenPet, onAutoOpened }) {
   // null | "picker" | "single" | "multi" | "cry" | "pet"
   const [gameState, setGameState] = useState(null);
+  const [pickerGame, setPickerGame] = useState("whosthat"); // which game the mode picker is for
   const [scores, setScores] = useState({});
 
   // Open the buddy game directly when launched from the roaming companion
@@ -123,140 +128,115 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
           to   { opacity: 1; backdrop-filter: blur(12px); }
         }
 
-        /* ─── Arcade Hero ─── */
+        /* ─── Hero — minimal charcoal ─── */
         .gh-hero {
-          background: linear-gradient(135deg, #1e1b4b 0%, #312e81 35%, #6d28d9 70%, #581c87 100%);
-          border-radius: 24px;
-          padding: 32px 28px;
+          background: #1f1d20;
+          border-radius: 18px;
+          padding: 26px 28px;
           margin-bottom: 26px;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 24px 60px rgba(91, 33, 182, 0.4), 0 0 0 1px rgba(255,255,255,0.1) inset;
-          color: white;
+          border: 1px solid rgba(255,255,255,0.06);
+          box-shadow: var(--shadow-md);
+          color: #fff;
         }
-        .gh-hero::before {
-          content: "";
-          position: absolute; inset: 0;
-          background-image:
-            linear-gradient(rgba(168, 85, 247, 0.15) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(168, 85, 247, 0.15) 1px, transparent 1px);
-          background-size: 40px 40px;
-          animation: gh-grid-shift 20s linear infinite;
-          pointer-events: none;
-          mask: radial-gradient(ellipse at center, black 30%, transparent 75%);
-          -webkit-mask: radial-gradient(ellipse at center, black 30%, transparent 75%);
-        }
+        .gh-hero::before { display: none; }
         .gh-hero-title {
-          font-size: 30px;
+          font-family: var(--font-body);
+          font-size: 26px;
           font-weight: 900;
-          margin: 0 0 4px 0;
+          margin: 0 0 6px 0;
           letter-spacing: -0.02em;
-          background: linear-gradient(135deg, #fde047, #f97316, #ec4899);
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          color: transparent;
-          text-shadow: 0 0 60px rgba(249, 115, 22, 0.5);
+          color: #fff;
+          background: none;
+          -webkit-text-fill-color: #fff;
+          text-shadow: none;
           position: relative; z-index: 1;
         }
         .gh-hero-sub {
           font-size: 13px;
-          color: rgba(196, 181, 253, 0.85);
+          color: rgba(255,255,255,0.7);
           font-weight: 600;
           margin: 0;
           position: relative; z-index: 1;
         }
 
-        /* ─── Game cards ─── */
+        /* ─── Game cards — minimal light ─── */
         .gh-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 18px;
-          max-width: 700px;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 14px;
+          max-width: 720px;
         }
         .gh-card {
-          --gc: var(--gc, #3b82f6);
-          background: linear-gradient(165deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.92) 100%);
-          border-radius: 22px;
-          padding: 22px;
-          border: 2px solid transparent;
+          --gc: var(--gc, #900603);
+          background: var(--bg-card);
+          border-radius: 16px;
+          padding: 16px;
+          border: 1px solid var(--border);
           position: relative;
           overflow: hidden;
           cursor: pointer;
-          transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-                      box-shadow 0.35s, border-color 0.35s;
-          box-shadow: 0 12px 30px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.04) inset;
-          color: white;
+          transition: transform 0.25s var(--ease-out), box-shadow 0.25s, border-color 0.2s;
+          box-shadow: var(--shadow-sm);
+          color: var(--text-primary);
           text-align: left;
           font-family: inherit;
           width: 100%;
           animation: gh-card-in 0.4s ease backwards;
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 12px;
         }
-        .gh-card::before {
-          content: "";
-          position: absolute;
-          inset: -2px;
-          border-radius: 22px;
-          padding: 2px;
-          background: linear-gradient(135deg, var(--gc), transparent 60%);
-          mask: linear-gradient(white, white) content-box, linear-gradient(white, white);
-          -webkit-mask: linear-gradient(white, white) content-box, linear-gradient(white, white);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-          opacity: 0.6;
-          pointer-events: none;
-        }
+        .gh-card::before { display: none; }
         .gh-card:hover {
-          transform: translateY(-8px) scale(1.015);
-          box-shadow: 0 28px 60px rgba(0,0,0,0.4), 0 0 30px var(--gc);
+          transform: translateY(-4px);
+          border-color: var(--gc);
+          box-shadow: var(--shadow-md);
         }
-        .gh-card:hover::before { opacity: 1; }
-        .gh-card:hover .gh-card-icon { animation: gh-float-icon 1.8s ease-in-out infinite; }
 
-        .gh-card-head { display: flex; align-items: flex-start; gap: 14px; }
+        .gh-card-head { display: flex; align-items: center; gap: 13px; }
         .gh-card-icon {
-          width: 64px; height: 64px;
-          border-radius: 18px;
-          background: linear-gradient(135deg, var(--gc), color-mix(in srgb, var(--gc) 60%, black));
+          width: 52px; height: 52px;
+          border-radius: 14px;
+          background: color-mix(in srgb, var(--gc) 14%, transparent);
+          color: var(--gc);
           display: flex; align-items: center; justify-content: center;
-          font-size: 34px;
-          box-shadow: 0 10px 24px var(--gc), 0 0 0 1px rgba(255,255,255,0.2) inset;
+          box-shadow: none;
           flex-shrink: 0;
         }
         .gh-card-tag {
-          display: inline-block;
+          display: inline-flex; align-items: center; gap: 5px;
           font-size: 10px; font-weight: 800;
           color: var(--gc);
-          background: color-mix(in srgb, var(--gc) 18%, transparent);
-          padding: 4px 10px; border-radius: 999px;
-          border: 1px solid color-mix(in srgb, var(--gc) 35%, transparent);
-          letter-spacing: 0.5px;
-          margin-bottom: 4px;
+          background: color-mix(in srgb, var(--gc) 12%, transparent);
+          padding: 3px 9px; border-radius: 999px;
+          border: 1px solid color-mix(in srgb, var(--gc) 28%, transparent);
+          letter-spacing: 0.3px;
+          margin-bottom: 3px;
         }
         .gh-card-title {
-          font-size: 22px; font-weight: 900;
-          color: white;
-          letter-spacing: -0.02em;
+          font-family: var(--font-body);
+          font-size: 18px; font-weight: 800;
+          color: var(--text-primary);
+          letter-spacing: -0.01em;
           line-height: 1.15;
-          margin-top: 4px;
+          margin-top: 2px;
         }
         .gh-mode-badges {
           display: flex; gap: 6px; flex-wrap: wrap;
-          padding: 10px 12px;
-          background: rgba(255,255,255,0.04);
+          padding: 9px 11px;
+          background: var(--bg-muted);
           border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.06);
+          border: 1px solid var(--border);
         }
         .gh-mode-badge {
-          display: inline-flex; align-items: center; gap: 4px;
+          display: inline-flex; align-items: center; gap: 5px;
           font-size: 11px; font-weight: 700;
-          color: rgba(255,255,255,0.95);
+          color: var(--text-secondary);
           padding: 4px 10px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.1);
+          background: var(--bg-card);
+          border: 1px solid var(--border);
           border-radius: 999px;
         }
         .gh-scores { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -265,172 +245,162 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
           padding: 4px 10px;
           border-radius: 999px;
           font-size: 10px; font-weight: 800;
-          background: rgba(251, 191, 36, 0.15);
-          border: 1px solid rgba(251, 191, 36, 0.35);
-          color: #fcd34d;
+          background: rgba(171,138,82,0.14);
+          border: 1px solid rgba(171,138,82,0.32);
+          color: #9a7b2e;
           letter-spacing: 0.3px;
         }
         .gh-play {
-          background: linear-gradient(135deg, var(--gc), color-mix(in srgb, var(--gc) 70%, black));
+          background: var(--gc);
           color: white;
           border: none;
-          padding: 13px 18px;
-          border-radius: 14px;
-          font-size: 14px;
-          font-weight: 900;
-          letter-spacing: 1.2px;
+          padding: 12px 18px;
+          border-radius: 12px;
+          font-size: 13.5px;
+          font-weight: 800;
+          letter-spacing: 0.8px;
           cursor: pointer;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 8px 20px var(--gc);
-          transition: transform 0.2s;
+          box-shadow: var(--shadow-sm);
+          transition: transform 0.2s, filter 0.2s;
           display: flex; align-items: center; justify-content: center; gap: 8px;
           margin-top: auto;
         }
+        .gh-play:hover { filter: brightness(1.08); }
         .gh-play:active { transform: scale(0.97); }
-        .gh-play::after {
-          content: "";
-          position: absolute; top: 0; left: -100%;
-          width: 60%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-          transform: skewX(-25deg);
-          animation: gh-arcade-shine 3s ease-in-out infinite;
-        }
+        .gh-play::after { display: none; }
 
         /* Footer */
         .gh-footer {
-          margin-top: 28px;
-          padding: 16px 20px;
-          background: linear-gradient(135deg, rgba(15, 23, 42, 0.5), rgba(30, 41, 59, 0.5));
-          border: 1.5px dashed rgba(168, 85, 247, 0.3);
-          border-radius: 16px;
+          margin-top: 24px;
+          padding: 14px 20px;
+          background: transparent;
+          border: 1px dashed var(--border-mid);
+          border-radius: 14px;
           text-align: center;
         }
         .gh-footer-text {
           font-size: 12px;
-          color: rgba(168, 85, 247, 0.8);
-          font-weight: 700;
-          letter-spacing: 0.6px;
+          color: var(--text-muted);
+          font-weight: 600;
+          letter-spacing: 0.4px;
           margin: 0;
         }
 
         /* ─── Mode Picker ─── */
         .gh-mode-overlay {
           position: fixed; inset: 0; z-index: 9500;
-          background: radial-gradient(ellipse at top, rgba(30, 27, 75, 0.92), rgba(2, 6, 23, 0.96));
+          background: rgba(20, 19, 22, 0.62); backdrop-filter: blur(8px);
           display: flex; align-items: center; justify-content: center;
           padding: 20px;
           animation: gh-mode-backdrop 0.3s ease forwards;
         }
         .gh-mode-card {
-          background: linear-gradient(160deg, #1e1b4b 0%, #312e81 100%);
-          border-radius: 24px;
-          padding: 32px 28px;
-          max-width: 760px; width: 100%;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: 20px;
+          padding: 26px 24px;
+          max-width: 720px; width: 100%;
           position: relative;
-          box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1) inset;
-          color: white;
+          box-shadow: var(--shadow-lg);
+          color: var(--text-primary);
           animation: gh-mode-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
         .gh-mode-title {
-          font-size: 26px; font-weight: 900;
-          background: linear-gradient(135deg, #fde047, #ec4899);
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
+          font-family: var(--font-body);
+          font-size: 22px; font-weight: 800;
+          color: var(--text-primary);
+          background: none; -webkit-text-fill-color: var(--text-primary);
           margin: 0 0 4px 0;
           letter-spacing: -0.02em;
         }
         .gh-mode-sub {
-          font-size: 13px; color: rgba(196, 181, 253, 0.85);
+          font-size: 13px; color: var(--text-muted);
           margin: 0 0 22px 0; font-weight: 600;
         }
         .gh-mode-options {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 14px;
         }
         .gh-mode-option {
-          --mc: var(--mc, #3b82f6);
-          background: linear-gradient(165deg, rgba(15, 23, 42, 0.7), rgba(30, 41, 59, 0.5));
-          border-radius: 20px;
-          padding: 24px 20px;
-          border: 2px solid var(--mc);
+          --mc: var(--mc, #900603);
+          background: var(--bg-muted);
+          border-radius: 16px;
+          padding: 20px;
+          border: 1px solid var(--border);
           cursor: pointer;
           position: relative;
           overflow: hidden;
-          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
-          color: white; text-align: left;
+          transition: transform 0.25s var(--ease-out), box-shadow 0.25s, border-color 0.2s;
+          color: var(--text-primary); text-align: left;
           font-family: inherit;
           display: flex; flex-direction: column; gap: 12px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 0 24px color-mix(in srgb, var(--mc) 30%, transparent);
+          box-shadow: var(--shadow-sm);
         }
         .gh-mode-option:hover {
-          transform: translateY(-6px) scale(1.02);
-          box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 40px var(--mc);
+          transform: translateY(-4px);
+          border-color: var(--mc);
+          box-shadow: var(--shadow-md);
         }
-        .gh-mode-option:hover .gh-mode-icon { animation: gh-float-icon 1.8s ease-in-out infinite; }
         .gh-mode-option-icon {
-          width: 72px; height: 72px;
-          border-radius: 20px;
-          background: linear-gradient(135deg, var(--mc), color-mix(in srgb, var(--mc) 60%, black));
+          width: 54px; height: 54px;
+          border-radius: 15px;
+          background: color-mix(in srgb, var(--mc) 14%, transparent);
+          color: var(--mc);
           display: flex; align-items: center; justify-content: center;
-          font-size: 40px;
-          box-shadow: 0 10px 28px var(--mc), 0 0 0 1px rgba(255,255,255,0.2) inset;
-          margin-bottom: 4px;
+          box-shadow: none;
+          margin-bottom: 2px;
         }
         .gh-mode-option-title {
-          font-size: 20px; font-weight: 900; letter-spacing: -0.01em;
-          color: white;
+          font-family: var(--font-body);
+          font-size: 18px; font-weight: 800; letter-spacing: -0.01em;
+          color: var(--text-primary);
         }
         .gh-mode-option-features {
           display: flex; flex-direction: column; gap: 5px;
           padding: 10px 12px;
-          background: rgba(255,255,255,0.04);
+          background: var(--bg-card);
           border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.06);
+          border: 1px solid var(--border);
           flex: 1;
         }
         .gh-mode-option-feature {
           font-size: 11px; font-weight: 600;
-          color: rgba(255,255,255,0.88);
+          color: var(--text-secondary);
           display: flex; align-items: center; gap: 6px;
         }
         .gh-mode-option-feature::before {
           content: "✓"; color: var(--mc); font-weight: 900;
         }
         .gh-mode-cta {
-          background: linear-gradient(135deg, var(--mc), color-mix(in srgb, var(--mc) 70%, black));
+          background: var(--mc);
           color: white;
           padding: 11px 14px;
           border-radius: 12px;
-          font-size: 13px; font-weight: 900; letter-spacing: 1px;
+          font-size: 13px; font-weight: 800; letter-spacing: 0.4px;
           text-align: center;
-          box-shadow: 0 6px 16px color-mix(in srgb, var(--mc) 60%, transparent);
+          box-shadow: var(--shadow-sm);
           position: relative; overflow: hidden;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
+          transition: filter 0.2s;
         }
-        .gh-mode-cta::after {
-          content: "";
-          position: absolute; top: 0; left: -100%;
-          width: 60%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-          transform: skewX(-25deg);
-          animation: gh-arcade-shine 3s ease-in-out infinite;
-        }
+        .gh-mode-cta:hover { filter: brightness(1.08); }
+        .gh-mode-cta::after { display: none; }
         .gh-mode-close {
           position: absolute; top: 14px; right: 14px;
-          width: 36px; height: 36px;
+          width: 32px; height: 32px;
           border-radius: 50%;
-          background: rgba(239, 68, 68, 0.9);
-          border: none;
-          color: white;
-          font-size: 16px; font-weight: 900;
+          background: var(--bg-muted);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
-          transition: transform 0.2s, background 0.2s;
+          transition: transform 0.2s, color 0.2s, border-color 0.2s;
           z-index: 1;
         }
-        .gh-mode-close:hover { transform: scale(1.1); background: #dc2626; }
+        .gh-mode-close:hover { transform: scale(1.08); color: #d23a4a; border-color: rgba(210,58,74,0.4); }
       `}</style>
 
       {/* ── Arcade Hero ── */}
@@ -444,14 +414,14 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
         ].map((s, i) => (
           <span key={i} style={{
             position: "absolute", top: s.top, left: s.left,
-            fontSize: s.size, animation: `gh-sparkle 2.4s ease-in-out infinite ${s.delay}`,
-            color: "#fde047", filter: "drop-shadow(0 0 8px #fde047)",
+            animation: `gh-sparkle 2.4s ease-in-out infinite ${s.delay}`,
+            color: "#d8be86", display: "inline-flex",
             pointerEvents: "none", zIndex: 0,
-          }}>✨</span>
+          }}><Sparkles size={s.size} strokeWidth={2.2} /></span>
         ))}
 
-        <h1 className="gh-hero-title">
-          🕹️ {t("Game Zone", "Game Zone", "ゲームゾーン")}
+        <h1 className="gh-hero-title" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+          <Gamepad2 size={24} strokeWidth={2.2} /> {t("Game Zone", "Game Zone", "ゲームゾーン")}
         </h1>
         <p className="gh-hero-sub">
           {t("ทดสอบความรู้ Pokémon ของคุณ · ทำคะแนน · เก็บ streak",
@@ -461,9 +431,9 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
 
         <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap", position: "relative", zIndex: 1 }}>
           {[
-            { icon: "🏆", val: scores.whosthat_best || 0,   label: t("คะแนนสูงสุด", "Best score", "ハイスコア"), color: "#fbbf24" },
-            { icon: "🔥", val: scores.whosthat_streak || 0, label: t("Streak ปัจจุบัน", "Current streak", "現在の連勝"), color: "#f97316" },
-            { icon: "🎮", val: GAMES.length,                 label: t("เกมทั้งหมด",     "Games",          "ゲーム"), color: "#a855f7" },
+            { Icon: Trophy,  val: scores.whosthat_best || 0,   label: t("คะแนนสูงสุด", "Best score", "ハイスコア"), color: "#b89a5a" },
+            { Icon: Flame,   val: scores.whosthat_streak || 0, label: t("Streak ปัจจุบัน", "Current streak", "現在の連勝"), color: "#9a5a3a" },
+            { Icon: Gamepad2, val: GAMES.length,                label: t("เกมทั้งหมด",     "Games",          "ゲーム"), color: "#b5302d" },
           ].map((s, i) => (
             <div key={i} style={{
               background: "rgba(255,255,255,0.08)",
@@ -474,7 +444,7 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
               display: "inline-flex", alignItems: "center", gap: 6,
               boxShadow: `0 4px 14px ${s.color}22`,
             }}>
-              <span style={{ fontSize: 14 }}>{s.icon}</span>
+              <span style={{ display: "inline-flex", color: s.color }}><s.Icon size={14} strokeWidth={2.4} /></span>
               <span style={{ fontSize: 14, fontWeight: 900, color: s.color, fontVariantNumeric: "tabular-nums" }}>
                 {s.val}
               </span>
@@ -494,16 +464,15 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
           return (
             <button key={g.id} className="gh-card"
               onClick={() => {
-                if (g.id === "guessthecry") { trackGame(); setGameState("cry"); }
-                else if (g.id === "petcare") setGameState("pet");
-                else setGameState("picker");
+                if (g.id === "petcare") setGameState("pet");
+                else { setPickerGame(g.id); setGameState("picker"); }
               }}
               style={{ "--gc": g.color, animationDelay: `${i * 0.08}s` }}>
 
               <div className="gh-card-head">
-                <div className="gh-card-icon">{g.icon}</div>
+                <div className="gh-card-icon"><g.Icon size={26} strokeWidth={2.2} /></div>
                 <div style={{ flex: 1 }}>
-                  <span className="gh-card-tag">{tag(g)}</span>
+                  <span className="gh-card-tag"><g.TagIcon size={11} strokeWidth={2.4} /> {tag(g)}</span>
                   <div className="gh-card-title">{title(g)}</div>
                 </div>
               </div>
@@ -511,7 +480,7 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
               <div className="gh-mode-badges">
                 {modes(g).map((m, mi) => (
                   <span key={mi} className="gh-mode-badge">
-                    {mi === 0 ? "🎮" : "🌐"} {m}
+                    {mi === 0 ? <Gamepad2 size={11} strokeWidth={2.4} /> : <Globe size={11} strokeWidth={2.4} />} {m}
                   </span>
                 ))}
               </div>
@@ -520,50 +489,50 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
                 <div className="gh-scores">
                   {scores[bestId] > 0 && (
                     <span className="gh-score-chip">
-                      🏆 {scores[bestId]} {t("คะแนน", "pts", "点")}
+                      <Trophy size={11} strokeWidth={2.4} /> {scores[bestId]} {t("คะแนน", "pts", "点")}
                     </span>
                   )}
                   {scores[streakId] > 0 && (
                     <span className="gh-score-chip" style={{
-                      background: "rgba(249, 115, 22, 0.15)",
-                      borderColor: "rgba(249, 115, 22, 0.35)",
-                      color: "#fdba74",
+                      background: "rgba(144, 6, 3, 0.15)",
+                      borderColor: "rgba(144, 6, 3, 0.35)",
+                      color: "#c9a06a",
                     }}>
-                      🔥 {scores[streakId]} streak
+                      <Flame size={11} strokeWidth={2.4} /> {scores[streakId]} streak
                     </span>
                   )}
                 </div>
               )}
 
               <div className="gh-play">
-                ▶ {t("เล่นเลย", "PLAY NOW", "プレイ")}
+                <Play size={13} strokeWidth={2.6} fill="currentColor" /> {t("เล่นเลย", "PLAY NOW", "プレイ")}
               </div>
             </button>
           );
         })}
       </div>
 
-      {/* ── Mode Picker Overlay (Who's That) ── */}
+      {/* ── Mode Picker Overlay (Single / Multiplayer) ── */}
       {gameState === "picker" && (
-        <ModePicker lang={lang}
+        <ModePicker lang={lang} game={pickerGame}
           onClose={() => setGameState(null)}
           onPick={(mode) => { trackGame(); setGameState(mode); }} />
       )}
 
       {/* ── Game Overlays ── */}
-      {gameState === "single" && (
+      {gameState === "single" && pickerGame === "whosthat" && (
         <WhosThatGame allList={allList} thaiArr={thaiArr} jpArr={jpArr}
           lang={lang} cachedFetch={cachedFetch} genIdx={genIdx}
           onClose={() => setGameState(null)} />
       )}
-      {gameState === "multi" && (
-        <MultiplayerQuiz allList={allList} thaiArr={thaiArr} jpArr={jpArr}
-          lang={lang}
-          onClose={() => setGameState(null)} />
-      )}
-      {gameState === "cry" && (
+      {gameState === "single" && pickerGame === "guessthecry" && (
         <GuessTheCryGame allList={allList} thaiArr={thaiArr} jpArr={jpArr}
           lang={lang} genIdx={genIdx}
+          onClose={() => setGameState(null)} />
+      )}
+      {gameState === "multi" && (
+        <MultiplayerQuiz allList={allList} thaiArr={thaiArr} jpArr={jpArr}
+          lang={lang} mode={pickerGame === "guessthecry" ? "cry" : "silhouette"}
           onClose={() => setGameState(null)} />
       )}
       {gameState === "pet" && (
@@ -576,17 +545,27 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
 }
 
 // ─── Mode Picker (Single / Multiplayer) ───
-function ModePicker({ lang, onClose, onPick }) {
+function ModePicker({ lang, onClose, onPick, game = "whosthat" }) {
   useModalLifecycle(onClose);
   const t = (th, en, ja) => lang === "th" ? th : lang === "ja" ? (ja ?? en) : en;
+
+  const isCry = game === "guessthecry";
+  const gameName = isCry
+    ? t("ทายเสียงโปเกมอน", "Guess the Cry!", "鳴き声クイズ")
+    : t("นี่ Pokémon อะไร?", "Who's That Pokémon?", "だれだ?");
 
   const OPTIONS = [
     {
       mode: "single",
-      icon: "🎮",
-      color: "#3b82f6",
+      Icon: Gamepad2,
+      color: "#900603",
       title: t("เล่นคนเดียว", "Single Player", "シングルプレイヤー"),
-      features: [
+      features: isCry ? [
+        t("ฟังเสียงร้อง 10 ข้อ", "10 cry rounds",        "鳴き声10問"),
+        t("จับเวลา + Streak",    "Timed + streaks",      "タイム + 連勝"),
+        t("ฟังซ้ำได้ 3 ครั้ง",   "Replay up to 3×",      "最大3回再生"),
+        t("ทำคะแนนสะสมส่วนตัว",  "Personal high scores", "個人ハイスコア"),
+      ] : [
         t("4 ระดับความยาก",     "4 difficulty levels",  "4段階の難易度"),
         t("ระบบ Combo",         "Combo system",         "コンボシステム"),
         t("ทำคะแนนสะสมส่วนตัว", "Personal high scores", "個人ハイスコア"),
@@ -596,8 +575,8 @@ function ModePicker({ lang, onClose, onPick }) {
     },
     {
       mode: "multi",
-      icon: "🌐",
-      color: "#a855f7",
+      Icon: Globe,
+      color: "#b5302d",
       title: t("เล่นกับเพื่อน", "Multiplayer", "マルチプレイヤー"),
       features: [
         t("สร้าง / เข้าร่วมห้อง", "Create / Join rooms", "ルーム作成/参加"),
@@ -612,15 +591,15 @@ function ModePicker({ lang, onClose, onPick }) {
   return (
     <div className="gh-mode-overlay" onClick={onClose}>
       <div className="gh-mode-card" onClick={(e) => e.stopPropagation()}>
-        <button className="gh-mode-close" onClick={onClose}>✕</button>
+        <button className="gh-mode-close" onClick={onClose}><X size={16} strokeWidth={2.4} /></button>
 
-        <h2 className="gh-mode-title">
-          🎮 {t("เลือกโหมดการเล่น", "Choose Game Mode", "プレイモード選択")}
+        <h2 className="gh-mode-title" style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+          <Gamepad2 size={20} strokeWidth={2.2} /> {t("เลือกโหมดการเล่น", "Choose Game Mode", "プレイモード選択")}
         </h2>
         <p className="gh-mode-sub">
-          {t("Who's That Pokémon? · เลือกว่าอยากเล่นคนเดียวหรือกับเพื่อน",
-             "Who's That Pokémon? · pick solo or with friends",
-             "Who's That Pokémon? · ソロかフレンドと")}
+          {gameName} · {t("เลือกว่าอยากเล่นคนเดียวหรือกับเพื่อน",
+             "pick solo or with friends",
+             "ソロかフレンドと")}
         </p>
 
         <div className="gh-mode-options">
@@ -629,14 +608,14 @@ function ModePicker({ lang, onClose, onPick }) {
               className="gh-mode-option"
               onClick={() => onPick(opt.mode)}
               style={{ "--mc": opt.color }}>
-              <div className="gh-mode-option-icon">{opt.icon}</div>
+              <div className="gh-mode-option-icon"><opt.Icon size={28} strokeWidth={2.2} /></div>
               <div className="gh-mode-option-title">{opt.title}</div>
               <div className="gh-mode-option-features">
                 {opt.features.map((f, i) => (
                   <div key={i} className="gh-mode-option-feature">{f}</div>
                 ))}
               </div>
-              <div className="gh-mode-cta">▶ {opt.cta}</div>
+              <div className="gh-mode-cta"><Play size={13} strokeWidth={2.6} fill="currentColor" /> {opt.cta}</div>
             </button>
           ))}
         </div>

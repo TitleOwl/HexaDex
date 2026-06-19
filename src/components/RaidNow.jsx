@@ -124,8 +124,8 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
       `}</style>
       <div onClick={(e) => e.stopPropagation()} style={{
         maxWidth: 1200, margin: "0 auto",
-        background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)",
-        borderRadius: 24, padding: "24px 18px 28px",
+        background: "linear-gradient(180deg, #1f1b1c 0%, #151111 100%)",
+        borderRadius: 26, padding: "24px 18px 28px",
         boxShadow: "0 40px 100px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(220, 38, 38, 0.2)",
         minHeight: "85vh", position: "relative", overflow: "hidden", color: "white",
       }}>
@@ -162,7 +162,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
             </div>
           </div>
           <button onClick={onClose} style={{
-            padding: "10px 18px", borderRadius: 12, border: "none",
+            padding: "10px 18px", borderRadius: 15, border: "none",
             background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)",
             color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer",
           }}>
@@ -190,7 +190,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
               background: "rgba(255,255,255,0.06)",
               backdropFilter: "blur(10px)",
               border: `1.5px solid ${stat.color}40`,
-              borderRadius: 14, padding: "12px 14px",
+              borderRadius: 17, padding: "12px 14px",
               position: "relative", overflow: "hidden",
             }}>
               <div style={{
@@ -227,7 +227,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
         {topBosses.length > 0 && (
           <>
             <div style={{
-              padding: "10px 16px", borderRadius: 12,
+              padding: "10px 16px", borderRadius: 15,
               background: "linear-gradient(135deg, #dc2626, #991b1b)",
               marginBottom: 14, display: "flex", alignItems: "center", gap: 10,
               animation: "rn-glow 2s ease-in-out infinite",
@@ -254,7 +254,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
                     onClick={() => onOpenPokemon?.(boss)}
                     style={{
                       background: "linear-gradient(160deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
-                      borderRadius: 16, padding: 14,
+                      borderRadius: 19, padding: 14,
                       border: "2px solid rgba(220, 38, 38, 0.3)",
                       backdropFilter: "blur(8px)",
                       animation: `rn-card-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.05}s backwards`,
@@ -265,7 +265,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
                       const isShadow = (boss.name || "").toLowerCase().startsWith("shadow ");
                       const isMega   = boss.tier === "Mega Raids";
                       let label = "5★ LEGENDARY";
-                      let bg = "linear-gradient(135deg, #a855f7, #6d28d9)";
+                      let bg = "linear-gradient(135deg, #b5302d, #6e0402)";
                       if (isMega) { label = "MEGA"; bg = "linear-gradient(135deg, #f43f5e, #be123c)"; }
                       else if (isShadow) { label = "SHADOW 5★"; bg = "linear-gradient(135deg, #374151, #111827)"; }
                       return (
@@ -297,7 +297,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
                       display: "flex", alignItems: "center", justifyContent: "center",
                       marginTop: 22, marginBottom: 10,
                       background: "radial-gradient(circle at center, rgba(220, 38, 38, 0.25), transparent 70%)",
-                      borderRadius: 12,
+                      borderRadius: 15,
                     }}>
                       {img && (
                         <img src={img} alt={boss.name} loading="lazy"
@@ -334,7 +334,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
 
                     {boss.combatPower?.normal && (
                       <div style={{
-                        background: "rgba(0,0,0,0.3)", borderRadius: 8,
+                        background: "rgba(0,0,0,0.3)", borderRadius: 11,
                         padding: "6px 10px", fontSize: 10, color: "rgba(255,255,255,0.85)",
                       }}>
                         <div style={{ fontWeight: 700 }}>CP {boss.combatPower.normal.min}–{boss.combatPower.normal.max}</div>
@@ -356,7 +356,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
         <div style={{
           background: "rgba(255,255,255,0.04)",
           border: "1.5px solid rgba(255,255,255,0.1)",
-          borderRadius: 16, padding: 18, marginTop: 8,
+          borderRadius: 19, padding: 18, marginTop: 8,
         }}>
           <div style={{
             fontSize: 13, fontWeight: 900, letterSpacing: 0.8,
@@ -375,7 +375,7 @@ export default function RaidNow({ lang = "en", onClose, onOpenPokemon, allList =
               <a key={i} href={c.url} target="_blank" rel="noopener noreferrer"
                 style={{
                   display: "flex", alignItems: "center", gap: 8,
-                  padding: "8px 12px", borderRadius: 10,
+                  padding: "8px 12px", borderRadius: 13,
                   background: "rgba(255,255,255,0.05)",
                   border: `1.5px solid ${c.color}40`,
                   color: "white", textDecoration: "none",

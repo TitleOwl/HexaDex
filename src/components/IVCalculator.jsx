@@ -140,8 +140,8 @@ export default function IVCalculator({ allList, thaiArr, jpArr, lang, cachedFetc
   const grade = (pct) => {
     if (pct >= 98) return { label: "💯 Hundo!", color: "#facc15" };
     if (pct >= 90) return { label: "⭐ Excellent", color: "#10b981" };
-    if (pct >= 80) return { label: "✨ Great", color: "#3b82f6" };
-    if (pct >= 67) return { label: "👍 Good", color: "#8b5cf6" };
+    if (pct >= 80) return { label: "✨ Great", color: "#900603" };
+    if (pct >= 67) return { label: "👍 Good", color: "#b5302d" };
     return { label: "Average", color: "#94a3b8" };
   };
 

@@ -3,6 +3,11 @@
 // Updates: countdown ticks every second when tab visible.
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Star, Target, Swords, Gem, Sparkles, PartyPopper, Globe, Flower2, Gift,
+  ClipboardList, Wrench, Tv, Zap, Ticket, Pin, CalendarDays,
+  X, RefreshCw, AlertTriangle, Moon, Loader2, Circle, CalendarX,
+} from "lucide-react";
 import { useModalLifecycle } from "../perfUtils.js";
 import { usePageVisible } from "../perfUtils.js";
 
@@ -12,46 +17,26 @@ const CACHE_TTL  = 30 * 60 * 1000; // 30 min
 
 // ─── Event type metadata (color, icon, label) ─────────────
 const EVENT_TYPE_META = {
-  "community-day":         { emoji: "🌟", color: "#f59e0b", bg: "linear-gradient(135deg, #fcd34d, #d97706)",
-                             label: { en: "Community Day",        th: "Community Day",        ja: "コミュニティ・デイ" } },
-  "raid-day":              { emoji: "🎯", color: "#dc2626", bg: "linear-gradient(135deg, #fca5a5, #b91c1c)",
-                             label: { en: "Raid Day",             th: "Raid Day",             ja: "レイドデイ" } },
-  "raid-hour":             { emoji: "🎯", color: "#ef4444", bg: "linear-gradient(135deg, #fca5a5, #dc2626)",
-                             label: { en: "Raid Hour",            th: "Raid Hour",            ja: "レイドアワー" } },
-  "raid-weekend":          { emoji: "⚔️", color: "#991b1b", bg: "linear-gradient(135deg, #f87171, #7f1d1d)",
-                             label: { en: "Raid Weekend",         th: "Raid Weekend",         ja: "レイドウィークエンド" } },
-  "raid-battles":          { emoji: "⚔️", color: "#dc2626", bg: "linear-gradient(135deg, #fca5a5, #991b1b)",
-                             label: { en: "Raid Battles",         th: "Raid Battles",         ja: "レイドバトル" } },
-  "mega-raid-day":         { emoji: "💎", color: "#be185d", bg: "linear-gradient(135deg, #f9a8d4, #be185d)",
-                             label: { en: "Mega Raid Day",        th: "เมก้าเรดเดย์",         ja: "メガレイドデイ" } },
-  "pokemon-spotlight-hour":{ emoji: "✨", color: "#eab308", bg: "linear-gradient(135deg, #fde047, #ca8a04)",
-                             label: { en: "Spotlight Hour",       th: "Spotlight Hour",       ja: "スポットライトアワー" } },
-  "pokemon-go-fest":       { emoji: "🎉", color: "#a855f7", bg: "linear-gradient(135deg, #d8b4fe, #7e22ce)",
-                             label: { en: "GO Fest",              th: "GO Fest",              ja: "GOフェスト" } },
-  "pokemon-go-tour":       { emoji: "🌍", color: "#7c3aed", bg: "linear-gradient(135deg, #c4b5fd, #6d28d9)",
-                             label: { en: "GO Tour",              th: "GO Tour",              ja: "GOツアー" } },
-  "season":                { emoji: "🌸", color: "#8b5cf6", bg: "linear-gradient(135deg, #c4b5fd, #6d28d9)",
-                             label: { en: "Season",               th: "ซีซั่นใหม่",            ja: "シーズン" } },
-  "event":                 { emoji: "🎁", color: "#14b8a6", bg: "linear-gradient(135deg, #5eead4, #0f766e)",
-                             label: { en: "Event",                th: "อีเวนต์",              ja: "イベント" } },
-  "timed-research":        { emoji: "📋", color: "#0ea5e9", bg: "linear-gradient(135deg, #7dd3fc, #0369a1)",
-                             label: { en: "Timed Research",       th: "Timed Research",       ja: "タイムリサーチ" } },
-  "research":              { emoji: "📋", color: "#0ea5e9", bg: "linear-gradient(135deg, #7dd3fc, #0369a1)",
-                             label: { en: "Research",             th: "Research",             ja: "リサーチ" } },
-  "update":                { emoji: "🔧", color: "#64748b", bg: "linear-gradient(135deg, #cbd5e1, #475569)",
-                             label: { en: "Update",               th: "อัปเดตเกม",            ja: "アップデート" } },
-  "live":                  { emoji: "📺", color: "#e11d48", bg: "linear-gradient(135deg, #fda4af, #be123c)",
-                             label: { en: "Live Event",           th: "Live Event",           ja: "ライブイベント" } },
-  "max-monday":            { emoji: "⚡", color: "#6366f1", bg: "linear-gradient(135deg, #a5b4fc, #4338ca)",
-                             label: { en: "Max Monday",           th: "Max Monday",           ja: "マックスマンデー" } },
-  "max-out-weekend":       { emoji: "⚡", color: "#6366f1", bg: "linear-gradient(135deg, #a5b4fc, #4338ca)",
-                             label: { en: "Max Weekend",          th: "Max Weekend",          ja: "マックスウィークエンド" } },
-  "global-challenge":      { emoji: "🌐", color: "#06b6d4", bg: "linear-gradient(135deg, #67e8f9, #0891b2)",
-                             label: { en: "Global Challenge",     th: "Global Challenge",     ja: "グローバルチャレンジ" } },
-  "ticketed-event":        { emoji: "🎫", color: "#ec4899", bg: "linear-gradient(135deg, #f9a8d4, #db2777)",
-                             label: { en: "Ticketed Event",       th: "Event มีตั๋ว",         ja: "チケットイベント" } },
-  "default":               { emoji: "📌", color: "#0891b2", bg: "linear-gradient(135deg, #67e8f9, #0e7490)",
-                             label: { en: "Event",                th: "อีเวนต์",              ja: "イベント" } },
+  "community-day":         { Icon: Star,          color: "#f59e0b", label: { en: "Community Day",        th: "Community Day",        ja: "コミュニティ・デイ" } },
+  "raid-day":              { Icon: Target,        color: "#dc2626", label: { en: "Raid Day",             th: "Raid Day",             ja: "レイドデイ" } },
+  "raid-hour":             { Icon: Target,        color: "#ef4444", label: { en: "Raid Hour",            th: "Raid Hour",            ja: "レイドアワー" } },
+  "raid-weekend":          { Icon: Swords,        color: "#991b1b", label: { en: "Raid Weekend",         th: "Raid Weekend",         ja: "レイドウィークエンド" } },
+  "raid-battles":          { Icon: Swords,        color: "#dc2626", label: { en: "Raid Battles",         th: "Raid Battles",         ja: "レイドバトル" } },
+  "mega-raid-day":         { Icon: Gem,           color: "#be185d", label: { en: "Mega Raid Day",        th: "เมก้าเรดเดย์",         ja: "メガレイドデイ" } },
+  "pokemon-spotlight-hour":{ Icon: Sparkles,      color: "#eab308", label: { en: "Spotlight Hour",       th: "Spotlight Hour",       ja: "スポットライトアワー" } },
+  "pokemon-go-fest":       { Icon: PartyPopper,   color: "#b5302d", label: { en: "GO Fest",              th: "GO Fest",              ja: "GOフェスト" } },
+  "pokemon-go-tour":       { Icon: Globe,         color: "#900603", label: { en: "GO Tour",              th: "GO Tour",              ja: "GOツアー" } },
+  "season":                { Icon: Flower2,       color: "#b5302d", label: { en: "Season",               th: "ซีซั่นใหม่",            ja: "シーズン" } },
+  "event":                 { Icon: Gift,          color: "#14b8a6", label: { en: "Event",                th: "อีเวนต์",              ja: "イベント" } },
+  "timed-research":        { Icon: ClipboardList, color: "#a31a16", label: { en: "Timed Research",       th: "Timed Research",       ja: "タイムリサーチ" } },
+  "research":              { Icon: ClipboardList, color: "#a31a16", label: { en: "Research",             th: "Research",             ja: "リサーチ" } },
+  "update":                { Icon: Wrench,        color: "#7a766e", label: { en: "Update",               th: "อัปเดตเกม",            ja: "アップデート" } },
+  "live":                  { Icon: Tv,            color: "#e11d48", label: { en: "Live Event",           th: "Live Event",           ja: "ライブイベント" } },
+  "max-monday":            { Icon: Zap,           color: "#900603", label: { en: "Max Monday",           th: "Max Monday",           ja: "マックスマンデー" } },
+  "max-out-weekend":       { Icon: Zap,           color: "#900603", label: { en: "Max Weekend",          th: "Max Weekend",          ja: "マックスウィークエンド" } },
+  "global-challenge":      { Icon: Globe,         color: "#0891b2", label: { en: "Global Challenge",     th: "Global Challenge",     ja: "グローバルチャレンジ" } },
+  "ticketed-event":        { Icon: Ticket,        color: "#ec4899", label: { en: "Ticketed Event",       th: "Event มีตั๋ว",         ja: "チケットイベント" } },
+  "default":               { Icon: Pin,           color: "#0891b2", label: { en: "Event",                th: "อีเวนต์",              ja: "イベント" } },
 };
 
 function getEventTypeMeta(type) {
@@ -167,7 +152,7 @@ export default function LiveEvents({ lang = "en", onClose }) {
       position: "fixed",
       inset: 0,
       zIndex: 9000,
-      background: "rgba(15, 23, 42, 0.85)",
+      background: "rgba(20, 19, 22, 0.55)",
       backdropFilter: "blur(8px)",
       overflowY: "auto",
       padding: "20px 12px",
@@ -177,6 +162,8 @@ export default function LiveEvents({ lang = "en", onClose }) {
         @keyframes le-overlay-in { from { opacity: 0; } to { opacity: 1; } }
         @keyframes le-card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes le-spin { to { transform: rotate(360deg); } }
+        :root { --le-bg: #fff; --le-fg: #1f1d20; --le-muted: #7a766e; --le-card: #f4f2ec; --le-border: #e5e0d5; }
+        [data-theme="dark"] { --le-bg: #1a1816; --le-fg: #efece4; --le-muted: #9c988e; --le-card: #211f20; --le-border: #2c2926; }
         @keyframes le-shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         @keyframes le-pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
         .le-card { transition: transform 0.2s, box-shadow 0.2s; }
@@ -187,7 +174,7 @@ export default function LiveEvents({ lang = "en", onClose }) {
         maxWidth: 1100,
         margin: "0 auto",
         background: "var(--le-bg, #fff)",
-        borderRadius: 22,
+        borderRadius: 24,
         padding: "20px 16px 24px",
         boxShadow: "0 28px 80px rgba(0,0,0,0.4)",
         minHeight: "85vh",
@@ -204,16 +191,17 @@ export default function LiveEvents({ lang = "en", onClose }) {
         }}>
           <div>
             <h1 style={{
-              fontSize: 22, fontWeight: 900, margin: 0,
-              color: "var(--le-fg, #1e293b)", letterSpacing: "-0.01em",
+              fontSize: 21, fontWeight: 800, margin: 0,
+              color: "var(--le-fg, #1f1d20)", letterSpacing: "-0.01em",
+              display: "inline-flex", alignItems: "center", gap: 9,
             }}>
-              📅 {t("Event Pokémon GO ทั้งหมด", "Live Pokémon GO Events", "ポケモンGOイベント")}
+              <CalendarDays size={20} strokeWidth={2.2} style={{ color: "var(--blue)" }} /> {t("Event Pokémon GO ทั้งหมด", "Live Pokémon GO Events", "ポケモンGOイベント")}
             </h1>
-            <div style={{ fontSize: 12, color: "var(--le-muted, #64748b)", marginTop: 4, fontWeight: 600 }}>
+            <div style={{ fontSize: 12, color: "var(--le-muted, #7a766e)", marginTop: 4, fontWeight: 600 }}>
               {t(
-                `อัปเดต ${formatAge(lastUpdated)} · countdown realtime ⏱️`,
-                `Updated ${formatAge(lastUpdated)} · Live countdown ⏱️`,
-                `更新: ${formatAge(lastUpdated)} · リアルタイムカウントダウン ⏱️`
+                `อัปเดต ${formatAge(lastUpdated)} · countdown realtime`,
+                `Updated ${formatAge(lastUpdated)} · Live countdown`,
+                `更新: ${formatAge(lastUpdated)} · リアルタイムカウントダウン`
               )}
             </div>
           </div>
@@ -221,7 +209,7 @@ export default function LiveEvents({ lang = "en", onClose }) {
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => fetchEvents(true)} disabled={loading}
               style={{
-                padding: "8px 14px", borderRadius: 10,
+                padding: "8px 14px", borderRadius: 13,
                 border: "1.5px solid var(--le-border, #e2e8f0)",
                 background: "var(--le-card, #f8fafc)",
                 color: "var(--le-fg, #475569)",
@@ -229,15 +217,16 @@ export default function LiveEvents({ lang = "en", onClose }) {
                 cursor: loading ? "wait" : "pointer", opacity: loading ? 0.6 : 1,
                 display: "inline-flex", alignItems: "center", gap: 6,
               }}>
-              <span style={{ display: "inline-block", animation: loading ? "le-spin 1s linear infinite" : "none" }}>🔄</span>
+              <RefreshCw size={13} strokeWidth={2.2} style={{ animation: loading ? "le-spin 1s linear infinite" : "none" }} />
               {t("รีเฟรช", "Refresh", "更新")}
             </button>
             <button onClick={onClose} style={{
-              padding: "8px 14px", borderRadius: 10, border: "none",
-              background: "linear-gradient(135deg, #ef4444, #b91c1c)",
-              color: "white", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              padding: "8px 14px", borderRadius: 999,
+              border: "1px solid var(--border)", background: "var(--bg-muted)",
+              color: "var(--le-fg)", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: 6,
             }}>
-              ✕ {t("ปิด", "Close", "閉じる")}
+              <X size={15} strokeWidth={2.4} /> {t("ปิด", "Close", "閉じる")}
             </button>
           </div>
         </div>
@@ -250,34 +239,35 @@ export default function LiveEvents({ lang = "en", onClose }) {
             marginBottom: 18,
             padding: "4px",
             background: "var(--le-card, #f1f5f9)",
-            borderRadius: 12,
+            borderRadius: 15,
             border: "1px solid var(--le-border, #e2e8f0)",
             overflowX: "auto",
           }}>
             {[
-              { id: "active",   icon: "🟢", count: categorized.active.length,   label: { th: "Active", en: "Active",   ja: "進行中" } },
-              { id: "upcoming", icon: "🔵", count: categorized.upcoming.length, label: { th: "เร็วๆนี้", en: "Upcoming", ja: "近日中" } },
-              { id: "all",      icon: "📋", count: events.length,               label: { th: "ทั้งหมด", en: "All",      ja: "全て" } },
+              { id: "active",   Icon: Circle, dot: "#3aa76d", count: categorized.active.length,   label: { th: "Active", en: "Active",   ja: "進行中" } },
+              { id: "upcoming", Icon: Circle, dot: "#3a82d6", count: categorized.upcoming.length, label: { th: "เร็วๆนี้", en: "Upcoming", ja: "近日中" } },
+              { id: "all",      Icon: ClipboardList,          count: events.length,               label: { th: "ทั้งหมด", en: "All",      ja: "全て" } },
             ].map(tab => (
               <button key={tab.id} onClick={() => setFilter(tab.id)} style={{
                 flex: 1,
-                padding: "10px 14px",
-                borderRadius: 8,
+                padding: "9px 14px",
+                borderRadius: 11,
                 border: "none",
-                background: filter === tab.id
-                  ? "linear-gradient(135deg, #06b6d4, #3b82f6)"
-                  : "transparent",
-                color: filter === tab.id ? "white" : "var(--le-fg, #475569)",
+                background: filter === tab.id ? "var(--blue)" : "transparent",
+                color: filter === tab.id ? "white" : "var(--le-fg, #1f1d20)",
                 fontWeight: 800, fontSize: 12, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 transition: "all 0.2s",
                 whiteSpace: "nowrap",
-                boxShadow: filter === tab.id ? "0 4px 12px rgba(59,130,246,0.35)" : "none",
+                boxShadow: "none",
               }}>
-                <span>{tab.icon}</span>
+                <tab.Icon size={tab.dot ? 9 : 13} strokeWidth={2.4}
+                  fill={tab.dot && filter !== tab.id ? tab.dot : "none"}
+                  color={tab.dot && filter !== tab.id ? tab.dot : "currentColor"} />
                 <span>{tab.label[lang] ?? tab.label.en}</span>
                 <span style={{
-                  background: filter === tab.id ? "rgba(255,255,255,0.25)" : "var(--le-border, #cbd5e1)",
+                  background: filter === tab.id ? "rgba(255,255,255,0.25)" : "var(--le-border, #e5e0d5)",
+                  color: filter === tab.id ? "#fff" : "var(--le-muted)",
                   padding: "1px 7px",
                   borderRadius: 999,
                   fontSize: 10,
@@ -296,7 +286,7 @@ export default function LiveEvents({ lang = "en", onClose }) {
                 display: "inline-block",
                 width: 48, height: 48,
                 border: "4px solid var(--le-border, #e2e8f0)",
-                borderTopColor: "#3b82f6",
+                borderTopColor: "#900603",
                 borderRadius: "50%",
                 animation: "le-spin 0.8s linear infinite",
               }} />
@@ -309,7 +299,7 @@ export default function LiveEvents({ lang = "en", onClose }) {
                 height: 100,
                 background: "linear-gradient(90deg, var(--le-card, #f1f5f9) 0%, var(--le-border, #e2e8f0) 50%, var(--le-card, #f1f5f9) 100%)",
                 backgroundSize: "200% 100%",
-                borderRadius: 14,
+                borderRadius: 17,
                 marginBottom: 12,
                 animation: "le-shimmer 1.5s ease-in-out infinite",
               }} />
@@ -324,9 +314,9 @@ export default function LiveEvents({ lang = "en", onClose }) {
             textAlign: "center",
             background: "rgba(239, 68, 68, 0.08)",
             border: "1.5px solid rgba(239, 68, 68, 0.25)",
-            borderRadius: 14,
+            borderRadius: 17,
           }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
+            <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", color: "#dc2626" }}><AlertTriangle size={38} strokeWidth={1.8} /></div>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#dc2626", marginBottom: 6 }}>
               {t("โหลดไม่สำเร็จ", "Failed to load", "読み込み失敗")}
             </div>
@@ -358,9 +348,9 @@ export default function LiveEvents({ lang = "en", onClose }) {
           <div style={{
             padding: "60px 20px",
             textAlign: "center",
-            color: "var(--le-muted, #64748b)",
+            color: "var(--le-muted, #7a766e)",
           }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🌙</div>
+            <div style={{ marginBottom: 12, display: "flex", justifyContent: "center", opacity: 0.5 }}><CalendarX size={44} strokeWidth={1.8} /></div>
             <div style={{ fontWeight: 700, fontSize: 14 }}>
               {filter === "active"
                 ? t("ไม่มี event ที่กำลัง active", "No active events right now", "現在開催中のイベントはありません")
@@ -389,17 +379,17 @@ export default function LiveEvents({ lang = "en", onClose }) {
         <style>{`
           :root {
             --le-bg: #fff;
-            --le-fg: #1e293b;
-            --le-muted: #64748b;
-            --le-card: #f8fafc;
-            --le-border: #e2e8f0;
+            --le-fg: #1f1d20;
+            --le-muted: #7a766e;
+            --le-card: #f4f2ec;
+            --le-border: #e5e0d5;
           }
           [data-theme="dark"] {
-            --le-bg: #0f172a;
-            --le-fg: #f1f5f9;
-            --le-muted: #94a3b8;
-            --le-card: #1e293b;
-            --le-border: #334155;
+            --le-bg: #1a1816;
+            --le-fg: #efece4;
+            --le-muted: #9c988e;
+            --le-card: #211f20;
+            --le-border: #2c2926;
           }
         `}</style>
       </div>
@@ -422,7 +412,7 @@ function EventCard({ event, lang, now, delay = 0 }) {
   } else if (startMs <= now && (!endMs || endMs > now)) {
     status = "active"; statusColor = "#10b981"; statusBg = "rgba(16, 185, 129, 0.15)";
   } else {
-    status = "upcoming"; statusColor = "#3b82f6"; statusBg = "rgba(59, 130, 246, 0.15)";
+    status = "upcoming"; statusColor = "#900603"; statusBg = "rgba(144, 6, 3, 0.15)";
   }
 
   // Compute time difference for countdown
@@ -445,10 +435,10 @@ function EventCard({ event, lang, now, delay = 0 }) {
 
   const t = (th, en, ja) => lang === "th" ? th : lang === "ja" ? (ja ?? en) : en;
   const statusLabel = {
-    active:   t("🟢 กำลังจัด · เหลือ",     "🟢 ACTIVE · ends in",   "🟢 開催中 · 残り"),
-    upcoming: t("🔵 เริ่มอีก",            "🔵 STARTS IN",          "🔵 開始まで"),
-    past:     t("⚫ จบไปแล้ว",            "⚫ ENDED",              "⚫ 終了"),
-    tba:      t("⚪ ยังไม่ระบุเวลา",       "⚪ TBA",                "⚪ 未定"),
+    active:   t("กำลังจัด · เหลือ",     "ACTIVE · ends in",   "開催中 · 残り"),
+    upcoming: t("เริ่มอีก",            "STARTS IN",          "開始まで"),
+    past:     t("จบไปแล้ว",            "ENDED",              "終了"),
+    tba:      t("ยังไม่ระบุเวลา",       "TBA",                "未定"),
   };
 
   // Format start/end dates for display
@@ -471,7 +461,7 @@ function EventCard({ event, lang, now, delay = 0 }) {
         textDecoration: "none",
         background: "var(--le-card, #fff)",
         border: `2px solid ${meta.color}33`,
-        borderRadius: 14,
+        borderRadius: 17,
         overflow: "hidden",
         boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
         color: "inherit",
@@ -479,7 +469,7 @@ function EventCard({ event, lang, now, delay = 0 }) {
         opacity: status === "past" ? 0.7 : 1,
       }}>
       {/* Top color band */}
-      <div style={{ height: 4, background: meta.bg }} />
+      <div style={{ height: 3, background: meta.color }} />
 
       {/* Event image */}
       {event.image && (
@@ -507,7 +497,7 @@ function EventCard({ event, lang, now, delay = 0 }) {
             position: "absolute",
             top: 8,
             left: 8,
-            background: meta.bg,
+            background: meta.color,
             color: "white",
             padding: "3px 10px",
             borderRadius: 999,
@@ -521,7 +511,7 @@ function EventCard({ event, lang, now, delay = 0 }) {
             boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
             backdropFilter: "blur(6px)",
           }}>
-            <span style={{ fontSize: 12 }}>{meta.emoji}</span>
+            <meta.Icon size={11} strokeWidth={2.4} />
             <span>{meta.label[lang] ?? meta.label.en}</span>
           </div>
         </div>
@@ -548,7 +538,7 @@ function EventCard({ event, lang, now, delay = 0 }) {
         <div style={{
           background: statusBg,
           padding: "8px 10px",
-          borderRadius: 8,
+          borderRadius: 11,
           marginBottom: 8,
           fontSize: 11,
           fontWeight: 800,
@@ -566,7 +556,7 @@ function EventCard({ event, lang, now, delay = 0 }) {
               background: "rgba(255,255,255,0.7)",
               color: statusColor,
               padding: "2px 8px",
-              borderRadius: 6,
+              borderRadius: 8,
               fontVariantNumeric: "tabular-nums",
               animation: status === "active" ? "le-pulse-dot 2s ease-in-out infinite" : "none",
             }}>
@@ -578,12 +568,12 @@ function EventCard({ event, lang, now, delay = 0 }) {
         {/* Date range */}
         <div style={{
           fontSize: 10,
-          color: "var(--le-muted, #64748b)",
+          color: "var(--le-muted, #7a766e)",
           fontWeight: 600,
-          lineHeight: 1.5,
+          lineHeight: 1.6,
         }}>
-          <div>📅 {formatDate(event.start)}</div>
-          {endMs && <div>⏰ {formatDate(event.end)}</div>}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><CalendarDays size={11} strokeWidth={2.2} /> {formatDate(event.start)}</div>
+          {endMs && <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><CalendarX size={11} strokeWidth={2.2} /> {formatDate(event.end)}</div>}
         </div>
       </div>
     </a>

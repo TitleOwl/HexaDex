@@ -15,7 +15,7 @@ const TIER_META = {
                           emoji: "💎", description: { en: "Mega Evolution raids", th: "เมก้าวิวัฒนาการ", ja: "メガシンカ" },
                           label: { en: "MEGA RAIDS", th: "MEGA RAIDS", ja: "メガレイド" } },
   "5-Star Raids":       { order: 2, color: "#7c2d12",
-                          bg: "linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #6b21a8 100%)",
+                          bg: "linear-gradient(135deg, #c084fc 0%, #a31a16 50%, #6b21a8 100%)",
                           emoji: "⭐", description: { en: "Legendary tier", th: "ระดับตำนาน", ja: "伝説級" },
                           label: { en: "5-STAR RAIDS", th: "5-STAR RAIDS", ja: "5★レイド" } },
   "Shadow 5-Star Raids":{ order: 3, color: "#1f2937",
@@ -31,7 +31,7 @@ const TIER_META = {
                           emoji: "🌑", description: { en: "Shadow mid-tier", th: "แชโดว์ระดับกลาง", ja: "シャドウ中級" },
                           label: { en: "SHADOW 3-STAR", th: "SHADOW 3-STAR", ja: "シャドウ3★" } },
   "1-Star Raids":       { order: 6, color: "#0369a1",
-                          bg: "linear-gradient(135deg, #7dd3fc 0%, #0284c7 50%, #075985 100%)",
+                          bg: "linear-gradient(135deg, #7dd3fc 0%, #6e0402 50%, #075985 100%)",
                           emoji: "✨", description: { en: "Entry tier", th: "ระดับเริ่มต้น", ja: "初級" },
                           label: { en: "1-STAR RAIDS", th: "1-STAR RAIDS", ja: "1★レイド" } },
   "Shadow 1-Star Raids":{ order: 7, color: "#3730a3",
@@ -201,7 +201,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
       <div onClick={(e) => e.stopPropagation()} style={{
         maxWidth: 1100, margin: "0 auto",
         background: "var(--rb-bg, #fff)",
-        borderRadius: 24, padding: "22px 18px 26px",
+        borderRadius: 26, padding: "22px 18px 26px",
         boxShadow: "0 28px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.06)",
         minHeight: "85vh",
         position: "relative",
@@ -237,7 +237,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => fetchRaids(true)} disabled={loading} style={{
-              padding: "8px 14px", borderRadius: 10,
+              padding: "8px 14px", borderRadius: 13,
               border: "1.5px solid var(--rb-border, #e2e8f0)",
               background: "var(--rb-card, #f8fafc)",
               color: "var(--rb-fg, #475569)",
@@ -249,7 +249,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
               {t("รีเฟรช", "Refresh", "更新")}
             </button>
             <button onClick={onClose} style={{
-              padding: "8px 14px", borderRadius: 10, border: "none",
+              padding: "8px 14px", borderRadius: 13, border: "none",
               background: "linear-gradient(135deg, #ef4444, #b91c1c)",
               color: "white", fontWeight: 700, fontSize: 12, cursor: "pointer",
             }}>
@@ -263,7 +263,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
           <div style={{
             background: "linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(239, 68, 68, 0.05))",
             border: "1.5px solid rgba(220, 38, 38, 0.2)",
-            borderRadius: 12, padding: "10px 14px", marginBottom: 18,
+            borderRadius: 15, padding: "10px 14px", marginBottom: 18,
             display: "flex", alignItems: "center", justifyContent: "space-between",
             flexWrap: "wrap", gap: 8,
           }}>
@@ -306,7 +306,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
         {error && !raids && (
           <div style={{ padding: "40px 20px", textAlign: "center",
                         background: "rgba(239, 68, 68, 0.08)",
-                        border: "1.5px solid rgba(239, 68, 68, 0.25)", borderRadius: 14 }}>
+                        border: "1.5px solid rgba(239, 68, 68, 0.25)", borderRadius: 17 }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#dc2626", marginBottom: 6 }}>
               {t("โหลดไม่สำเร็จ", "Failed to load", "読み込み失敗")}
@@ -322,7 +322,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
             <div style={{
               position: "relative",
               padding: "18px 22px",
-              borderRadius: 18,
+              borderRadius: 20,
               background: group.meta.bg,
               color: "white",
               marginBottom: 16,
@@ -352,7 +352,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
               <div style={{ position: "relative", zIndex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 4 }}>
                   <div style={{
-                    width: 56, height: 56, borderRadius: 14,
+                    width: 56, height: 56, borderRadius: 17,
                     background: "rgba(255,255,255,0.18)",
                     backdropFilter: "blur(8px)",
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -423,7 +423,7 @@ export default function RaidBosses({ lang = "en", onClose, onOpenPokemon, allLis
 
         <style>{`
           :root { --rb-bg: #fff; --rb-fg: #1e293b; --rb-muted: #64748b; --rb-card: #f8fafc; --rb-border: #e2e8f0; }
-          [data-theme="dark"] { --rb-bg: #0f172a; --rb-fg: #f1f5f9; --rb-muted: #94a3b8; --rb-card: #1e293b; --rb-border: #334155; }
+          [data-theme="dark"] { --rb-bg: #151414; --rb-fg: #f1efe9; --rb-muted: #9c988e; --rb-card: #1c1b1c; --rb-border: rgba(255,255,255,0.08); }
         `}</style>
       </div>
     </div>
@@ -447,7 +447,7 @@ function RaidCard({ boss, tierMeta, lang, onOpenPokemon, pokemonId, delay = 0 })
       style={{
         background: `linear-gradient(160deg, var(--rb-card, #fff) 0%, var(--rb-card, #fff) 60%, ${tierMeta.color}0a 100%)`,
         border: `2px solid ${tierMeta.color}40`,
-        borderRadius: 16, padding: 12,
+        borderRadius: 19, padding: 12,
         boxShadow: `0 4px 14px rgba(0,0,0,0.08), 0 0 0 1px ${tierMeta.color}10`,
         position: "relative",
         animation: `rb-card-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${delay}s backwards`,
@@ -489,7 +489,7 @@ function RaidCard({ boss, tierMeta, lang, onOpenPokemon, pokemonId, delay = 0 })
         display: "flex", alignItems: "center", justifyContent: "center",
         marginBottom: 10, marginTop: 8,
         background: `radial-gradient(circle at center, ${tierMeta.color}20 0%, ${tierMeta.color}08 50%, transparent 75%)`,
-        borderRadius: 12,
+        borderRadius: 15,
         position: "relative",
       }}>
         {image ? (
@@ -531,7 +531,7 @@ function RaidCard({ boss, tierMeta, lang, onOpenPokemon, pokemonId, delay = 0 })
         <div style={{
           fontSize: 11, color: "var(--rb-muted, #64748b)",
           padding: "6px 8px", background: "var(--rb-bg, #f8fafc)",
-          borderRadius: 8, fontWeight: 600, lineHeight: 1.5,
+          borderRadius: 11, fontWeight: 600, lineHeight: 1.5,
         }}>
           <div><strong>CP:</strong> {cpNormal.min}–{cpNormal.max}</div>
           {cpBoosted && (

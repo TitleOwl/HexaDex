@@ -3,6 +3,7 @@
 // Shows: current Field Research tasks → reward Pokémon
 
 import { useState, useEffect, useCallback } from "react";
+import { ClipboardList, X, AlertTriangle, RefreshCw, MapPin, Sparkles, HelpCircle } from "lucide-react";
 import { useModalLifecycle, matchPokemonId, pokeApiArtwork } from "../perfUtils.js";
 
 const RESEARCH_URL = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data/research.json";
@@ -19,7 +20,7 @@ const TYPE_COLORS = {
 
 // Category metadata (research category color/icon)
 const CATEGORY_META = {
-  default: { color: "#0ea5e9", emoji: "📋", bg: "linear-gradient(135deg, #7dd3fc, #0369a1)" },
+  default: { color: "#a31a16" },
 };
 
 export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, allList = [] }) {
@@ -89,7 +90,7 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, zIndex: 9000,
-      background: "rgba(15, 23, 42, 0.85)", backdropFilter: "blur(8px)",
+      background: "rgba(20, 19, 22, 0.55)", backdropFilter: "blur(8px)",
       overflowY: "auto", padding: "20px 12px",
       animation: "fr-overlay-in 0.3s ease",
     }}>
@@ -104,7 +105,7 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
       <div onClick={(e) => e.stopPropagation()} style={{
         maxWidth: 1100, margin: "0 auto",
         background: "var(--fr-bg, #fff)",
-        borderRadius: 22, padding: "20px 16px 24px",
+        borderRadius: 24, padding: "20px 16px 24px",
         boxShadow: "0 28px 80px rgba(0,0,0,0.4)",
         minHeight: "85vh",
       }}>
@@ -112,9 +113,10 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
                       flexWrap: "wrap", gap: 12, marginBottom: 18, padding: "0 4px" }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0,
-                         color: "var(--fr-fg, #1e293b)", letterSpacing: "-0.01em" }}>
-              📋 {t("งานพิเศษ (Field Research)", "Field Research Tasks", "フィールドリサーチ")}
+            <h1 style={{ fontSize: 21, fontWeight: 800, margin: 0,
+                         color: "var(--fr-fg, #1f1d20)", letterSpacing: "-0.01em",
+                         display: "inline-flex", alignItems: "center", gap: 9 }}>
+              <ClipboardList size={20} strokeWidth={2.2} style={{ color: "var(--blue)" }} /> {t("งานพิเศษ (Field Research)", "Field Research Tasks", "フィールドリサーチ")}
             </h1>
             <div style={{ fontSize: 12, color: "var(--fr-muted, #64748b)", marginTop: 4, fontWeight: 600 }}>
               {t(`อัปเดต ${formatAge(lastUpdated)} · จาก LeekDuck`,
@@ -124,7 +126,7 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => fetchResearch(true)} disabled={loading} style={{
-              padding: "8px 14px", borderRadius: 10,
+              padding: "8px 14px", borderRadius: 13,
               border: "1.5px solid var(--fr-border, #e2e8f0)",
               background: "var(--fr-card, #f8fafc)",
               color: "var(--fr-fg, #475569)",
@@ -132,15 +134,16 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
               cursor: loading ? "wait" : "pointer", opacity: loading ? 0.6 : 1,
               display: "inline-flex", alignItems: "center", gap: 6,
             }}>
-              <span style={{ display: "inline-block", animation: loading ? "fr-spin 1s linear infinite" : "none" }}>🔄</span>
+              <RefreshCw size={13} strokeWidth={2.2} style={{ animation: loading ? "fr-spin 1s linear infinite" : "none" }} />
               {t("รีเฟรช", "Refresh", "更新")}
             </button>
             <button onClick={onClose} style={{
-              padding: "8px 14px", borderRadius: 10, border: "none",
-              background: "linear-gradient(135deg, #ef4444, #b91c1c)",
-              color: "white", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              padding: "8px 14px", borderRadius: 999,
+              border: "1px solid var(--border)", background: "var(--bg-muted)",
+              color: "var(--fr-fg)", fontWeight: 700, fontSize: 12, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: 6,
             }}>
-              ✕ {t("ปิด", "Close", "閉じる")}
+              <X size={15} strokeWidth={2.4} /> {t("ปิด", "Close", "閉じる")}
             </button>
           </div>
         </div>
@@ -150,7 +153,7 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
           <div style={{ padding: "30px 10px", textAlign: "center" }}>
             <div style={{ display: "inline-block", width: 48, height: 48,
                           border: "4px solid var(--fr-border, #e2e8f0)",
-                          borderTopColor: "#0ea5e9", borderRadius: "50%",
+                          borderTopColor: "#a31a16", borderRadius: "50%",
                           animation: "fr-spin 0.8s linear infinite" }} />
             <div style={{ marginTop: 12, color: "var(--fr-muted, #64748b)", fontSize: 13, fontWeight: 600 }}>
               {t("กำลังโหลดงานพิเศษ...", "Loading research tasks...", "リサーチタスクを読み込み中...")}
@@ -163,8 +166,8 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
           <div style={{ padding: "40px 20px", textAlign: "center",
                         background: "rgba(239, 68, 68, 0.08)",
                         border: "1.5px solid rgba(239, 68, 68, 0.25)",
-                        borderRadius: 14 }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>⚠️</div>
+                        borderRadius: 17 }}>
+            <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", color: "#dc2626" }}><AlertTriangle size={38} strokeWidth={1.8} /></div>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#dc2626", marginBottom: 6 }}>
               {t("โหลดไม่สำเร็จ", "Failed to load", "読み込み失敗")}
             </div>
@@ -176,19 +179,17 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
         {research && Object.entries(grouped).map(([category, tasks]) => (
           <div key={category} style={{ marginBottom: 20 }}>
             <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 16px", borderRadius: 12,
-              background: CATEGORY_META.default.bg,
-              color: "white", fontWeight: 900, fontSize: 14,
-              letterSpacing: 0.5, marginBottom: 12,
-              boxShadow: `0 6px 18px ${CATEGORY_META.default.color}44`,
+              display: "flex", alignItems: "center", gap: 9,
+              padding: "0 4px 11px", marginBottom: 12,
+              borderBottom: "1px solid var(--fr-border)",
+              color: "var(--fr-fg)", fontWeight: 800, fontSize: 14, letterSpacing: 0.2,
             }}>
-              <span style={{ fontSize: 20 }}>📋</span>
+              <ClipboardList size={16} strokeWidth={2.2} style={{ color: "var(--blue)" }} />
               <span style={{ textTransform: "capitalize" }}>{category}</span>
               <span style={{
-                marginLeft: "auto", background: "rgba(255,255,255,0.25)",
-                padding: "3px 10px", borderRadius: 999, fontSize: 11,
-                backdropFilter: "blur(6px)",
+                marginLeft: "auto", background: "var(--fr-card)",
+                border: "1px solid var(--fr-border)", color: "var(--fr-muted)",
+                padding: "2px 9px", borderRadius: 999, fontSize: 10.5, fontWeight: 800,
               }}>
                 {tasks.length} {t("งาน", "tasks", "タスク")}
               </span>
@@ -215,8 +216,8 @@ export default function FieldResearch({ lang = "en", onClose, onOpenPokemon, all
         </div>
 
         <style>{`
-          :root { --fr-bg: #fff; --fr-fg: #1e293b; --fr-muted: #64748b; --fr-card: #f8fafc; --fr-border: #e2e8f0; }
-          [data-theme="dark"] { --fr-bg: #0f172a; --fr-fg: #f1f5f9; --fr-muted: #94a3b8; --fr-card: #1e293b; --fr-border: #334155; }
+          :root { --fr-bg: #fff; --fr-fg: #1f1d20; --fr-muted: #7a766e; --fr-card: #f4f2ec; --fr-border: #e5e0d5; }
+          [data-theme="dark"] { --fr-bg: #1a1816; --fr-fg: #efece4; --fr-muted: #9c988e; --fr-card: #211f20; --fr-border: #2c2926; }
         `}</style>
       </div>
     </div>
@@ -229,7 +230,7 @@ function TaskCard({ task, lang, onOpenPokemon, allList = [], delay = 0 }) {
   return (
     <div className="fr-task" style={{
       background: "var(--fr-card, #fff)",
-      borderRadius: 12,
+      borderRadius: 15,
       border: "1.5px solid var(--fr-border, #e2e8f0)",
       padding: "12px 14px",
       display: "flex",
@@ -241,9 +242,10 @@ function TaskCard({ task, lang, onOpenPokemon, allList = [], delay = 0 }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontSize: 13, fontWeight: 700,
-          color: "var(--fr-fg, #1e293b)", lineHeight: 1.4,
+          color: "var(--fr-fg, #1f1d20)", lineHeight: 1.4,
+          display: "inline-flex", alignItems: "flex-start", gap: 6,
         }}>
-          📍 {task.text}
+          <MapPin size={14} strokeWidth={2.2} style={{ color: "var(--blue)", flexShrink: 0, marginTop: 1 }} /> {task.text}
         </div>
       </div>
 
@@ -258,9 +260,9 @@ function TaskCard({ task, lang, onOpenPokemon, allList = [], delay = 0 }) {
             onClick={() => onOpenPokemon?.(reward)}
             style={{
               width: 64, height: 64,
-              background: "linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(59, 130, 246, 0.04))",
-              borderRadius: 10,
-              border: "1.5px solid rgba(14, 165, 233, 0.2)",
+              background: "var(--fr-card)",
+              borderRadius: 13,
+              border: "1px solid var(--fr-border)",
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
               padding: 4, position: "relative",
@@ -269,18 +271,17 @@ function TaskCard({ task, lang, onOpenPokemon, allList = [], delay = 0 }) {
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "scale(1.08)";
-              e.currentTarget.style.borderColor = "#0ea5e9";
+              e.currentTarget.style.borderColor = "#a31a16";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.borderColor = "rgba(14, 165, 233, 0.2)";
+              e.currentTarget.style.borderColor = "var(--fr-border)";
             }}>
             {reward.canBeShiny && (
               <div style={{
-                position: "absolute", top: 2, right: 2,
-                fontSize: 11,
+                position: "absolute", top: 3, right: 3, color: "#e0a92e",
               }}>
-                ✨
+                <Sparkles size={11} strokeWidth={2.4} />
               </div>
             )}
             {(() => {
@@ -296,7 +297,7 @@ function TaskCard({ task, lang, onOpenPokemon, allList = [], delay = 0 }) {
                     else e.currentTarget.style.display = "none";
                   }}
                 />
-              ) : (<div style={{ fontSize: 24 }}>❔</div>);
+              ) : (<HelpCircle size={22} strokeWidth={2} style={{ color: "var(--fr-muted)" }} />);
             })()}
             <div style={{
               fontSize: 8, fontWeight: 800,

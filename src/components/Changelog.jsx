@@ -6,17 +6,20 @@ import { useEffect, useState } from "react";
 import { useModalLifecycle } from "../perfUtils.js";
 import {
   fetchChangelog,
-  groupByDate,
+  groupByVersion,
   markVersionSeen,
   getCurrentVersion,
   getLatestCommitDate,
-  getCommitStats,
+  VERSION_SUMMARY,
 } from "../data/changelog.js";
 
+// Category order + display labels (no emoji)
+const CAT_ORDER = ["feature", "ui", "perf", "fix", "security", "chore", "other"];
+
 const TYPE_META = {
-  feature:  { emoji: "✨", color: "#a855f7", labelEn: "Feature",  labelTh: "ฟีเจอร์",     labelJa: "新機能"  },
+  feature:  { emoji: "✨", color: "#b5302d", labelEn: "Feature",  labelTh: "ฟีเจอร์",     labelJa: "新機能"  },
   fix:      { emoji: "🐛", color: "#ef4444", labelEn: "Fix",      labelTh: "แก้บั๊ก",      labelJa: "修正"    },
-  ui:       { emoji: "🎨", color: "#0ea5e9", labelEn: "Design",   labelTh: "ดีไซน์",       labelJa: "デザイン" },
+  ui:       { emoji: "🎨", color: "#a31a16", labelEn: "Design",   labelTh: "ดีไซน์",       labelJa: "デザイン" },
   perf:     { emoji: "⚡", color: "#f59e0b", labelEn: "Speed",    labelTh: "ความเร็ว",     labelJa: "速度"    },
   security: { emoji: "🔒", color: "#10b981", labelEn: "Security", labelTh: "ปลอดภัย",      labelJa: "セキュリティ" },
   chore:    { emoji: "🔧", color: "#94a3b8", labelEn: "Chore",    labelTh: "ทั่วไป",       labelJa: "雑務"    },
@@ -32,8 +35,18 @@ export default function Changelog({ lang = "en", onClose }) {
   const [fromCache, setFromCache] = useState(false);
   const [error, setError]       = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [expanded, setExpanded] = useState({}); // per-version open/closed
 
   const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
+  const TYPE_LABEL = {
+    feature: t("New stuff", "ของใหม่", "新機能"),
+    ui:      t("Looks better", "หน้าตาสวยขึ้น", "デザイン"),
+    perf:    t("Faster", "ลื่นขึ้น", "速度"),
+    fix:     t("Fixed", "ซ่อมจุดที่พัง", "修正"),
+    security:t("Safer", "ปลอดภัยขึ้น", "セキュリティ"),
+    chore:   t("Behind the scenes", "เบื้องหลัง", "その他"),
+    other:   t("Other", "อื่นๆ", "その他"),
+  };
 
   useEffect(() => {
     fetchChangelog()
@@ -58,8 +71,7 @@ export default function Changelog({ lang = "en", onClose }) {
     setRefreshing(false);
   };
 
-  const grouped = groupByDate(commits);
-  const stats   = getCommitStats(commits);
+  const grouped = groupByVersion(commits);
 
   // Format date — relative for recent
   const formatDate = (dateStr) => {
@@ -85,11 +97,6 @@ export default function Changelog({ lang = "en", onClose }) {
     } catch { return ""; }
   };
 
-  // Top-level stats (only types that have items)
-  const statBadges = ["feature", "fix", "ui", "perf", "security"]
-    .filter(type => stats[type] > 0)
-    .map(type => ({ type, count: stats[type], meta: TYPE_META[type] }));
-
   return (
     <div className="cl-overlay" onClick={onClose}>
       <div className="cl-modal" onClick={(e) => e.stopPropagation()}>
@@ -101,37 +108,7 @@ export default function Changelog({ lang = "en", onClose }) {
 
           <div className="cl-version-row">
             <div className="cl-version-num">v{version}</div>
-            {fromCache && (
-              <div className="cl-cache-badge" title={t("Cached", "แคชไว้", "キャッシュ")}>
-                📦 {t("cached", "แคช", "キャッシュ")}
-              </div>
-            )}
-            <button
-              className="cl-refresh"
-              onClick={handleRefresh}
-              disabled={refreshing || loading}
-              title={t("Refresh", "รีเฟรช", "更新")}
-            >
-              <span style={{ animation: refreshing ? "cl-spin 0.8s linear infinite" : "none", display: "inline-block" }}>
-                ↻
-              </span>
-            </button>
           </div>
-
-          {/* Stats summary */}
-          {statBadges.length > 0 && (
-            <div className="cl-stats">
-              {statBadges.map(({ type, count, meta }) => (
-                <span key={type} className="cl-stat" style={{ "--c": meta.color }}>
-                  <span className="cl-stat-emoji">{meta.emoji}</span>
-                  <span className="cl-stat-count">{count}</span>
-                  <span className="cl-stat-label">
-                    {t(meta.labelEn, meta.labelTh, meta.labelJa)}
-                  </span>
-                </span>
-              ))}
-            </div>
-          )}
         </header>
 
         {/* ─── CONTENT ─── */}
@@ -155,47 +132,43 @@ export default function Changelog({ lang = "en", onClose }) {
             </div>
           )}
 
-          {/* Timeline view */}
-          {grouped.map(({ date, items }) => (
-            <section key={date} className="cl-day">
-              <div className="cl-day-label">
-                <span>{formatDate(date)}</span>
-                <span className="cl-day-dot">·</span>
-                <span className="cl-day-count">
-                  {items.length} {items.length === 1
-                    ? t("update", "อัปเดต", "更新")
-                    : t("updates", "อัปเดต", "更新")}
-                </span>
-              </div>
+          {/* Version sections — newest open, older collapsed */}
+          {grouped.map((grp, gi) => {
+            const isOpen = grp.version in expanded ? expanded[grp.version] : gi === 0;
+            const toggle = () => setExpanded(e => ({
+              ...e,
+              [grp.version]: !(grp.version in e ? e[grp.version] : gi === 0),
+            }));
+            const cats = CAT_ORDER
+              .map(tp => ({ tp, items: grp.items.filter(c => c.type === tp) }))
+              .filter(g => g.items.length);
+            const summary = VERSION_SUMMARY[grp.version];
+            return (
+              <section key={grp.version} className="cl-day">
+                <button className="cl-ver-head" onClick={toggle} aria-expanded={isOpen}>
+                  <span className="cl-ver-tag">v{grp.version}</span>
+                  <span className="cl-day-count">{formatDate(grp.date)}</span>
+                  <span className={`cl-ver-chevron${isOpen ? " open" : ""}`} aria-hidden>⌄</span>
+                </button>
 
-              <div className="cl-entries">
-                {items.map((c) => {
-                  const meta = TYPE_META[c.type] || TYPE_META.other;
-                  return (
-                    <div
-                      key={c.sha}
-                      className="cl-entry"
-                      style={{ "--c": meta.color }}
-                    >
-                      <div className="cl-entry-icon">
-                        <span>{meta.emoji}</span>
+                {isOpen && (
+                  <div className="cl-ver-body">
+                    {summary && <p className="cl-summary">{summary}</p>}
+                    {cats.map(({ tp, items }) => (
+                      <div key={tp} className="cl-cat">
+                        <div className="cl-cat-title">{TYPE_LABEL[tp] || tp}</div>
+                        <ul className="cl-items">
+                          {items.map(c => (
+                            <li key={c.sha} className="cl-item">{c.message}</li>
+                          ))}
+                        </ul>
                       </div>
-                      <div className="cl-entry-body">
-                        <div className="cl-entry-message">{c.message}</div>
-                        <div className="cl-entry-meta">
-                          <span className="cl-entry-type">
-                            {t(meta.labelEn, meta.labelTh, meta.labelJa)}
-                          </span>
-                          <span className="cl-entry-dot">·</span>
-                          <span className="cl-entry-time">{formatTime(c.time)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       </div>
 
@@ -225,8 +198,8 @@ export default function Changelog({ lang = "en", onClose }) {
         }
         :root[data-theme="dark"] .cl-modal,
         [data-theme="dark"] .cl-modal {
-          background: #0f172a;
-          color: #f1f5f9;
+          background: #151414;
+          color: #f1efe9;
         }
 
         /* ─── HEADER ─── */
@@ -238,7 +211,7 @@ export default function Changelog({ lang = "en", onClose }) {
         }
         :root[data-theme="dark"] .cl-header,
         [data-theme="dark"] .cl-header {
-          background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+          background: linear-gradient(160deg, #1f1b1c 0%, #151111 100%);
           border-bottom-color: rgba(148, 163, 184, 0.1);
         }
 
@@ -279,7 +252,7 @@ export default function Changelog({ lang = "en", onClose }) {
           font-size: 38px;
           font-weight: 950;
           letter-spacing: -0.04em;
-          background: linear-gradient(135deg, #7c3aed, #a855f7);
+          background: linear-gradient(135deg, #900603, #b5302d);
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -306,9 +279,9 @@ export default function Changelog({ lang = "en", onClose }) {
           transition: all 0.2s ease;
         }
         .cl-refresh:hover:not(:disabled) {
-          background: rgba(124, 58, 237, 0.1);
-          border-color: #7c3aed;
-          color: #7c3aed;
+          background: rgba(144, 6, 3, 0.1);
+          border-color: #900603;
+          color: #900603;
         }
         .cl-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -352,8 +325,8 @@ export default function Changelog({ lang = "en", onClose }) {
         }
         .cl-spinner {
           width: 28px; height: 28px;
-          border: 3px solid rgba(124, 58, 237, 0.2);
-          border-top-color: #7c3aed;
+          border: 3px solid rgba(144, 6, 3, 0.2);
+          border-top-color: #900603;
           border-radius: 50%;
           margin: 0 auto 14px;
           animation: cl-spin 0.8s linear infinite;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Music2, X, Play, Pause, SkipForward, SkipBack, Volume1, Volume2, VolumeX, AlertTriangle } from "lucide-react";
 
 // ─── Calm Town/Route Music from archive.org ──────────────────
 // Pokemon Showdown's battle music moved entirely to CatchBattleMusic.
@@ -325,24 +326,26 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
             onClick={() => setExpanded(true)}
             title={lang === "th" ? "เปิดเครื่องเล่นเพลง" : "Open music player"}
             style={{
-              background: "linear-gradient(135deg, #06b6d4 0%, #2563eb 100%)",
-              color: "white",
-              border: "none",
-              boxShadow: "0 6px 22px rgba(37, 99, 235, 0.4), 0 0 0 1px rgba(255,255,255,0.15)",
-              backdropFilter: "blur(8px)",
+              background: "var(--glass-bg-strong, var(--bg-card))",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border)",
+              boxShadow: "var(--shadow-md)",
+              backdropFilter: "blur(10px)",
             }}
           >
-            <span className="music-toggle-icon">🎵</span>
+            <span className="music-toggle-icon" style={{ color: "var(--blue)", display: "inline-flex" }}>
+              <Music2 size={17} strokeWidth={2.2} />
+            </span>
             <span className="music-toggle-region">
               {currentGen ? `Gen ${currentGen}` : regionLabel}
             </span>
-            {playing && <span className="music-toggle-playing">♪</span>}
+            {playing && <span className="music-toggle-playing" />}
           </button>
         ) : (
           <div className="music-player-panel">
             <div className="music-player-header">
-              <span className="music-player-title">
-                🎵 BGM
+              <span className="music-player-title" style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <Music2 size={16} strokeWidth={2.2} style={{ color: "var(--blue)" }} /> BGM
                 <span className="music-player-region-badge">
                   {currentGen ? `Gen ${currentGen}` : regionLabel}
                 </span>
@@ -352,17 +355,23 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
                 onClick={() => setExpanded(false)}
                 title="Minimize"
               >
-                ✕
+                <X size={15} strokeWidth={2.4} />
               </button>
             </div>
 
             <div className="music-player-now">
               {loadError ? (
-                <span className="music-player-error">
-                  ⚠️ {lang === "th" ? "โหลดไม่ได้ ข้าม..." : "Load failed · skipping..."}
+                <span className="music-player-error" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <AlertTriangle size={13} strokeWidth={2.2} />
+                  {lang === "th" ? "โหลดไม่ได้ ข้าม..." : "Load failed · skipping..."}
                 </span>
               ) : currentTrack ? (
-                <span className="music-player-track">{currentTrack.name}</span>
+                <span className="music-player-track">
+                  <span className={`music-eq${playing ? " playing" : ""}`} aria-hidden>
+                    <i /><i /><i /><i />
+                  </span>
+                  <span className="music-track-name">{currentTrack.name}</span>
+                </span>
               ) : (
                 <span className="music-player-loading">
                   {lang === "th" ? "กำลังโหลด..." : "Loading..."}
@@ -372,24 +381,24 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
 
             <div className="music-player-controls">
               <button onClick={skipTrack} title="Previous" className="music-ctrl-btn">
-                ⏮
+                <SkipBack size={16} strokeWidth={2.2} />
               </button>
               <button
                 onClick={togglePlay}
                 title={playing ? "Pause" : "Play"}
                 className="music-ctrl-btn music-ctrl-play"
               >
-                {playing ? "⏸" : "▶"}
+                {playing ? <Pause size={18} strokeWidth={2.2} fill="currentColor" /> : <Play size={18} strokeWidth={2.2} fill="currentColor" />}
               </button>
               <button onClick={skipTrack} title="Next" className="music-ctrl-btn">
-                ⏭
+                <SkipForward size={16} strokeWidth={2.2} />
               </button>
               <button
                 onClick={() => setMuted(m => !m)}
                 title={muted ? "Unmute" : "Mute"}
                 className="music-ctrl-btn music-ctrl-mute"
               >
-                {muted ? "🔇" : volume > 0.5 ? "🔊" : volume > 0 ? "🔉" : "🔈"}
+                {muted ? <VolumeX size={16} strokeWidth={2.2} /> : volume > 0.5 ? <Volume2 size={16} strokeWidth={2.2} /> : <Volume1 size={16} strokeWidth={2.2} />}
               </button>
             </div>
 

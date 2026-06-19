@@ -25,6 +25,7 @@ export default function Catch3DPokemon({
   pokemonName,
   phase = "idle",
   isShiny = false,
+  sizeScale = 1,    // scales the model by the Pokémon's real size
   variant = "main", // "main" = catch arena, "escape" = escape phase
 }) {
   const containerRef = useRef(null);
@@ -110,39 +111,50 @@ export default function Catch3DPokemon({
       ? "catch-pokemon-escape-inline catch-3d-wrap"
       : `catch-pokemon-inline catch-3d-wrap phase-${phase}`;
 
+  // 2D fallback art — use the shiny artwork when showing a shiny encounter
+  const fallbackArt = isShiny
+    ? (pokemon?.sprites?.other?.["official-artwork"]?.front_shiny
+        ?? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemon.id}.png`)
+    : getArt(pokemon);
+
   return (
     <div className={wrapperClass}>
-      {/* Loading state: show ghost/silhouette while GLB loads */}
-      {status === "loading" && (
-        <img
-          src={getArt(pokemon)}
-          alt={pokemonName}
-          className="catch-3d-fallback catch-3d-loading"
-          draggable={false}
-        />
-      )}
+      {/* Size layer — scales by the Pokémon's real size, grounded at the feet */}
+      <div className="catch-3d-scale" style={{ transform: `scale(${sizeScale})`, transformOrigin: "center bottom" }}>
+        {/* Loading state: show ghost/silhouette while GLB loads */}
+        {status === "loading" && (
+          <img
+            src={fallbackArt}
+            alt={pokemonName}
+            className="catch-3d-fallback catch-3d-loading"
+            draggable={false}
+            onError={(e) => { if (isShiny) e.currentTarget.src = getArt(pokemon); }}
+          />
+        )}
 
-      {/* Error: fall back to 2D official artwork permanently */}
-      {status === "error" && (
-        <img
-          src={getArt(pokemon)}
-          alt={pokemonName}
-          className="catch-3d-fallback"
-          draggable={false}
-        />
-      )}
+        {/* Error: fall back to 2D official artwork permanently */}
+        {status === "error" && (
+          <img
+            src={fallbackArt}
+            alt={pokemonName}
+            className="catch-3d-fallback"
+            draggable={false}
+            onError={(e) => { if (isShiny) e.currentTarget.src = getArt(pokemon); }}
+          />
+        )}
 
-      {/* 3D model container */}
-      <div
-        ref={containerRef}
-        className="catch-3d-container"
-        style={{
-          width: "100%",
-          height: "100%",
-          opacity: status === "loaded" ? 1 : 0,
-          transition: "opacity 0.4s ease",
-        }}
-      />
+        {/* 3D model container */}
+        <div
+          ref={containerRef}
+          className="catch-3d-container"
+          style={{
+            width: "100%",
+            height: "100%",
+            opacity: status === "loaded" ? 1 : 0,
+            transition: "opacity 0.4s ease",
+          }}
+        />
+      </div>
     </div>
   );
 }

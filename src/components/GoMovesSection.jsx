@@ -137,7 +137,7 @@ export default function GoMovesSection({ pokemon, lang }) {
           </div>
           <div className="go-move-cell-name">{moveset.pvp.name}</div>
           <div className="go-move-cell-desc">{labels.pvpDesc}</div>
-          <div className="go-move-cell-badge" style={{ background: "#a855f7" }}>
+          <div className="go-move-cell-badge" style={{ background: "#b5302d" }}>
             ⚔️ Great / Ultra / Master League
           </div>
         </div>

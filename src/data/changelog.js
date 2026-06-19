@@ -1,188 +1,74 @@
 // ═══════════════════════════════════════════════════════════════════════
-// changelog.js — Real-time changelog from GitHub Commits API
+// changelog.js — Hand-written release notes (no GitHub fetch)
 // ───────────────────────────────────────────────────────────────────────
-// Auto-computes version using semantic versioning:
-//   feat:   → minor bump (resets patch)   1.0.0 → 1.1.0
-//   fix/ui/perf/security → patch bump      1.0.0 → 1.0.1
-//   chore/other → no bump
-//
-// Display only — no links to GitHub
-// Cache 30 min to respect API rate limit (60 req/hr)
+// Edit CURRENT_VERSION + ENTRIES below before each deploy.
+// Same public API as before, so the Changelog UI keeps working unchanged.
 // ═══════════════════════════════════════════════════════════════════════
 
-const GITHUB_REPO = "TitleOwl/HexaDex";
-const SINCE_DATE  = "2026-06-04T00:00:00Z"; // baseline launch date
-const BASELINE_VERSION = { major: 1, minor: 0, patch: 0 };
+export const CURRENT_VERSION = "2.0.0";
+const RELEASE_DATE = "2026-06-19";
 
-// ─── Conventional commit type detection ──────────────────────────────
-function parseCommitType(message) {
-  const m = message.toLowerCase().trim();
+// type: feature | fix | ui | perf | security | chore | other
+// (newest first — group by `date` for display)
+// One-line highlight per version (shown at the top of each section)
+export const VERSION_SUMMARY = {
+  "2.0.0": "อัปเดตใหญ่รอบนี้ แต่งหน้าตาใหม่หมด ใส่เอฟเฟกต์ธาตุในหน้า 3D แล้วก็จูนให้ลื่นขึ้นเยอะ",
+  "1.0.0": "เวอร์ชันแรกของ HexaDex เปิดให้ใช้กันแล้ว",
+};
 
-  // Standard conventional commit prefixes
-  if (m.match(/^(feat|feature|add|new)[:\s(]/)) return "feature";
-  if (m.match(/^(fix|bug|hotfix)[:\s(]/))        return "fix";
-  if (m.match(/^(style|ui|css|design)[:\s(]/))   return "ui";
-  if (m.match(/^(perf|optimize|speed)[:\s(]/))   return "perf";
-  if (m.match(/^(security|sec|csp)[:\s(]/))      return "security";
-  if (m.match(/^(chore|docs|refactor|build|ci|test)[:\s(]/)) return "chore";
+const ENTRIES = [
+  // ─── v2.0.0 — 2026-06-19 ───────────────────────────────────────────
+  { version: "2.0.0", type: "feature", date: "2026-06-19", message: "ใส่เอฟเฟกต์ฉากหลังตามธาตุในหน้า 3D ครบ 18 ธาตุ ไฟก็มีไฟ น้ำก็มีฟอง" },
+  { version: "2.0.0", type: "feature", date: "2026-06-19", message: "น้อง Buddy ตามมาเดินเล่นในหน้าจับโปเกมอนด้วย แถมกระโดดดีใจตอนจับได้" },
+  { version: "2.0.0", type: "feature", date: "2026-06-19", message: "เพิ่มโหมดประหยัด ถ้าเครื่องอืดจะเด้งมาถามให้เปิดเองเลย" },
+  { version: "2.0.0", type: "ui",      date: "2026-06-19", message: "ยกเครื่องหน้าตาทั้งแอปให้ดูคลีนๆ สไตล์ iOS" },
+  { version: "2.0.0", type: "ui",      date: "2026-06-19", message: "แต่งหน้า Daily Pokémon ใหม่ มีแสงเรืองๆ เปลวไฟขยับได้ แล้วก็นับวันต่อเนื่อง" },
+  { version: "2.0.0", type: "ui",      date: "2026-06-19", message: "จัดหน้าตั้งค่าใหม่ให้ดูง่ายขึ้น" },
+  { version: "2.0.0", type: "ui",      date: "2026-06-19", message: "ย้ายปุ่มเด้งขึ้นบนมาไว้ตรงกลาง เปลี่ยนเป็นสีแดงให้เห็นชัดๆ" },
+  { version: "2.0.0", type: "perf",    date: "2026-06-19", message: "จูนให้เลื่อนลื่นขึ้น ไม่ค่อยกระตุกแล้ว" },
+  { version: "2.0.0", type: "fix",     date: "2026-06-19", message: "แก้สีแดงในโหมดมืดให้เหมือนกับโหมดสว่าง" },
+  { version: "2.0.0", type: "chore",   date: "2026-06-19", message: "เก็บกวาดโค้ดข้างใน แล้วก็มาเขียนอัปเดตเองแบบนี้แหละ" },
 
-  // Smart keyword fallback
-  if (m.match(/(security|csp|api[\s-]?key|auth|secure|hack)/)) return "security";
-  if (m.match(/(responsive|mobile|design|theme|color|layout|css)/)) return "ui";
-  if (m.match(/(speed|optimize|cache|perf|fast)/)) return "perf";
-  if (m.match(/^(fix|bug|broken|error|issue)/))    return "fix";
-  if (m.match(/^(add|new|implement)/))              return "feature";
+  // ─── v1.0.0 — 2026-06-04 ───────────────────────────────────────────
+  { version: "1.0.0", type: "feature", date: "2026-06-04", message: "เปิดตัว HexaDex รวม Pokédex เครื่องมือสาย GO เกม แล้วก็ระบบเลี้ยงโปเกมอนไว้ครบ" },
+];
 
-  return "other";
+// Decorate entries with the fields the UI expects (sha key, time, author).
+const COMMITS = ENTRIES.map((e, i) => ({
+  sha:     `rel-${String(ENTRIES.length - i).padStart(3, "0")}`,
+  version: e.version,
+  type:    e.type,
+  message: e.message,
+  date:    e.date,
+  time:    `${e.date}T${String(9 + (i % 8)).padStart(2, "0")}:00:00Z`,
+  author:  "TitleOwl",
+}));
+
+// ─── Synchronous getters ─────────────────────────────────────────────
+export function getCurrentVersion() { return CURRENT_VERSION; }
+export function getLatestCommitDate() { return RELEASE_DATE; }
+
+// ─── Main fetch (async to match the previous API; just returns the data) ──
+export async function fetchChangelog() {
+  return {
+    commits: COMMITS,
+    version: CURRENT_VERSION,
+    date: RELEASE_DATE,
+    fromCache: true,
+    error: null,
+  };
 }
 
-// ─── Clean up commit message ─────────────────────────────────────────
-function cleanMessage(msg) {
-  return msg
-    .replace(/^(feat|fix|style|ui|perf|security|chore|docs|refactor|build|ci|test|sec)(\([^)]+\))?[:\s]+/i, '')
-    .split('\n')[0]
-    .trim()
-    .replace(/^./, c => c.toUpperCase());
-}
-
-// ─── Semantic version computation ────────────────────────────────────
-// Walk commits oldest → newest, applying bumps
-function computeVersion(commits) {
-  let { major, minor, patch } = BASELINE_VERSION;
-
-  // Reverse to chronological order (oldest first)
-  const ordered = [...commits].reverse();
-
-  for (const c of ordered) {
-    switch (c.type) {
-      case "feature":
-        minor++;
-        patch = 0;  // reset patch on minor bump (semver)
-        break;
-      case "fix":
-      case "security":
-      case "ui":
-      case "perf":
-        patch++;
-        break;
-      // chore / other don't bump version
-    }
-  }
-
-  return `${major}.${minor}.${patch}`;
-}
-
-// ─── Cache layer ─────────────────────────────────────────────────────
-const CACHE_KEY = "pkdx_changelog_cache_v2";
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-
-function getCached() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch { return null; }
-}
-
-function setCached(payload) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      timestamp: Date.now(),
-      ...payload,
-    }));
-  } catch {}
-}
-
-// ─── Synchronous getters (read from cache) ───────────────────────────
-export function getCurrentVersion() {
-  try {
-    const cached = getCached();
-    return cached?.version || "1.0.0";
-  } catch {
-    return "1.0.0";
-  }
-}
-
-export function getLatestCommitDate() {
-  try {
-    const cached = getCached();
-    return cached?.date || "2026-06-04";
-  } catch {
-    return "2026-06-04";
-  }
-}
-
-// ─── Main async fetch ────────────────────────────────────────────────
-export async function fetchChangelog(forceRefresh = false) {
-  // 1. Try cache first
-  if (!forceRefresh) {
-    const cached = getCached();
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return {
-        commits: cached.commits || [],
-        version: cached.version || "1.0.0",
-        date:    cached.date || "2026-06-04",
-        fromCache: true,
-        error: null,
-      };
-    }
-  }
-
-  // 2. Fetch from GitHub
-  try {
-    const url = `https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=100&since=${SINCE_DATE}`;
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/vnd.github+json' },
-    });
-
-    if (!res.ok) {
-      const cached = getCached();
-      if (cached?.commits) {
-        return {
-          commits: cached.commits,
-          version: cached.version || "1.0.0",
-          date:    cached.date || "2026-06-04",
-          fromCache: true,
-          error: `GitHub API ${res.status}`,
-        };
-      }
-      throw new Error(`GitHub API returned ${res.status}`);
-    }
-
-    const raw = await res.json();
-
-    const commits = raw
-      .filter(c => !c.commit.message.toLowerCase().startsWith('merge '))
-      .map(c => ({
-        sha:     c.sha.slice(0, 7),
-        type:    parseCommitType(c.commit.message),
-        message: cleanMessage(c.commit.message),
-        date:    c.commit.author.date.split('T')[0],
-        time:    c.commit.author.date,
-        author:  c.commit.author?.name || "unknown",
-      }));
-
-    const version = computeVersion(commits);
-    const date    = commits[0]?.date || "2026-06-04";
-
-    setCached({ commits, version, date });
-
-    return { commits, version, date, fromCache: false, error: null };
-
-  } catch (e) {
-    console.error('Failed to fetch changelog:', e);
-    const cached = getCached();
-    if (cached?.commits) {
-      return {
-        commits: cached.commits,
-        version: cached.version || "1.0.0",
-        date:    cached.date || "2026-06-04",
-        fromCache: true,
-        error: e.message,
-      };
-    }
-    return { commits: [], version: "1.0.0", date: "2026-06-04", fromCache: false, error: e.message };
-  }
+// ─── Group commits by version (newest first, preserving order) ───────
+export function groupByVersion(commits) {
+  const order = [];
+  const map = {};
+  commits.forEach(c => {
+    const v = c.version || "1.0.0";
+    if (!map[v]) { map[v] = { version: v, date: c.date, items: [] }; order.push(v); }
+    map[v].items.push(c);
+  });
+  return order.map(v => map[v]);
 }
 
 // ─── Group commits by date ───────────────────────────────────────────
@@ -197,38 +83,24 @@ export function groupByDate(commits) {
     .map(([date, items]) => ({ date, items }));
 }
 
-// ─── Count commits by type (for stats) ───────────────────────────────
+// ─── Count entries by type (for stats) ───────────────────────────────
 export function getCommitStats(commits) {
   const stats = { feature: 0, fix: 0, ui: 0, perf: 0, security: 0, chore: 0, other: 0 };
-  commits.forEach(c => {
-    if (stats[c.type] !== undefined) stats[c.type]++;
-  });
+  commits.forEach(c => { if (stats[c.type] !== undefined) stats[c.type]++; });
   return stats;
 }
 
-// ─── Unseen detection ────────────────────────────────────────────────
+// ─── Unseen detection (by version) ───────────────────────────────────
+const SEEN_KEY = "pkdx_last_seen_version";
+
 export function hasUnseenVersion() {
-  try {
-    const lastSeen = localStorage.getItem("pkdx_last_seen_commit");
-    const cached   = getCached();
-    if (!cached?.commits?.length) return false;
-    const latestSha = cached.commits[0].sha;
-    return lastSeen !== latestSha;
-  } catch {
-    return false;
-  }
+  try { return localStorage.getItem(SEEN_KEY) !== CURRENT_VERSION; }
+  catch { return false; }
 }
 
 export function markVersionSeen() {
-  try {
-    const cached = getCached();
-    if (cached?.commits?.length) {
-      localStorage.setItem("pkdx_last_seen_commit", cached.commits[0].sha);
-    }
-  } catch {}
+  try { localStorage.setItem(SEEN_KEY, CURRENT_VERSION); } catch {}
 }
 
-// ─── Pre-warm on app start ───────────────────────────────────────────
-export function prewarmChangelog() {
-  fetchChangelog().catch(() => {});
-}
+// No-op kept for compatibility (nothing to pre-warm without a network call).
+export function prewarmChangelog() {}

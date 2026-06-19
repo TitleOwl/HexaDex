@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { GLB_URL } from "../data.js";
 import { useModelViewerScript } from "../utils.js";
-import TypeParticles from "./TypeParticles.jsx";
 
 export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny, lang, types }) {
   const containerRef  = useRef(null);
@@ -114,7 +113,6 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
 
   return (
     <div className="viewer-3d-wrap" style={{ position: "relative" }}>
-      <TypeParticles types={types} />
       {status === "loading" && (
         <div className="viewer-3d-overlay">
           <div className="pokeball-spin" />

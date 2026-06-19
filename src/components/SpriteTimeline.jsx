@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Images, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 
 function getSpriteUrls(id) {
   const base = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions";
@@ -41,7 +42,9 @@ export default function SpriteTimeline({ pokemonId, lang }) {
 
   return (
     <div className="sprite-timeline-section">
-      <div className="modal-section-title">🎨 {title}</div>
+      <div className="modal-section-title">
+        <Images size={14} strokeWidth={2.4} style={{ verticalAlign: "-2px", marginRight: 7 }} />{title}
+      </div>
 
       <div className="sprite-mini-preview">
         <div className="sprite-mini-frame">
@@ -59,19 +62,23 @@ export default function SpriteTimeline({ pokemonId, lang }) {
           <div className="sprite-mini-year">{sprites[currentIdx]?.era}</div>
         </div>
         <div className="sprite-mini-ctrls">
-          <button onClick={() => setCurrentIdx(i => (i - 1 + sprites.length) % sprites.length)}>◀</button>
-          <button className="sprite-ctrl-play"
-            onClick={() => setPlaying(p => !p)}>
-            {playing ? "⏸" : "▶"}
+          <button onClick={() => setCurrentIdx(i => (i - 1 + sprites.length) % sprites.length)} aria-label="Previous">
+            <ChevronLeft size={16} strokeWidth={2.4} />
           </button>
-          <button onClick={() => setCurrentIdx(i => (i + 1) % sprites.length)}>▶</button>
+          <button className="sprite-ctrl-play" onClick={() => setPlaying(p => !p)}
+            aria-label={playing ? "Pause" : "Play"}>
+            {playing ? <Pause size={16} strokeWidth={2.2} fill="currentColor" /> : <Play size={16} strokeWidth={2.2} fill="currentColor" />}
+          </button>
+          <button onClick={() => setCurrentIdx(i => (i + 1) % sprites.length)} aria-label="Next">
+            <ChevronRight size={16} strokeWidth={2.4} />
+          </button>
         </div>
       </div>
 
       <div className="sprite-timeline-row">
         {sprites.map((sp, i) => (
           <button key={i}
-            className={`sprite-cell${currentIdx === i ? " active" : ""}${loadedMap[i] === false ? " missing" : ""}`}
+            className={`sprite-thumb${currentIdx === i ? " active" : ""}${loadedMap[i] === false ? " missing" : ""}`}
             onClick={() => { setCurrentIdx(i); setPlaying(false); }}
             title={`${sp.game} (${sp.era})`}>
             <img src={sp.url} alt={sp.game}

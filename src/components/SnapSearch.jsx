@@ -1235,7 +1235,7 @@ function SnapStyles() {
       .snap-v4-picker-header { text-align: center; margin-bottom: 28px; }
       .snap-v4-picker-icon {
         font-size: 52px; margin-bottom: 8px;
-        filter: drop-shadow(0 6px 14px rgba(168, 85, 247, 0.4));
+        filter: drop-shadow(0 6px 14px rgba(181, 48, 45, 0.4));
         animation: snapv4-icon-bob 3s ease-in-out infinite;
       }
       @keyframes snapv4-icon-bob {
@@ -1286,7 +1286,7 @@ function SnapStyles() {
         --card-grad: linear-gradient(135deg, rgba(20, 184, 166, 0.25), rgba(6, 182, 212, 0.25));
       }
       .snap-v4-card-upload {
-        --card-grad: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(236, 72, 153, 0.25));
+        --card-grad: linear-gradient(135deg, rgba(181, 48, 45, 0.25), rgba(236, 72, 153, 0.25));
       }
       .snap-v4-card-sound {
         --card-grad: linear-gradient(135deg, rgba(251, 191, 36, 0.25), rgba(249, 115, 22, 0.25));
@@ -1324,7 +1324,7 @@ function SnapStyles() {
         background: radial-gradient(circle, rgba(20, 184, 166, 0.45), transparent 70%);
       }
       .snap-v4-card-upload .snap-v4-card-pulse {
-        background: radial-gradient(circle, rgba(168, 85, 247, 0.45), transparent 70%);
+        background: radial-gradient(circle, rgba(181, 48, 45, 0.45), transparent 70%);
       }
       .snap-v4-card-sound .snap-v4-card-pulse {
         background: radial-gradient(circle, rgba(251, 191, 36, 0.45), transparent 70%);
@@ -1346,9 +1346,9 @@ function SnapStyles() {
         border-color: rgba(20, 184, 166, 0.5);
       }
       .snap-v4-card-upload .snap-v4-card-badge {
-        background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(236, 72, 153, 0.4));
+        background: linear-gradient(135deg, rgba(181, 48, 45, 0.4), rgba(236, 72, 153, 0.4));
         color: #f0abfc;
-        border-color: rgba(168, 85, 247, 0.5);
+        border-color: rgba(181, 48, 45, 0.5);
       }
       .snap-v4-card-sound .snap-v4-card-badge {
         background: linear-gradient(135deg, rgba(251, 191, 36, 0.4), rgba(249, 115, 22, 0.4));
@@ -1711,8 +1711,8 @@ function SnapStyles() {
       }
 
       .snap-v4-drop {
-        border: 3px dashed rgba(168, 85, 247, 0.45);
-        background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(236, 72, 153, 0.04));
+        border: 3px dashed rgba(181, 48, 45, 0.45);
+        background: linear-gradient(135deg, rgba(181, 48, 45, 0.08), rgba(236, 72, 153, 0.04));
         border-radius: 22px;
         padding: 50px 24px;
         text-align: center;
@@ -1724,12 +1724,12 @@ function SnapStyles() {
       .snap-v4-drop::before {
         content: "";
         position: absolute; inset: 0;
-        background: radial-gradient(circle at center, rgba(168, 85, 247, 0.15), transparent 65%);
+        background: radial-gradient(circle at center, rgba(181, 48, 45, 0.15), transparent 65%);
         opacity: 0;
         transition: opacity 0.3s;
       }
       .snap-v4-drop:hover, .snap-v4-drop-over {
-        border-color: rgba(168, 85, 247, 0.9);
+        border-color: rgba(181, 48, 45, 0.9);
         border-style: solid;
         transform: translateY(-2px);
       }
@@ -1737,7 +1737,7 @@ function SnapStyles() {
       .snap-v4-drop > * { position: relative; z-index: 1; }
       .snap-v4-drop-icon {
         font-size: 64px; margin-bottom: 14px;
-        filter: drop-shadow(0 8px 18px rgba(168, 85, 247, 0.4));
+        filter: drop-shadow(0 8px 18px rgba(181, 48, 45, 0.4));
         animation: snapv4-icon-bob 3s ease-in-out infinite;
       }
       .snap-v4-drop-title { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
@@ -1784,13 +1784,13 @@ function SnapStyles() {
         letter-spacing: 0.3px;
       }
       .snap-v4-btn-primary {
-        background: linear-gradient(135deg, #a855f7, #ec4899);
+        background: linear-gradient(135deg, #b5302d, #ec4899);
         color: white;
-        box-shadow: 0 6px 18px rgba(168, 85, 247, 0.4);
+        box-shadow: 0 6px 18px rgba(181, 48, 45, 0.4);
       }
       .snap-v4-btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 26px rgba(168, 85, 247, 0.55);
+        box-shadow: 0 10px 26px rgba(181, 48, 45, 0.55);
       }
       .snap-v4-btn-ghost {
         background: rgba(255, 255, 255, 0.08);
@@ -1814,7 +1814,7 @@ function SnapStyles() {
       .snap-v4-ai-icon {
         font-size: 72px;
         z-index: 3;
-        filter: drop-shadow(0 6px 14px rgba(168, 85, 247, 0.6));
+        filter: drop-shadow(0 6px 14px rgba(181, 48, 45, 0.6));
         animation: snapv4-ai-think 1.8s ease-in-out infinite;
       }
       @keyframes snapv4-ai-think {
@@ -1824,7 +1824,7 @@ function SnapStyles() {
       .snap-v4-ai-pulse-1, .snap-v4-ai-pulse-2 {
         position: absolute; inset: 0;
         border-radius: 50%;
-        border: 2px solid rgba(168, 85, 247, 0.6);
+        border: 2px solid rgba(181, 48, 45, 0.6);
       }
       .snap-v4-ai-pulse-1 { animation: snapv4-pulse-ring 2s ease-out infinite; }
       .snap-v4-ai-pulse-2 { animation: snapv4-pulse-ring 2s ease-out 0.7s infinite; }
@@ -1851,7 +1851,7 @@ function SnapStyles() {
       .snap-v4-dot {
         width: 10px; height: 10px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #a855f7, #ec4899);
+        background: linear-gradient(135deg, #b5302d, #ec4899);
         animation: snapv4-dot-bounce 1.2s ease-in-out infinite;
       }
       .snap-v4-dot:nth-child(2) { animation-delay: 0.15s; }
@@ -2053,7 +2053,7 @@ function SnapStyles() {
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--c1, #a855f7) 60%, transparent));
+        filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--c1, #b5302d) 60%, transparent));
         animation: snapv4-name-reveal 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both 0.22s;
       }
       @keyframes snapv4-name-reveal {
@@ -2071,7 +2071,7 @@ function SnapStyles() {
       }
       .snap-found-bar {
         width: 4px; border-radius: 4px;
-        background: var(--c, #a855f7);
+        background: var(--c, #b5302d);
         animation: snapv4-bar-dance 0.75s ease-in-out infinite alternate;
         animation-delay: calc(var(--i) * 0.09s);
       }
@@ -2196,7 +2196,7 @@ function SnapStyles() {
         text-transform: capitalize;
         margin-bottom: 14px;
         color: #f0abfc;
-        text-shadow: 0 2px 6px rgba(168, 85, 247, 0.5);
+        text-shadow: 0 2px 6px rgba(181, 48, 45, 0.5);
       }
       .snap-v4-result-hint {
         font-size: 13px;

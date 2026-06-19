@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useModalLifecycle } from "../perfUtils.js";
 import {
   STRINGS, TYPE_NAMES_TH, TYPE_NAMES_JA, STAT_LABELS,
@@ -9,11 +9,19 @@ import {
   getCryStyle, setCryStyle,
 } from "../utils.js";
 import Pokemon3DViewer  from "./Pokemon3DViewer.jsx";
+import TypeAmbiance     from "./TypeAmbiance.jsx";
 import CatchAnimation   from "./CatchAnimation.jsx";
 import MoveLearnset     from "./MoveLearnset.jsx";
 import LocationsSection from "./LocationsSection.jsx";
 import SpriteTimeline   from "./SpriteTimeline.jsx";
 import GoMovesSection   from "./GoMovesSection.jsx";
+import {
+  List, Sparkles, Layers, Volume2, Heart, X,
+  BarChart3, Shield, Zap, Sprout, Swords, Smartphone, Images, Egg, MapPin,
+} from "lucide-react";
+
+// Icon per detail tab (order matches STRINGS.tabs)
+const TAB_ICONS = [BarChart3, Shield, Zap, Sprout, Swords, Smartphone, Images, Egg, MapPin];
 
 // ─── Stat Radar Chart ─────────────────────────────────────────────────────────
 // ─── Horizontal Stat Bars — modern stat visualization ──────
@@ -30,28 +38,28 @@ function StatBars({ stats }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
       {stats.map(s => {
-        const info = STAT_INFO[s.stat.name] ?? { label: s.stat.name, color: "#94a3b8", glow: "rgba(148,163,184,0.3)" };
+        const info = STAT_INFO[s.stat.name] ?? { label: s.stat.name, color: "#9c988e", glow: "rgba(148,163,184,0.3)" };
         const pct = Math.min(100, (s.base_stat / MAX) * 100);
         return (
           <div key={s.stat.name} style={{
             display: "grid",
-            gridTemplateColumns: "52px 44px 1fr",
+            gridTemplateColumns: "56px 40px 1fr",
             alignItems: "center",
-            gap: 12,
+            gap: 14,
           }}>
             <div style={{
-              fontSize: 12,
-              fontWeight: 800,
-              color: info.color,
-              letterSpacing: 0.5,
+              fontSize: 10.5,
+              fontWeight: 600,
+              color: "var(--stat-lbl, #a89e8c)",
+              letterSpacing: 2,
               textTransform: "uppercase",
             }}>
               {info.label}
             </div>
             <div style={{
-              fontSize: 16,
-              fontWeight: 900,
-              color: "var(--stat-num, #1e293b)",
+              fontSize: 15,
+              fontWeight: 400,
+              color: "var(--stat-num, #3a352e)",
               textAlign: "right",
               fontVariantNumeric: "tabular-nums",
             }}>
@@ -59,29 +67,68 @@ function StatBars({ stats }) {
             </div>
             <div style={{
               position: "relative",
-              height: 12,
-              background: "var(--stat-track, #f1f5f9)",
+              height: 4,
+              background: "var(--stat-track, #ddd3c2)",
               borderRadius: 999,
               overflow: "hidden",
-              boxShadow: "inset 0 1px 2px rgba(0,0,0,0.06)",
             }}>
               <div style={{
                 position: "absolute",
                 left: 0, top: 0, bottom: 0,
                 width: `${pct}%`,
-                background: `linear-gradient(90deg, ${info.color}aa 0%, ${info.color} 100%)`,
+                background: "var(--stat-num, #3a352e)",
                 borderRadius: 999,
                 transition: "width 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
-                boxShadow: `0 0 10px ${info.glow}`,
               }} />
             </div>
           </div>
         );
       })}
       <style>{`
-        :root { --stat-num: #1e293b; --stat-track: #f1f5f9; }
-        [data-theme="dark"] { --stat-num: #f1f5f9; --stat-track: #334155; }
+        :root { --stat-num: #3a352e; --stat-track: #ddd3c2; --stat-lbl: #a89e8c; }
+        [data-theme="dark"] { --stat-num: #e7e1d6; --stat-track: #38332c; --stat-lbl: #8a8170; }
       `}</style>
+    </div>
+  );
+}
+
+// ─── Tab dropdown — replaces the cramped tab row (handles long TH labels) ──
+function TabDropdown({ tabs, tab, setTab, lang }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const heading = lang === "th" ? "รายละเอียด" : lang === "ja" ? "詳細" : "Detail";
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDown); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+  return (
+    <div className={`tabdd${open ? " open" : ""}`} ref={ref}>
+      <button className="tabdd-trigger" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="tabdd-current">
+          {tab >= 0 && TAB_ICONS[tab]
+            ? (() => { const I = TAB_ICONS[tab]; return <><I size={16} strokeWidth={2.2} />{tabs[tab]}</>; })()
+            : <><List size={16} strokeWidth={2.2} />{heading}</>}
+        </span>
+        <span className="tabdd-chev">▾</span>
+      </button>
+      {open && (
+        <div className="tabdd-menu">
+          {tabs.map((label, i) => {
+            const I = TAB_ICONS[i] ?? List;
+            return (
+              <button key={i} className={`tabdd-item${tab === i ? " active" : ""}`}
+                onClick={() => { setTab(i); setOpen(false); }}>
+                <span className="tabdd-item-label"><I size={15} strokeWidth={2.2} />{label}</span>
+                {tab === i && <span className="tabdd-check">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -115,14 +162,14 @@ function StatsRadar({ stats, color }) {
       <svg viewBox="0 0 220 220" className="stats-radar-svg">
         {/* Hex grid */}
         {hexLines.map((pts, i) => (
-          <polygon key={i} points={pts} fill="none" stroke="rgba(41,121,208,0.15)" strokeWidth="1" />
+          <polygon key={i} points={pts} fill="none" stroke="rgba(144,6,3,0.15)" strokeWidth="1" />
         ))}
         {/* Axes */}
         {Array.from({ length: 6 }).map((_, i) => {
           const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
           return <line key={i} x1={cx} y1={cy}
             x2={cx + Math.cos(angle) * R} y2={cy + Math.sin(angle) * R}
-            stroke="rgba(41,121,208,0.15)" strokeWidth="1" />;
+            stroke="rgba(144,6,3,0.15)" strokeWidth="1" />;
         })}
         {/* Data polygon */}
         <polygon points={polygon} fill={`${color}55`} stroke={color} strokeWidth="2.5" />
@@ -269,9 +316,9 @@ function BreedingSection({ species, pokemon, s }) {
 
 // ─── Cry Style Picker ─────────────────────────────────────────────────────────
 const CRY_STYLES = [
-  { id: "anime",   emoji: "🎌", label: "Anime"  },
-  { id: "game",    emoji: "🎮", label: "Game"   },
-  { id: "classic", emoji: "🕹️", label: "8-bit"  },
+  { id: "anime",   label: "Anime"  },
+  { id: "game",    label: "Game"   },
+  { id: "classic", label: "8-bit"  },
 ];
 
 function CryStylePicker({ lang }) {
@@ -377,7 +424,7 @@ export default function PokemonModal({
   onPlayCry, onOpenCardMode,
   isFav = false, onFav,
 }) {
-  const [tab, setTab]         = useState(0);
+  const [tab, setTab]         = useState(-1); // -1 = nothing shown until a section is picked
   const [species, setSpecies] = useState(null);
   const [evo, setEvo]         = useState(null);
   const [evoImgs, setEvoImgs] = useState({});
@@ -386,7 +433,7 @@ export default function PokemonModal({
   const [catchOpen, setCatchOpen] = useState(false);
   useModalLifecycle(onClose);
 
-  useEffect(() => { setTab(0); }, [pokemon.id]);
+  useEffect(() => { setTab(-1); }, [pokemon.id]); // start collapsed — nothing shown until "Detail" is opened
 
   useEffect(() => {
     const t = pokemon.types[0]?.type.name ?? "normal";
@@ -462,6 +509,15 @@ export default function PokemonModal({
     <div className="modal-overlay" onClick={onClose}>
       {/* ─── Modal Redesign v3 — scoped style overrides ─── */}
       <style>{`
+        /* lucide icons — align inline, centre in icon buttons */
+        .modal-overlay .modal-name svg,
+        .modal-overlay .hero-shiny-badge svg,
+        .modal-overlay .modal-name-cry svg { vertical-align: middle; }
+        .modal-overlay .modal-close,
+        .modal-overlay .hero-shiny-btn,
+        .modal-overlay .hero-card-btn,
+        .modal-overlay .modal-fav-btn { display: inline-flex; align-items: center; justify-content: center; }
+        .modal-overlay .modal-fav-icon { display: inline-flex; }
         /* Tabs — modern pill design */
         .modal-overlay .modal-tabs {
           display: flex !important;
@@ -469,14 +525,14 @@ export default function PokemonModal({
           gap: 6px;
           padding: 10px 0 14px;
           margin-bottom: 8px;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid #e5e0d5;
         }
         .modal-overlay .modal-tab {
           padding: 7px 14px !important;
           border-radius: 999px !important;
-          background: #f1f5f9 !important;
+          background: #efece4 !important;
           border: 1.5px solid transparent !important;
-          color: #475569 !important;
+          color: #62605a !important;
           font-size: 12px !important;
           font-weight: 700 !important;
           cursor: pointer;
@@ -484,13 +540,13 @@ export default function PokemonModal({
           letter-spacing: 0.2px;
         }
         .modal-overlay .modal-tab:hover {
-          background: #e2e8f0 !important;
+          background: #e5e0d5 !important;
           transform: translateY(-1px);
         }
         .modal-overlay .modal-tab.active {
-          background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%) !important;
+          background: linear-gradient(135deg, #900603 0%, #6e0402 100%) !important;
           color: white !important;
-          box-shadow: 0 4px 14px rgba(37,99,235,0.4);
+          box-shadow: 0 4px 14px rgba(144,6,3,0.4);
           border-color: transparent !important;
         }
 
@@ -498,7 +554,7 @@ export default function PokemonModal({
         .modal-overlay .modal-section-title {
           font-size: 14px !important;
           font-weight: 800 !important;
-          color: #1e293b !important;
+          color: #1f1d20 !important;
           letter-spacing: 0.6px;
           text-transform: uppercase;
           position: relative;
@@ -513,7 +569,7 @@ export default function PokemonModal({
           top: 2px;
           bottom: 2px;
           width: 4px;
-          background: linear-gradient(180deg, #06b6d4, #2563eb);
+          background: linear-gradient(180deg, #900603, #6e0402);
           border-radius: 2px;
         }
 
@@ -523,11 +579,11 @@ export default function PokemonModal({
           justify-content: space-between;
           align-items: center;
           padding: 14px 20px !important;
-          background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%) !important;
+          background: linear-gradient(135deg, #900603 0%, #6e0402 100%) !important;
           color: white !important;
           border-radius: 16px !important;
           margin-top: 14px;
-          box-shadow: 0 6px 22px rgba(37,99,235,0.4);
+          box-shadow: 0 6px 22px rgba(144,6,3,0.4);
         }
         .modal-overlay .stat-total-label {
           font-size: 14px !important;
@@ -562,10 +618,10 @@ export default function PokemonModal({
         .modal-overlay .ability-chip {
           padding: 14px 18px !important;
           background: white !important;
-          border: 2px solid #e2e8f0 !important;
+          border: 2px solid #e5e0d5 !important;
           border-radius: 14px !important;
           font-weight: 700 !important;
-          color: #1e293b !important;
+          color: #1f1d20 !important;
           text-transform: capitalize;
           box-shadow: 0 2px 8px rgba(0,0,0,0.04);
           font-size: 14px !important;
@@ -605,7 +661,7 @@ export default function PokemonModal({
         }
         .modal-overlay .evo-node {
           background: white !important;
-          border: 2px solid #e2e8f0 !important;
+          border: 2px solid #e5e0d5 !important;
           border-radius: 16px !important;
           padding: 14px !important;
           cursor: pointer;
@@ -620,11 +676,11 @@ export default function PokemonModal({
         .modal-overlay .evo-node.current {
           background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%) !important;
           border-width: 3px !important;
-          box-shadow: 0 8px 26px rgba(59,130,246,0.35) !important;
+          box-shadow: 0 8px 26px rgba(144,6,3,0.35) !important;
           transform: scale(1.05);
         }
         .modal-overlay .evo-arrow {
-          color: #94a3b8 !important;
+          color: #9c988e !important;
           font-size: 22px !important;
           font-weight: 800;
         }
@@ -639,14 +695,14 @@ export default function PokemonModal({
           flex: 1;
           padding: 12px !important;
           background: white !important;
-          border: 1.5px solid #e2e8f0 !important;
+          border: 1.5px solid #e5e0d5 !important;
           border-radius: 12px !important;
           text-align: center;
           box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         }
         .modal-overlay .info-card-label {
           font-size: 10px !important;
-          color: #64748b !important;
+          color: #7a766e !important;
           font-weight: 800 !important;
           letter-spacing: 1.2px;
           text-transform: uppercase;
@@ -654,7 +710,7 @@ export default function PokemonModal({
         .modal-overlay .info-card-value {
           font-size: 18px !important;
           font-weight: 900 !important;
-          color: #1e293b !important;
+          color: #1f1d20 !important;
           margin-top: 4px;
         }
 
@@ -663,9 +719,9 @@ export default function PokemonModal({
           background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%) !important;
           padding: 14px 18px !important;
           border-radius: 14px !important;
-          border-left: 4px solid #3b82f6 !important;
+          border-left: 4px solid #900603 !important;
           font-style: italic !important;
-          color: #475569 !important;
+          color: #62605a !important;
           font-size: 13px !important;
           margin-top: 10px;
           line-height: 1.6 !important;
@@ -680,7 +736,7 @@ export default function PokemonModal({
         }
         .modal-overlay .sprite-cell {
           background: white !important;
-          border: 2px solid #e2e8f0 !important;
+          border: 2px solid #e5e0d5 !important;
           border-radius: 14px !important;
           padding: 14px 8px 10px !important;
           text-align: center;
@@ -695,7 +751,7 @@ export default function PokemonModal({
           display: block;
           margin-top: 6px;
           font-size: 10px;
-          color: #64748b;
+          color: #7a766e;
           font-weight: 700;
           letter-spacing: 0.5px;
           text-transform: uppercase;
@@ -706,26 +762,26 @@ export default function PokemonModal({
         [data-theme="dark"] .modal-overlay .evo-node,
         [data-theme="dark"] .modal-overlay .info-card,
         [data-theme="dark"] .modal-overlay .sprite-cell {
-          background: #1e293b !important;
-          border-color: #334155 !important;
-          color: #f1f5f9 !important;
+          background: #1f1d20 !important;
+          border-color: #2c2926 !important;
+          color: #efece4 !important;
         }
         [data-theme="dark"] .modal-overlay .modal-section-title {
-          color: #f1f5f9 !important;
+          color: #efece4 !important;
         }
         [data-theme="dark"] .modal-overlay .modal-tab {
-          background: #334155 !important;
-          color: #cbd5e1 !important;
+          background: #2c2926 !important;
+          color: #d4cdbe !important;
         }
         [data-theme="dark"] .modal-overlay .info-card-value {
-          color: #f1f5f9 !important;
+          color: #efece4 !important;
         }
         [data-theme="dark"] .modal-overlay .info-card-label {
-          color: #94a3b8 !important;
+          color: #9c988e !important;
         }
         [data-theme="dark"] .modal-overlay .modal-flavor {
-          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-          color: #cbd5e1 !important;
+          background: linear-gradient(135deg, #1f1d20 0%, #1a1816 100%) !important;
+          color: #d4cdbe !important;
         }
 
         /* ─── Button + Tab polish (consistent w/ HexaDex pattern) ─── */
@@ -805,7 +861,7 @@ export default function PokemonModal({
         }
         .modal-overlay .hv-btn.active {
           background: white !important;
-          color: #1e293b !important;
+          color: #1f1d20 !important;
           box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
         }
 
@@ -814,21 +870,21 @@ export default function PokemonModal({
           display: flex !important;
           gap: 4px !important;
           padding: 4px !important;
-          background: var(--md-tabs-bg, #f1f5f9) !important;
+          background: var(--md-tabs-bg, #efece4) !important;
           border-radius: 14px !important;
           margin-bottom: 14px !important;
           overflow-x: auto !important;
           scrollbar-width: thin !important;
         }
         [data-theme="dark"] .modal-overlay .modal-tabs {
-          --md-tabs-bg: #1e293b !important;
+          --md-tabs-bg: #1f1d20 !important;
         }
         .modal-overlay .modal-tab {
           flex-shrink: 0 !important;
           padding: 8px 14px !important;
           border-radius: 11px !important;
           background: transparent !important;
-          color: var(--md-tab-fg, #64748b) !important;
+          color: var(--md-tab-fg, #7a766e) !important;
           border: none !important;
           font-size: 12px !important; font-weight: 700 !important;
           cursor: pointer !important;
@@ -836,16 +892,16 @@ export default function PokemonModal({
           white-space: nowrap !important;
         }
         [data-theme="dark"] .modal-overlay .modal-tab {
-          --md-tab-fg: #94a3b8 !important;
+          --md-tab-fg: #9c988e !important;
         }
         .modal-overlay .modal-tab:hover {
-          background: rgba(99, 102, 241, 0.08) !important;
-          color: #6366f1 !important;
+          background: color-mix(in srgb, var(--blue) 8%, transparent) !important;
+          color: var(--blue) !important;
         }
         .modal-overlay .modal-tab.active {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+          background: linear-gradient(135deg, var(--blue), var(--blue-light)) !important;
           color: white !important;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+          box-shadow: 0 4px 12px color-mix(in srgb, var(--blue) 38%, transparent) !important;
         }
 
         /* ─── Catch FAB — small Pokeball that expands on hover ─── */
@@ -861,16 +917,17 @@ export default function PokemonModal({
           height: 56px !important;
           width: 56px !important;
           border-radius: 999px !important;
-          background: linear-gradient(135deg, #06b6d4 0%, #0ea5e9 45%, #2563eb 100%) !important;
-          border: 2px solid rgba(255, 255, 255, 0.5) !important;
-          color: white !important;
+          background: rgba(18, 18, 22, 0.42) !important;
+          backdrop-filter: blur(16px) saturate(150%) !important;
+          -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+          border: 1px solid rgba(255, 255, 255, 0.22) !important;
+          color: #fff !important;
           cursor: pointer !important;
           overflow: hidden !important;
           transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
                       padding 0.35s, transform 0.2s,
-                      box-shadow 0.35s !important;
-          box-shadow: 0 8px 24px rgba(14, 165, 233, 0.5),
-                      0 0 0 1px rgba(255, 255, 255, 0.2) inset !important;
+                      box-shadow 0.35s, background 0.25s !important;
+          box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28) !important;
           z-index: 4 !important;
           white-space: nowrap !important;
         }
@@ -878,8 +935,8 @@ export default function PokemonModal({
           width: 170px !important;
           padding-right: 18px !important;
           transform: scale(1.04) !important;
-          box-shadow: 0 14px 36px rgba(14, 165, 233, 0.65),
-                      0 0 0 1px rgba(255, 255, 255, 0.3) inset !important;
+          background: rgba(30, 30, 36, 0.55) !important;
+          box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4) !important;
         }
         .modal-overlay .catch-fab-ball {
           display: inline-flex !important;
@@ -912,7 +969,7 @@ export default function PokemonModal({
           position: absolute !important;
           inset: -4px !important;
           border-radius: 999px !important;
-          background: linear-gradient(135deg, #06b6d4, #2563eb) !important;
+          background: rgba(255, 255, 255, 0.28) !important;
           opacity: 0.5 !important;
           z-index: -1 !important;
           animation: catch-fab-pulse 2.2s ease-in-out infinite !important;
@@ -949,10 +1006,12 @@ export default function PokemonModal({
 
         {/* Hero — themed background per type in 3D mode */}
         <div
-          className={`modal-hero${view3d ? ` hero-3d bg-${mainType}` : ""}`}
-          style={view3d ? {} : { background:`linear-gradient(160deg, ${color}cc, ${color}88 60%, ${color}22 100%)` }}
+          className={`modal-hero${view3d ? " hero-3d" : ""}`}
+          style={view3d
+            ? { background:`linear-gradient(180deg, ${color}59 0%, ${color}26 34%, #15121c 64%)` }
+            : { backgroundImage:`linear-gradient(180deg, ${color}c2 0%, ${color}5c 40%, ${color}24 68%, transparent 90%)` }}
         >
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}><X size={17} strokeWidth={2.4} /></button>
 
           {/* Top controls — always at edges */}
           <div className="hero-view-controls">
@@ -960,14 +1019,14 @@ export default function PokemonModal({
               className={`hero-shiny-btn${isShiny ? " active" : ""}`}
               onClick={() => setIsShiny(v => !v)}
               title={isShiny ? "Normal" : "Shiny"}
-            >✨</button>
+            ><Sparkles size={17} strokeWidth={2.2} /></button>
             {/* Card Mode button */}
             {onOpenCardMode && (
               <button
                 className="hero-card-btn"
                 onClick={() => onOpenCardMode(pokemon)}
                 title="View as Trading Card"
-              >🃏</button>
+              ><Layers size={17} strokeWidth={2.2} /></button>
             )}
             <div className="hero-view-toggle">
               <button className={`hv-btn${!view3d ? " active" : ""}`} onClick={() => setView3d(false)}>2D</button>
@@ -1008,12 +1067,14 @@ export default function PokemonModal({
           {/* 2D mode */}
           {!view3d && (
             <>
+              <div className="modal-ball-wm" style={{ color }} aria-hidden />
+              <div className="modal-accent" style={{ background: color, color: color }} aria-hidden />
               <div className="modal-genus">{genus ?? "Pokémon"} · {padId(pokemon.id)}</div>
               <div className="modal-name-row">
                 <div className="modal-name" onClick={() => playCryTracked(pokemon.id)} title={s.playCry}>
                   {heroName}
-                  {isShiny && <span className="hero-shiny-badge">✨</span>}
-                  <span className="modal-name-cry">🔊</span>
+                  {isShiny && <span className="hero-shiny-badge"><Sparkles size={15} strokeWidth={2.4} /></span>}
+                  <span className="modal-name-cry"><Volume2 size={17} strokeWidth={2.2} /></span>
                 </div>
                 {onFav && (
                   <button
@@ -1021,38 +1082,52 @@ export default function PokemonModal({
                     onClick={() => onFav(pokemon.id)}
                     title={isFav ? s.removeFav : s.addFav}
                   >
-                    <span className="modal-fav-icon">{isFav ? "❤️" : "🤍"}</span>
+                    <span className="modal-fav-icon">
+                      <Heart size={18} strokeWidth={2.2} fill={isFav ? "currentColor" : "none"} />
+                    </span>
                   </button>
                 )}
               </div>
               <CryStylePicker lang={lang} />
               {lang !== "en" && localName && <div className="modal-name-en">{pokemon.name}</div>}
-              {displayImg && (
-                <img
-                  src={displayImg}
-                  alt={heroName}
-                  className="modal-hero-img"
-                  onClick={() => playCryTracked(pokemon.id)}
-                  onError={(e) => { if (isShiny && img) e.currentTarget.src = img; }}
-                  style={{
-                    width: "min(78%, 320px)",
-                    height: "auto",
-                    maxHeight: 280,
-                    objectFit: "contain",
-                    filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.25))",
-                  }}
-                />
-              )}
-              <div className="modal-shadow-ring" />
+              <div className="modal-sprite-wrap">
+                <div className="modal-sprite-glow" aria-hidden
+                  style={{ background:`radial-gradient(circle, ${color}3a 0%, ${color}14 42%, transparent 68%)` }} />
+                {displayImg && (
+                  <img
+                    src={displayImg}
+                    alt={heroName}
+                    className="modal-hero-img"
+                    onClick={() => playCryTracked(pokemon.id)}
+                    onError={(e) => { if (isShiny && img) e.currentTarget.src = img; }}
+                    style={{
+                      width: "min(68%, 270px)",
+                      height: "auto",
+                      maxHeight: 234,
+                      objectFit: "contain",
+                      filter: "drop-shadow(0 14px 28px rgba(0,0,0,0.25))",
+                    }}
+                  />
+                )}
+                <div className="modal-shadow-ring" />
+              </div>
             </>
           )}
 
           {/* 3D mode */}
           {view3d && (
+            <div className="hero-bg-layer hero-3d-stage" aria-hidden>
+              <div className="stage-glow" style={{ background:`radial-gradient(circle, ${color}80 0%, ${color}2e 40%, transparent 66%)` }} />
+              <div className="stage-floor" />
+              <div className="stage-pad" style={{ background:`radial-gradient(ellipse, ${color}80, transparent 70%)` }} />
+              <TypeAmbiance type={mainType} />
+            </div>
+          )}
+          {view3d && (
             <div className="hero-3d-content">
               <div className="hero-3d-name" onClick={() => playCryTracked(pokemon.id)}>
                 {heroName}
-                {isShiny && <span className="hero-shiny-badge">✨ Shiny</span>}
+                {isShiny && <span className="hero-shiny-badge"><Sparkles size={14} strokeWidth={2.4} /> Shiny</span>}
               </div>
               <Pokemon3DViewer
                 pokemonId={pokemon.id}
@@ -1064,21 +1139,25 @@ export default function PokemonModal({
               />
               <CatchHintBelow3D setCatchOpen={setCatchOpen} lang={lang} />
               <div className="hero-3d-hint">
-                {lang === "th" ? "👆 คลิกที่โปเกมอนเพื่อเปลี่ยนท่า · 📱 กด AR ดูในโลกจริง"
-                 : lang === "ja" ? "👆 ポケモンをクリックでポーズ切替 · 📱 ARで現実世界へ"
-                 : "👆 Tap Pokémon to change pose · 📱 Use AR to view in your room"}
+                {lang === "th" ? "คลิกที่โปเกมอนเพื่อเปลี่ยนท่า · กด AR ดูในโลกจริง"
+                 : lang === "ja" ? "ポケモンをクリックでポーズ切替 · ARで現実世界へ"
+                 : "Tap Pokémon to change pose · Use AR to view in your room"}
               </div>
             </div>
           )}
 
           <div className="modal-type-tags" style={view3d ? { marginTop:8 } : {}}>
             {pokemon.types.map(t => (
-              <span key={t.type.name} className="modal-type-tag">{typeName(t.type.name)}</span>
+              <span key={t.type.name} className="modal-type-tag"
+                style={{ background: typeColor(t.type.name), borderColor: typeColor(t.type.name), color: "#fff" }}>
+                {typeName(t.type.name)}
+              </span>
             ))}
           </div>
         </div>
 
-        <div className="modal-body">
+        <div className="modal-body"
+          style={{ background:`linear-gradient(180deg, ${color}2e 0%, ${color}1b 35%, ${color}0c 70%, transparent 100%)` }}>
           <div className="info-row">
             <div className="info-pill"><div className="info-pill-label">{s.height}</div>
               <div className="info-pill-val">{(pokemon.height/10).toFixed(1)} m</div></div>
@@ -1092,13 +1171,7 @@ export default function PokemonModal({
             <div className="flavor-box" style={{ "--modal-accent":color }}>"{flavor}"</div>
           )}
 
-          <div className="modal-tabs">
-            {s.tabs.map((label, i) => (
-              <button key={i} className={`modal-tab${tab===i?" active":""}`} onClick={()=>setTab(i)}>
-                {label}
-              </button>
-            ))}
-          </div>
+          <TabDropdown tabs={s.tabs} tab={tab} setTab={setTab} lang={lang} />
 
           {tab === 0 && (
             <div>
@@ -1184,6 +1257,7 @@ export default function PokemonModal({
         <CatchAnimation
           pokemon={pokemon}
           lang={lang}
+          shiny={isShiny}
           onClose={() => setCatchOpen(false)}
         />
       )}
