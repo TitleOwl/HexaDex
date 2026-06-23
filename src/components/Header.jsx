@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { STRINGS, GENERATIONS, ALL_TYPES, TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import { setSoundEnabled } from "../utils.js";
 import { getPerfMode, setPerfMode } from "../perfMode.js";
+import { readPetSave, PET_EVENT } from "./PetCareGame.jsx";
 import HexaDexLogo from "./HexaDexLogo.jsx";
 import {
   LayoutGrid, Swords, Target, Gamepad2, Search, Settings, Sun, Moon, Sparkles, Heart,
@@ -17,6 +18,22 @@ export function ModeTabs({ view, setView, s, lang }) {
   const goLabel    = lang === "th" ? "GO Tools" : lang === "ja" ? "GOツール" : "GO Tools";
   const gamesLabel = lang === "th" ? "เกม"     : lang === "ja" ? "ゲーム"    : "Games";
 
+  // Buddy needs care? → red dot on the Games tab
+  const [petAlert, setPetAlert] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      try {
+        const st = readPetSave()?.stats;
+        setPetAlert(!!st && Math.min(st.hunger, st.happy, st.energy, st.clean) < 30);
+      } catch { setPetAlert(false); }
+    };
+    check();
+    window.addEventListener(PET_EVENT, check);
+    window.addEventListener("storage", check);
+    const iv = setInterval(check, 60000);
+    return () => { window.removeEventListener(PET_EVENT, check); window.removeEventListener("storage", check); clearInterval(iv); };
+  }, []);
+
   const tabs = [
     { id:"pokedex",  Icon: LayoutGrid, label:s.pokedex },
     { id:"team",     Icon: Swords,     label:s.teamBuilder },
@@ -30,7 +47,10 @@ export function ModeTabs({ view, setView, s, lang }) {
         <button key={t.id}
           className={`mode-tab${view === t.id ? " active" : ""}`}
           onClick={() => setView(t.id)}>
-          <span className="mode-tab-icon"><t.Icon size={17} strokeWidth={2.2} /></span>
+          <span className="mode-tab-icon">
+            <t.Icon size={17} strokeWidth={2.2} />
+            {t.id === "games" && petAlert && <span className="mode-tab-dot" />}
+          </span>
           <span className="mode-tab-label">{t.label}</span>
         </button>
       ))}

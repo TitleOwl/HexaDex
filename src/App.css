@@ -14974,3 +14974,13 @@ html.perf-lite {
   color: var(--blue); font-weight: 700;
 }
 [data-theme="dark"] .cl-item::before { color: #e8857f; }
+
+/* Games tab — buddy-needs-care alert dot */
+.mode-tab-icon { position: relative; }
+.mode-tab-dot {
+  position: absolute; top: -3px; right: -6px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #ef4444; border: 2px solid var(--bg-card);
+  animation: mode-tab-dot-pulse 1.6s ease-in-out infinite;
+}
+@keyframes mode-tab-dot-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.7; } }

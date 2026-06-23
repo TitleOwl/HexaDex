@@ -144,7 +144,15 @@ export default function BuddyCompanion({ lang = "en", onOpenGame }) {
   const lastKinRef = useRef(0);
   const kinReactRef = useRef(false);
   useEffect(() => {
-    const onCaught = () => setCaughtTick((t) => t + 1);
+    const onCaught = () => {
+      setCaughtTick((t) => t + 1);
+      // Bond perk: a bonded buddy shares bonus coins whenever you catch a Pokémon
+      try {
+        const cur = readPetSave();
+        const bond = cur?.bond ?? 0;
+        if (cur && bond >= 30) awardCoins(bond >= 80 ? 5 : bond >= 50 ? 3 : 2);
+      } catch {}
+    };
     // React when the player views a Pokémon in the buddy's own family
     const onViewed = (e) => {
       const id = e?.detail?.id;

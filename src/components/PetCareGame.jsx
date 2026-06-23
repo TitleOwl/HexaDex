@@ -10,7 +10,7 @@ import {
   X, Coins, ShoppingBag, ClipboardList, ArrowUp,
   Utensils, Droplets, Moon, Heart, Gamepad2,
   Zap, Bath, Drumstick, Sparkles, Star, Home, Footprints, Check,
-  CheckCircle2, Gift, Lightbulb, Sofa, Hand, Hourglass, Egg,
+  CheckCircle2, Gift, Lightbulb, Sofa, Hand, Hourglass, Egg, Palette,
   Smile, Frown, HeartCrack,
   Crown, TrendingUp, Flame, Trophy, Award, Lock, Cherry, Timer,
   Settings, Volume2, VolumeX, Trash2, Clock, Share2,
@@ -26,7 +26,7 @@ const ACTION_LABEL = (k, lang) => ({
 }[k]?.[lang === "th" ? "th" : "en"] ?? k);
 import { useModalLifecycle } from "../perfUtils.js";
 import { CRY_URL } from "../data.js";
-import { PixelArt, FURNITURE, FURNITURE_BY_ID, FURNITURE_CATS } from "./pixelFurniture.jsx";
+import { PixelArt, FurnitureArt, FURNITURE, FURNITURE_BY_ID, FURNITURE_CATS } from "./pixelFurniture.jsx";
 import {
   FOOD, QUESTS, COIN_EVENT, FOOD_EVENT, QUEST_EVENT, ACH_EVENT,
   readCoins, readFood, totalFood, consumeFood, buyFood, awardCoins,
@@ -189,8 +189,29 @@ export function readPetSave() {
 // EXP needed to reach the next level
 const expForNext = (level) => 80 + level * 45;
 
-// Stat decay per real-world minute (points/min)
-const DECAY = { hunger: 0.75, happy: 0.5, energy: 0.55, clean: 0.4 };
+// Stat decay per real-world minute (points/min) — gentle so stats drop slowly
+const DECAY = { hunger: 0.15, happy: 0.10, energy: 0.12, clean: 0.08 };
+const PET_COOLDOWN = 12000; // ms between pets (so petting is a periodic treat, not spam)
+// Furniture that powers a stamina action — badged so it's easy to spot
+const STATION_BADGE = {
+  bathtub: { icon: "bubbles",        th: "อาบน้ำ", en: "Bath" },
+  toybox:  { icon: "tennis",         th: "เล่น",   en: "Play" },
+  bed:     { icon: "sleeping-face",  th: "นอน",    en: "Rest" },
+};
+const STATION_IDS = Object.keys(STATION_BADGE);
+// Soft pastel recolours for furniture (CSS filters). Index 0 = original.
+// Pastel recolours. `color` = the exact colour painted onto the furniture
+// (null = keep the original art); `bg` = the swatch tile background.
+const PASTEL_INFO = [
+  { color: null,      bg: "#f3eee4", th: "เดิม",       en: "Original" },
+  { color: "#f5a3c0", bg: "#ffe0ec", th: "ชมพู",        en: "Pink" },
+  { color: "#f4b189", bg: "#ffe6d6", th: "พีช",         en: "Peach" },
+  { color: "#efcf76", bg: "#fff3cf", th: "เหลือง",      en: "Yellow" },
+  { color: "#86d2a6", bg: "#d8f3e3", th: "มินต์",       en: "Mint" },
+  { color: "#8cbef0", bg: "#dcecff", th: "ฟ้า",          en: "Blue" },
+  { color: "#b3a0ec", bg: "#e8e0ff", th: "ลาเวนเดอร์",   en: "Lavender" },
+  { color: "#c9bca2", bg: "#efe9dd", th: "ครีม",        en: "Cream" },
+];
 
 const clamp = (n) => Math.max(0, Math.min(100, n));
 
@@ -509,6 +530,18 @@ function BerryCatchGame({ lang, onClose, onFinish }) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Cute coloured icons from the free Iconify API (Fluent Emoji Flat set)
+const CUTE_BASE = "https://api.iconify.design/fluent-emoji/"; // glossy / 3D-ish — prettier than flat
+function CuteIcon({ name, size = 22 }) {
+  return (
+    <img src={`${CUTE_BASE}${name}.svg`} alt="" width={size} height={size}
+      draggable={false} loading="lazy"
+      style={{ display: "block", objectFit: "contain" }} />
+  );
+}
+const STAT_ICON = { hunger: "poultry-leg", happy: "smiling-face-with-smiling-eyes", energy: "high-voltage", clean: "droplet" };
+const ACT_ICON  = { feed: "poultry-leg", play: "tennis", bath: "bubbles", rest: "sleeping-face", pat: "sparkling-heart" };
+
 export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   useModalLifecycle(onClose);
   const t = (th, en, ja) => lang === "th" ? th : lang === "ja" ? (ja ?? en) : en;
@@ -532,12 +565,21 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   const [now, setNow] = useState(() => Date.now()); // ticks every 5s for age display
   const [evolving, setEvolving] = useState(false);
   const [levelFlash, setLevelFlash] = useState(false);
+  const [speechIdx, setSpeechIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setSpeechIdx(i => i + 1), 6500);
+    return () => clearInterval(id);
+  }, []);
+  const ROOM_ZONES = 3;          // room is 3 zones wide; arrows pan between them
+  const [zone, setZone] = useState(0);
   const [actionPose, setActionPose] = useState(null); // bounce | wiggle | sleep
   const [roaming, setRoaming] = useState(() => {
     try { return localStorage.getItem(ROAM_KEY) === "1"; } catch { return false; }
   });
   const [editingRoom, setEditingRoom] = useState(false);
-  const [editCat, setEditCat] = useState("living"); // active furniture category tab
+  const [editCat, setEditCat] = useState("essentials"); // active furniture category tab
+  const [colorPick, setColorPick] = useState(null);     // { id, uid? } — pastel picker popup
+  const [roomImgBad, setRoomImgBad] = useState({});     // themes whose backdrop image is missing → use CSS room
   const [facing, setFacing] = useState(false); // sprite faces left when true
   const [isWalking, setIsWalking] = useState(true); // drives the run-cycle pose
   const [drag, setDrag] = useState(null); // { uid, xPct, yPct } while dragging furniture
@@ -572,9 +614,32 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   const stageRef = useRef(null);
   const walkerRef = useRef(null);
   const xRef = useRef(120);
+  const yRef = useRef(0);          // vertical offset (0 = on the floor; negative = up toward high furniture)
   const dirRef = useRef(1);
   const walkModeRef = useRef("walk"); // walk | idle
   const blockWalkRef = useRef(false); // frozen while evolving / sleeping / editing
+  const walkTargetRef = useRef(null); // { x, onArrive } — walk to a spot then act
+  const [furniHint, setFurniHint] = useState(null); // "place this furniture first" toast
+  const [activity, setActivity] = useState(null);   // Sims-style timed activity + progress bar
+  const activityTimer = useRef(null);
+  const activityFillRef = useRef(null);             // interval that fills the need bar live
+  const lastActionRef = useRef(0);                  // anti-spam cooldown
+  const [petReadyAt, setPetReadyAt] = useState(0);  // PET cooldown (next time you can pet)
+  const [, setNowTick] = useState(0);               // ticks while petting is on cooldown
+  useEffect(() => {
+    if (petReadyAt <= Date.now()) return;
+    const id = setInterval(() => {
+      setNowTick(t => t + 1);
+      if (Date.now() >= petReadyAt) clearInterval(id);
+    }, 500);
+    return () => clearInterval(id);
+  }, [petReadyAt]);
+  // Clean up every activity timer when the game closes — no stray ticks / stuck poses
+  useEffect(() => () => {
+    clearTimeout(poseTimer.current);
+    clearTimeout(activityTimer.current);
+    clearInterval(activityFillRef.current);
+  }, []);
 
   // ─── Persist on change + notify roaming companion ───
   useEffect(() => {
@@ -810,7 +875,21 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
       lastTs = ts;
       const maxX = Math.max(8, stage.clientWidth - BW - 8);
 
-      if (!blockWalkRef.current) {
+      if (walkTargetRef.current != null) {
+        const tx = Math.max(8, Math.min(maxX, walkTargetRef.current.x));
+        const ty = walkTargetRef.current.y ?? 0;
+        const step = 95 * dt;
+        const dx = tx - xRef.current, dy = ty - yRef.current;
+        if (Math.abs(dx) > 1) xRef.current += Math.sign(dx) * Math.min(step, Math.abs(dx));
+        if (Math.abs(dy) > 1) yRef.current += Math.sign(dy) * Math.min(step, Math.abs(dy));
+        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+          xRef.current = tx; yRef.current = ty;
+          const cb = walkTargetRef.current.onArrive;
+          walkTargetRef.current = null;
+          walkModeRef.current = "idle"; setIsWalking(false);
+          if (cb) cb();
+        }
+      } else if (!blockWalkRef.current) {
         if (ts >= switchAt) {
           if (walkModeRef.current === "walk") {
             walkModeRef.current = "idle";
@@ -824,7 +903,7 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
           }
         }
         if (walkModeRef.current === "walk") {
-          let x = xRef.current + dirRef.current * 24 * dt;
+          let x = xRef.current + dirRef.current * 55 * dt;
           if (x <= 8) { x = 8; dirRef.current = 1; setFacing(false); }
           else if (x >= maxX) { x = maxX; dirRef.current = -1; setFacing(true); }
           xRef.current = x;
@@ -833,7 +912,12 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
         walkModeRef.current = "idle";
         setIsWalking(false);
       }
-      if (walkerRef.current) walkerRef.current.style.transform = `translateX(${xRef.current}px)`;
+      // settle back down to the floor only when free (not walking to / doing an activity)
+      if (walkTargetRef.current == null && !blockWalkRef.current && yRef.current !== 0) {
+        yRef.current += (0 - yRef.current) * Math.min(1, dt * 4);
+        if (Math.abs(yRef.current) < 0.5) yRef.current = 0;
+      }
+      if (walkerRef.current) walkerRef.current.style.transform = `translate(${xRef.current}px, ${yRef.current}px)`;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -865,14 +949,18 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   const room = pet?.room ?? DEFAULT_ROOM;
   const placed = room.placed ?? [];
   const setTheme = (id) =>
-    setPet(prev => prev && ({ ...prev, room: { ...(prev.room ?? DEFAULT_ROOM), theme: id } }));
+    setPet(prev => {
+      if (!prev) return prev;
+      const r = prev.room ?? DEFAULT_ROOM;
+      return { ...prev, room: { ...r, zoneThemes: { ...(r.zoneThemes ?? {}), [zone]: id } } };
+    });
   // Add a fresh instance (you can place as many as you like)
-  const addItem = (id) =>
+  const addItem = (id, tint = 0) =>
     setPet(prev => {
       if (!prev) return prev;
       const r = prev.room ?? DEFAULT_ROOM;
       const uid = ++placedUidRef.current;
-      return { ...prev, room: { ...r, placed: [...(r.placed ?? []), { uid, id, xPct: 50, yPct: 66, scale: 1 }] } };
+      return { ...prev, room: { ...r, placed: [...(r.placed ?? []), { uid, id, xPct: 50, yPct: 66, scale: 1, zone, tint }] } };
     });
   // Grow / shrink a placed instance (0.5×–2.4×)
   const resizeItem = (uid, delta) =>
@@ -887,6 +975,14 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
       if (!prev) return prev;
       const r = prev.room ?? DEFAULT_ROOM;
       return { ...prev, room: { ...r, placed: (r.placed ?? []).filter(p => p.uid !== uid) } };
+    });
+  // Set a placed piece's pastel recolour to a specific index
+  const setTintTo = (uid, idx) =>
+    setPet(prev => {
+      if (!prev) return prev;
+      const r = prev.room ?? DEFAULT_ROOM;
+      return { ...prev, room: { ...r, placed: (r.placed ?? []).map(p =>
+        p.uid === uid ? { ...p, tint: idx } : p) } };
     });
   const moveItem = (uid, xPct, yPct) =>
     setPet(prev => {
@@ -997,12 +1093,110 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   // Non-food actions
   const doAction = (kind) => {
     const TABLE = {
-      play: { d: { happy: +25, energy: -12 }, exp: 18, Icon: Gamepad2, pose: "bounce", ms: 700 },
-      rest: { d: { energy: +35, hunger: -6 }, exp: 8,  Icon: Moon,     pose: "sleep",  ms: 1400 },
-      bath: { d: { clean: +42 },              exp: 10, Icon: Droplets, pose: "bounce", ms: 700 },
+      play: { d: { happy: +25, energy: -12 }, exp: 18, Icon: Gamepad2, pose: "bounce", ms: 600 },
+      rest: { d: { energy: +35, hunger: -6 }, exp: 8,  Icon: Moon,     pose: "bounce", ms: 600 },
+      bath: { d: { clean: +42 },              exp: 10, Icon: Droplets, pose: "bounce", ms: 600, count: 4 },
       pat:  { d: { happy: +12 },              exp: 6,  Icon: Heart,     pose: "wiggle", ms: 700, cry: true, count: 4 },
     };
     if (TABLE[kind]) applyCare({ ...TABLE[kind], kind });
+  };
+
+  // The Sims-style timed activities: hold a pose, fill the need bar LIVE over the duration,
+  // then settle the rewards (xp / bond / cost) at the end.
+  const ACTIVITY = {
+    bath: { ms: 3400, pose: "bath",  label: t("กำลังอาบน้ำ","Bathing","おふろちゅう"), color: "#5aa9d6", fill: { clean: 42 },               exp: 10, Icon: Droplets, count: 4 },
+    rest: { ms: 4400, pose: "sleep", label: t("กำลังนอน","Sleeping","おやすみ"),     color: "#9c7bd6", fill: { energy: 35 }, cost: { hunger: -6 },  exp: 8,  Icon: Moon,     count: 0 },
+    play: { ms: 2600, pose: "play",  label: t("กำลังเล่น","Playing","あそびちゅう"),  color: "#34d399", fill: { happy: 25 },  cost: { energy: -12 }, exp: 18, Icon: Gamepad2, count: 0 },
+  };
+  const startActivity = (kind) => {
+    const A = ACTIVITY[kind];
+    if (!A) { doAction(kind); return; }
+    pose(A.pose, A.ms);                        // hold the activity animation for the whole duration
+    setActivity({ kind, label: A.label, color: A.color, ms: A.ms });
+
+    // Sims-style: the need bar fills gradually as the buddy works (synced to the progress bar)
+    const base = { ...pet.stats };
+    const t0 = Date.now();
+    clearInterval(activityFillRef.current);
+    activityFillRef.current = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / A.ms);
+      setPet(prev => {
+        if (!prev) return prev;
+        const s = { ...prev.stats };
+        for (const k in A.fill) s[k] = clamp((base[k] ?? 0) + A.fill[k] * p);
+        return { ...prev, stats: s };
+      });
+      if (p >= 1) clearInterval(activityFillRef.current);
+    }, 150);
+
+    clearTimeout(activityTimer.current);
+    activityTimer.current = setTimeout(() => {
+      clearInterval(activityFillRef.current);
+      setActivity(null);
+      // settle: any cost + xp + bond + particles + a happy completion bounce
+      applyCare({ d: A.cost ?? {}, exp: A.exp, Icon: A.Icon, pose: "bounce", ms: 600, kind, count: A.count });
+    }, A.ms);
+  };
+
+  // Each action needs a furniture "station"; the buddy walks there then acts.
+  const ACTION_FURNI = { bath: "bathtub", play: "toybox", rest: "bed" };
+  // The stat each action tops up — can't do it once that bar is full.
+  const ACTION_STAT = { feed: "hunger", bath: "clean", rest: "energy", play: "happy", pat: "happy" };
+  const handleAction = (kind) => {
+    if (evolving) return;
+    // anti-spam: ignore while busy (walking to a station / mid-activity / mid-pose / food open) or within cooldown
+    if (walkTargetRef.current || activity || actionPose || showFood) return;
+    const now = Date.now();
+    if (now - lastActionRef.current < 700) return;
+    // can't do an action whose stat is already full
+    const sk = ACTION_STAT[kind];
+    if (sk && Math.round(pet?.stats?.[sk] ?? 0) >= 100) {
+      setFurniHint({ full: true });
+      clearTimeout(handleAction._t);
+      handleAction._t = setTimeout(() => setFurniHint(null), 2200);
+      return;
+    }
+    lastActionRef.current = now;
+    if (kind === "pat") {
+      if (now < petReadyAt) {                          // still on cooldown
+        setFurniHint({ cooldown: true, left: Math.ceil((petReadyAt - now) / 1000) });
+        clearTimeout(handleAction._t);
+        handleAction._t = setTimeout(() => setFurniHint(null), 1800);
+        return;
+      }
+      if ((pet?.stats?.energy ?? 100) < 20) {          // too sleepy to enjoy a pet
+        setFurniHint({ sleepy: true });
+        clearTimeout(handleAction._t);
+        handleAction._t = setTimeout(() => setFurniHint(null), 2600);
+        return;
+      }
+      setPetReadyAt(now + PET_COOLDOWN);
+      doAction("pat"); return;
+    }
+    if (kind === "feed") { setShowFood(true); return; } // feeding has no furniture requirement
+    const reqId = ACTION_FURNI[kind];
+    const inst = (pet?.room?.placed ?? []).find(p => p.id === reqId);
+    if (!inst) {
+      const f = FURNITURE_BY_ID[reqId];
+      setFurniHint({ id: reqId, name: f ? (lang === "th" ? f.th : f.en) : reqId });
+      clearTimeout(handleAction._t);
+      handleAction._t = setTimeout(() => setFurniHint(null), 2800);
+      return;
+    }
+    setZone(inst.zone ?? 0);                  // pan to the station's zone
+    const stage = stageRef.current;
+    const BW = 196, w = stage ? stage.clientWidth : 360, h = stage ? stage.clientHeight : 380;
+    let targetX = Math.max(8, Math.min(w - BW - 8, (inst.xPct / 100) * w - BW / 2));
+    // lying down swings the body to the left of the feet — shift right so it rests centred on the bed
+    if (kind === "rest") targetX = Math.min(w - BW - 8, targetX + 70);
+    // travel to the furniture's height too — walk up to it if it's placed high
+    const targetY = Math.max(-(h - 96), Math.min(0, (h * ((inst.yPct ?? 66) / 100)) - (h - 16)));
+    setFacing(targetX < xRef.current);
+    setIsWalking(true);
+    walkTargetRef.current = { x: targetX, y: targetY, onArrive: () => {
+      if (kind === "feed") setShowFood(true);
+      else startActivity(kind);
+    } };
   };
 
   // Feed using a food item from the inventory (different tiers = different hunger)
@@ -1010,8 +1204,25 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
     if (!pet || evolving) return;
     const restored = consumeFood(tierKey); // also updates inventory + fires event
     if (restored <= 0) return;
-    applyCare({ d: { hunger: +restored }, exp: Math.round(8 + restored / 4), Icon: Utensils, pose: "bounce", ms: 700, kind: "feed" });
     setShowFood(false);
+    // Sims-style eating: a "กำลังกิน" bar + chew pose, hunger fills live, then settle xp/bond
+    const ms = 1900;
+    pose("eat", ms);
+    setActivity({ kind: "feed", label: t("กำลังกิน", "Eating", "たべてる"), color: "#fb923c", ms });
+    const base = { ...pet.stats };
+    const t0 = Date.now();
+    clearInterval(activityFillRef.current);
+    activityFillRef.current = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / ms);
+      setPet(prev => prev && ({ ...prev, stats: { ...prev.stats, hunger: clamp((base.hunger ?? 0) + restored * p) } }));
+      if (p >= 1) clearInterval(activityFillRef.current);
+    }, 150);
+    clearTimeout(activityTimer.current);
+    activityTimer.current = setTimeout(() => {
+      clearInterval(activityFillRef.current);
+      setActivity(null);
+      applyCare({ d: {}, exp: Math.round(8 + restored / 4), Icon: Utensils, pose: "bounce", ms: 600, kind: "feed", count: 5 });
+    }, ms);
   };
 
   const releaseBuddy = () => {
@@ -1075,6 +1286,7 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   })();
 
   const stats = pet.stats;
+  const petCdLeft = Math.max(0, Math.ceil((petReadyAt - Date.now()) / 1000)); // PET cooldown seconds left
   const wellbeing = Math.round((stats.hunger + stats.happy + stats.energy + stats.clean) / 4);
 
   // Mood derivation
@@ -1092,6 +1304,18 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
     return { key: "happy", Icon: Smile, color: "#34d399",
       msg: t("สบายดี เล่นกันเถอะ!", "Feeling great! Let's play", "げんき！あそぼう") };
   })();
+
+  // Buddy speech — mood message, plus idle chatter when it's content
+  const speechTips = [
+    t("ไปจับโปเกมอนกันมั้ย?", "Wanna go catch Pokémon?", "ポケモン捕まえに行く？"),
+    t("วันนี้ดู Daily Pokémon รึยัง?", "Seen today's Daily Pokémon?", "今日のデイリーは見た？"),
+    t("เล่นมินิเกมกันหน่อยมั้ย~", "Let's play a mini-game!", "ミニゲームしよう！"),
+    t("อยู่ด้วยกันสนุกจังเลย", "So fun being with you!", "一緒にいると楽しい！"),
+  ];
+  const speechPool = (mood.key === "happy" || mood.key === "love")
+    ? [mood.msg, ...speechTips]
+    : [mood.msg];
+  const speech = speechPool[speechIdx % speechPool.length];
 
   const ageDays = Math.max(0, Math.floor((now - pet.bornAt) / 86400000));
   const ageHours = Math.max(0, Math.floor((now - pet.bornAt) / 3600000));
@@ -1127,6 +1351,7 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
         <div className="pet-topbar">
           <button className="pet-icon-btn" onClick={onClose} title={t("ปิด","Close","閉じる")}><X size={15} strokeWidth={2.4} /></button>
           <div className="pet-name-pill">
+            <PetSprite key={`av-${curId}`} id={curId} size={28} />
             <span style={{ fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {localName(curId, ROSTER_BY_BASE[pet.base]?.en)}
             </span>
@@ -1198,7 +1423,8 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
         {/* Stage / room */}
         <div className={`pet-stage${editingRoom ? " editing" : ""}`} ref={stageRef}>
           {(() => {
-            const th = THEME_BY_ID[room.theme] ?? ROOM_THEMES[0];
+            const themeId = room.zoneThemes?.[zone] ?? room.theme ?? ROOM_THEMES[0].id;
+            const th = THEME_BY_ID[themeId] ?? ROOM_THEMES[0];
             return (
               <>
                 <div className="room-wall" style={{ background: th.wall }}>
@@ -1216,12 +1442,19 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
                 <div className="room-baseboard" />
                 <RoomAmbient tokens={th.ambient} />
                 <div className="room-vignette" />
+                {/* Optional pretty backdrop image — drop public/rooms/<theme>.jpg to use it */}
+                {!roomImgBad[themeId] && (
+                  <img className="room-photo" aria-hidden alt=""
+                    src={`${import.meta.env.BASE_URL}rooms/${themeId}.jpg`}
+                    onError={() => setRoomImgBad(s => ({ ...s, [themeId]: true }))} />
+                )}
               </>
             );
           })()}
 
-          {/* Placed furniture — drag to move (in edit mode), unlimited copies */}
-          {placed.map(inst => {
+          {/* Placed furniture — per zone; drag to move (in edit mode), unlimited copies */}
+          <div className="pet-zone-layer" key={`zone-${zone}`}>
+          {placed.filter(inst => (inst.zone ?? 0) === zone).map(inst => {
             const f = FURNITURE_BY_ID[inst.id];
             if (!f) return null;
             const pos = (drag && drag.uid === inst.uid) ? drag : inst;
@@ -1239,13 +1472,15 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
                   dragPosRef.current = { uid: inst.uid, xPct: inst.xPct, yPct: inst.yPct };
                   setDrag({ uid: inst.uid, xPct: inst.xPct, yPct: inst.yPct });
                 } : undefined}>
-                <PixelArt rows={f.rows} scale={f.scale * (inst.scale ?? 1)} />
+                <FurnitureArt item={f} scale={f.scale * (inst.scale ?? 1)} tint={PASTEL_INFO[inst.tint ?? 0]?.color} />
                 {editingRoom && (
                   <div className="pet-placed-ctrls">
                     <button className="pet-placed-btn" onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => resizeItem(inst.uid, -0.2)}>−</button>
                     <button className="pet-placed-btn" onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => resizeItem(inst.uid, 0.2)}>+</button>
+                    <button className="pet-placed-btn" onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => setColorPick({ id: inst.id, uid: inst.uid, cur: inst.tint ?? 0 })} title={t("เปลี่ยนสี","Recolor","色を変える")}><Palette size={14} strokeWidth={2.3} /></button>
                     <button className="pet-placed-btn del" onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => removeItem(inst.uid)}><X size={15} strokeWidth={2.4} /></button>
                   </div>
@@ -1253,6 +1488,24 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
               </div>
             );
           })}
+          </div>
+
+          {/* Zone navigation — pan the wider room left/right */}
+          {!evolving && (
+            <>
+              <button className="pet-zone-arrow left" disabled={zone === 0}
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setZone(z => Math.max(0, z - 1)); }}
+                aria-label="prev zone">‹</button>
+              <button className="pet-zone-arrow right" disabled={zone === ROOM_ZONES - 1}
+                onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setZone(z => Math.min(ROOM_ZONES - 1, z + 1)); }}
+                aria-label="next zone">›</button>
+              <div className="pet-zone-dots">
+                {Array.from({ length: ROOM_ZONES }).map((_, i) => (
+                  <span key={i} className={i === zone ? "on" : ""} />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* My-room button — clearly labelled, draws attention */}
           {!evolving && !editingRoom && (
@@ -1268,10 +1521,12 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
             </div>
           )}
 
-          {/* Mood bubble — icon only (pets don't talk; they cry/emote) */}
+          {/* Speech bubble — buddy talks (mood msg + idle chatter) */}
           {!evolving && !editingRoom && (
-            <div className="pet-bubble pet-bubble-emoji" style={{ borderColor: mood.color, color: mood.color }}>
-              <mood.Icon size={20} strokeWidth={2.2} fill={mood.key === "love" ? "currentColor" : "none"} />
+            <div key={speech} className="pet-bubble pet-speech" style={{ borderColor: mood.color }}>
+              <mood.Icon size={15} strokeWidth={2.4} style={{ color: mood.color, flexShrink: 0 }}
+                fill={mood.key === "love" ? "currentColor" : "none"} />
+              <span className="pet-speech-txt">{speech}</span>
             </div>
           )}
 
@@ -1299,10 +1554,53 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
 
           {/* The buddy — walks around inside the room */}
           <div className="pet-walker" ref={walkerRef}>
+            {isWalking && !actionPose && !activity && (
+              <div className={`pet-dust${facing ? " left" : ""}`} aria-hidden><span/><span/><span/></div>
+            )}
             <div className={`pet-buddy pose-${actionPose ?? (isWalking ? "walk" : "idle")}${evolving ? " evolving" : ""}`}>
               <PetSprite key={curId} id={curId} size={196} flip={facing} />
               <div className="pet-shadow" />
             </div>
+            {/* activity FX — siblings of the buddy so they stay upright when it lies down */}
+            {activity?.kind === "bath" && (
+              <div className="pet-fx pet-bath-fx" aria-hidden>
+                <div className="pet-bath-foam"><span/><span/><span/><span/><span/></div>
+                {Array.from({ length: 11 }).map((_, i) => (
+                  <span key={i} className="bath-sud" style={{
+                    left: `${10 + (i * 7.5) % 80}%`,
+                    animationDelay: `${(i * 0.16).toFixed(2)}s`,
+                    "--s": `${8 + (i % 4) * 4}px`,
+                  }} />
+                ))}
+              </div>
+            )}
+            {activity?.kind === "rest" && (
+              <div className="pet-fx pet-sleep-fx" aria-hidden>
+                {["z1","z2","z3"].map((c, i) => (
+                  <span key={c} className={`sleep-z ${c}`} style={{ animationDelay: `${(i * 0.6).toFixed(1)}s` }}>Z</span>
+                ))}
+              </div>
+            )}
+            {activity?.kind === "play" && (
+              <div className="pet-fx pet-play-fx" aria-hidden>
+                <span className="play-ball" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} className="play-star" style={{
+                    left: `${15 + i * 17}%`, top: `${10 + (i % 3) * 22}%`,
+                    animationDelay: `${(i * 0.22).toFixed(2)}s`,
+                  }} />
+                ))}
+              </div>
+            )}
+            {activity && (
+              <div className="pet-activity">
+                <span className="pet-activity-label">{activity.label}</span>
+                <div className="pet-activity-bar">
+                  <div className="pet-activity-fill"
+                    style={{ animationDuration: `${activity.ms}ms`, background: activity.color }} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1311,7 +1609,7 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
         <div className="pet-stats">
           {STAT_ROWS.map(s => (
             <div key={s.key} className="pet-stat-row">
-              <span className="pet-stat-icon" style={{ color: s.color }}><s.Icon size={16} strokeWidth={2.2} /></span>
+              <span className="pet-stat-icon"><CuteIcon name={STAT_ICON[s.key]} size={22} /></span>
               <div className="pet-stat-track">
                 <div className="pet-stat-fill" style={{
                   width: `${s.val}%`,
@@ -1328,10 +1626,11 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
         </div>
 
         {/* Bond / friendship */}
-        <div className="pet-bond-wrap">
+        <div className="pet-meter pet-bond-wrap">
           <div className="pet-bond-head">
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <Heart size={12} strokeWidth={2.4} fill="currentColor" /> {lang === "th" ? tier.th : tier.en}
+              <Heart size={13} strokeWidth={2.4} fill="currentColor" /> {t("ผูกพัน","Bond","きずな")}
+              <span className="pet-meter-sub">· {lang === "th" ? tier.th : tier.en}</span>
             </span>
             <span>{bond}%</span>
           </div>
@@ -1341,27 +1640,31 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
         </div>
 
         {/* EXP / evolution progress */}
-        <div className="pet-exp-wrap">
+        <div className="pet-meter pet-exp-wrap">
+          <div className="pet-exp-head">
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Star size={13} strokeWidth={2.4} fill="currentColor" /> EXP
+              <span className="pet-meter-sub">· {nextEvoLevel
+                ? `${t("วิวัฒน์ Lv.","Evolves Lv.","しんか Lv.")}${nextEvoLevel}`
+                : t("ร่างสุดท้าย","Final form","さいしゅう")}</span>
+            </span>
+            <span>{pet.exp}/{expForNext(pet.level)}</span>
+          </div>
           <div className="pet-exp-track">
             <div className="pet-exp-fill" style={{ width: `${(pet.exp / expForNext(pet.level)) * 100}%` }} />
-          </div>
-          <div className="pet-exp-label" style={{ display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "center", width: "100%" }}>
-            <Star size={12} strokeWidth={2.2} fill="currentColor" /> EXP {pet.exp}/{expForNext(pet.level)}
-            {nextEvoLevel
-              ? ` · ${t("วิวัฒน์ที่ Lv.","Evolves at Lv.","しんか Lv.")}${nextEvoLevel}`
-              : ` · ${t("ร่างสุดท้ายแล้ว!","Final form!","さいしゅうけいたい！")}`}
           </div>
         </div>
 
         {/* Action buttons */}
         <div className="pet-actions">
           {ACTIONS.map(a => (
-            <button key={a.kind} className="pet-action-btn"
-              onClick={() => a.kind === "feed" ? setShowFood(true) : doAction(a.kind)}
-              disabled={evolving}
+            <button key={a.kind}
+              className={`pet-action-btn${((ACTION_STAT[a.kind] && Math.round(stats[ACTION_STAT[a.kind]]) >= 100) || (a.kind === "pat" && petCdLeft > 0)) ? " dim" : ""}`}
+              onClick={() => handleAction(a.kind)}
+              disabled={evolving || !!activity || !!actionPose}
               style={{ "--ac": a.color }}>
-              <span className="pet-action-icon"><a.Icon size={22} strokeWidth={2.2} /></span>
-              <span className="pet-action-label">{a.label}</span>
+              <span className="pet-action-icon"><CuteIcon name={ACT_ICON[a.kind]} size={28} /></span>
+              <span className="pet-action-label">{a.kind === "pat" && petCdLeft > 0 ? `${petCdLeft}s` : a.label}</span>
               {a.kind === "feed" && (
                 <span className={`pet-food-badge${totalFood(food) === 0 ? " empty" : ""}`}>
                   {totalFood(food)}
@@ -1392,11 +1695,11 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
               </button>
             </div>
 
-            <div className="pet-editor-label">{t("เลือกห้อง","Room","ルーム")}</div>
+            <div className="pet-editor-label">{t("เลือกห้อง","Room","ルーム")} · {t("โซน","Zone","ゾーン")} {zone + 1}</div>
             <div className="pet-theme-row">
               {ROOM_THEMES.map(th => (
                 <button key={th.id}
-                  className={`pet-theme-chip${room.theme === th.id ? " active" : ""}`}
+                  className={`pet-theme-chip${(room.zoneThemes?.[zone] ?? room.theme) === th.id ? " active" : ""}`}
                   onClick={() => setTheme(th.id)}>
                   <RoomThumb theme={th} />
                   <span>{lang === "th" ? th.th : th.en}</span>
@@ -1418,14 +1721,54 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
               ))}
             </div>
             <div className="pet-decor-grid">
-              {FURNITURE.filter(f => f.cat === editCat).map(f => (
-                <button key={f.id} className="pet-decor-chip" onClick={() => addItem(f.id)}>
-                  <div className="pet-decor-chip-art">
-                    <PixelArt rows={f.rows} scale={3} />
-                  </div>
-                  <span>{lang === "th" ? f.th : f.en}</span>
-                </button>
-              ))}
+              {(editCat === "essentials"
+                ? FURNITURE.filter(f => STATION_IDS.includes(f.id))
+                : FURNITURE.filter(f => f.cat === editCat)
+              ).map(f => {
+                const badge = STATION_BADGE[f.id];
+                return (
+                  <button key={f.id} className="pet-decor-chip" onClick={() => setColorPick({ id: f.id })}>
+                    <div className="pet-decor-chip-art">
+                      <FurnitureArt item={f} scale={3} />
+                      {badge && (
+                        <span className="pet-decor-badge" title={lang === "th" ? badge.th : badge.en}>
+                          <CuteIcon name={badge.icon} size={14} />
+                        </span>
+                      )}
+                    </div>
+                    <span>{lang === "th" ? f.th : f.en}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Pastel colour picker — choose a colour, then place / recolour ─── */}
+        {colorPick && (
+          <div className="pet-color-overlay" onClick={() => setColorPick(null)}>
+            <div className="pet-color-pop" onClick={(e) => e.stopPropagation()}>
+              <button className="pet-color-close" onClick={() => setColorPick(null)}><X size={15} strokeWidth={2.4} /></button>
+              <div className="pet-color-head">
+                <span className="pet-color-eyebrow">{colorPick.uid != null ? t("เปลี่ยนสี","Recolor","色を変える") : t("เลือกสีก่อนวาง","Pick a colour","色をえらぶ")}</span>
+                <span className="pet-color-name">{lang === "th" ? (FURNITURE_BY_ID[colorPick.id]?.th) : (FURNITURE_BY_ID[colorPick.id]?.en)}</span>
+              </div>
+              <div className="pet-color-grid">
+                {PASTEL_INFO.map((info, i) => (
+                  <button key={i}
+                    className={`pet-color-chip${colorPick.cur === i ? " sel" : ""}`}
+                    style={{ background: info.bg }}
+                    title={lang === "th" ? info.th : info.en}
+                    onClick={() => {
+                      if (colorPick.uid != null) setTintTo(colorPick.uid, i);
+                      else addItem(colorPick.id, i);
+                      setColorPick(null);
+                    }}>
+                    <FurnitureArt item={FURNITURE_BY_ID[colorPick.id]} scale={3} tint={info.color} />
+                    <span className="pet-color-label">{lang === "th" ? info.th : info.en}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1620,6 +1963,29 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
           </div>
         )}
 
+        {/* ─── "Place this furniture first" toast ─── */}
+        {furniHint && (
+          <div className="pet-ach-toast">
+            <div className="pet-ach-toast-icon" style={{ color: "var(--p-accent)" }}>
+              {furniHint.full ? <Heart size={20} strokeWidth={2.2} /> : furniHint.sleepy ? <Moon size={20} strokeWidth={2.2} /> : <Sofa size={20} strokeWidth={2.2} />}
+            </div>
+            <div>
+              <div className="pet-ach-toast-label">
+                {furniHint.cooldown ? t("เพิ่งลูบไปเลย","Just petted","なでたばかり")
+                  : furniHint.full ? t("เต็มแล้ว","Already full","まんたん")
+                  : furniHint.sleepy ? t("น้องง่วงอยู่","Too sleepy","ねむそう")
+                  : t("ยังไม่มีเฟอร์นิเจอร์","Furniture needed","かぐが ひつよう")}
+              </div>
+              <div className="pet-ach-toast-name">
+                {furniHint.cooldown ? `${t("รออีก","Wait","あと")} ${furniHint.left}s ${t("ค่อยลูบใหม่นะ","to pet again","")}`
+                  : furniHint.full ? t("หลอดนี้เต็มแล้วน้า","This bar is already full","このゲージはまんたん")
+                  : furniHint.sleepy ? t("ให้น้องพักก่อนค่อยลูบนะ","Let it rest before petting","やすませてからね")
+                  : <>{t("วาง","Place","")}{lang === "th" ? "" : " "}{furniHint.name} {t("ในห้องก่อนนะ","in your room first","をへやに おいてね")}</>}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ─── Achievement unlocked toast ─── */}
         {achToast && (() => {
           const Ic = ACH_ICONS[achToast.icon] ?? Trophy;
@@ -1765,17 +2131,17 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
 // ─── Styles ───
 const PET_CSS = `
   .pet-overlay {
-    /* tokens follow the app theme (light by default, dark via [data-theme="dark"]) */
-    --p-card: var(--bg-card);
-    --p-sheet: var(--bg-card);
-    --p-surface: var(--bg-muted);
-    --p-surface-2: color-mix(in srgb, var(--bg-muted), var(--text-primary) 10%);
-    --p-sep: var(--border);
-    --p-label: var(--text-primary);
-    --p-label-2: var(--text-secondary);
-    --p-label-3: var(--text-muted);
-    --p-accent: var(--blue);
-    --p-gold: var(--gold);
+    /* Cozy — warm cream palette (same in light & dark; the pet room has its own identity) */
+    --p-card: #fff3e0;
+    --p-sheet: #fffaf2;
+    --p-surface: #ffffff;
+    --p-surface-2: #ffeacf;
+    --p-sep: #f1e2cd;
+    --p-label: #4a3527;
+    --p-label-2: #9c7c5c;
+    --p-label-3: #bda88c;
+    --p-accent: #ef8a2b;
+    --p-gold: #e3a72e;
     --p-pink: #db2777;
     --p-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", sans-serif;
     position: fixed; inset: 0; z-index: 9500;
@@ -1842,9 +2208,29 @@ const PET_CSS = `
   }
   .pet-gen-badge.star { background: color-mix(in srgb, var(--p-gold) 22%, transparent); color: var(--p-gold); }
 
+  /* ── Room zones (wider room, pan with arrows) ── */
+  .pet-zone-layer { position: absolute; inset: 0; animation: pet-zone-in 0.28s ease; }
+  @keyframes pet-zone-in { from { opacity: 0; } to { opacity: 1; } }
+  .pet-zone-arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 72px; border: none; border-radius: 15px;
+    background: rgba(255,255,255,0.85); color: #8a5c33;
+    font-size: 30px; font-weight: 800; line-height: 1; cursor: pointer; z-index: 30;
+    display: grid; place-items: center; padding: 0;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none;
+    box-shadow: 0 4px 12px rgba(80,50,20,0.22); transition: background 0.15s, transform 0.15s, opacity 0.2s;
+  }
+  .pet-zone-arrow.left { left: 6px; } .pet-zone-arrow.right { right: 6px; }
+  .pet-zone-arrow:hover:not(:disabled) { background: #fff; transform: translateY(-50%) scale(1.06); }
+  .pet-zone-arrow:active:not(:disabled) { transform: translateY(-50%) scale(0.9); background: #ffe7cd; }
+  .pet-zone-arrow:disabled { opacity: 0; pointer-events: none; }
+  .pet-zone-dots { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 8; }
+  .pet-zone-dots span { width: 7px; height: 7px; border-radius: 50%; background: rgba(80,50,20,0.22); transition: all 0.2s; }
+  .pet-zone-dots span.on { background: #ef8a2b; width: 18px; border-radius: 99px; }
+
   /* ── Care room ── */
   .pet-room {
-    background: var(--p-card);
+    background: linear-gradient(180deg, #fff6e8 0%, #ffe7cd 100%);
     border-radius: 34px; padding: 16px 16px 20px;
     max-width: 600px; width: 100%; position: relative; color: var(--p-label);
     box-shadow: 0 40px 90px rgba(0,0,0,0.4), 0 0 0 0.5px var(--p-sep) inset;
@@ -1875,10 +2261,14 @@ const PET_CSS = `
   .pet-name-pill {
     display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700;
     letter-spacing: -0.01em;
-    background: var(--p-surface); padding: 8px 16px; border-radius: 999px;
-    flex: 1; justify-content: center; min-width: 0;
+    background: var(--p-surface); padding: 6px 14px 6px 7px; border-radius: 999px;
+    flex: 1; justify-content: flex-start; min-width: 0;
+    box-shadow: 0 2px 6px rgba(120,80,40,0.07);
   }
-  .pet-name-pill > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pet-name-pill img { width: 30px; height: 30px; flex-shrink: 0; image-rendering: pixelated;
+    background: #ffe7cd; border-radius: 50%; padding: 2px; object-fit: contain; }
+  .pet-name-pill > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pet-name-pill .pet-lvl { margin-left: auto; }
   .pet-lvl {
     font-size: 11px; font-weight: 800; color: var(--p-gold); flex-shrink: 0;
     background: color-mix(in srgb, var(--p-gold) 18%, transparent); padding: 3px 9px; border-radius: 999px;
@@ -1943,6 +2333,8 @@ const PET_CSS = `
       radial-gradient(ellipse 120% 90% at 50% 55%, transparent 55%, rgba(0,0,0,0.28) 100%);
   }
   .room-scene { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+  /* Optional backdrop image — covers the CSS room, sits behind furniture & buddy */
+  .room-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; pointer-events: none; }
 
   /* ── Window (the outside view, framed on the wall) ── */
   .room-window {
@@ -2030,6 +2422,11 @@ const PET_CSS = `
   .pet-bubble-emoji {
     padding: 8px 12px; line-height: 1; display: inline-flex; align-items: center; justify-content: center;
   }
+  .pet-speech {
+    display: inline-flex; align-items: center; gap: 6px;
+    max-width: 220px; white-space: normal;
+  }
+  .pet-speech-txt { color: #201d20; font-size: 12px; font-weight: 700; line-height: 1.35; }
   .pet-bubble::after {
     content: ""; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%);
     border-left: 7px solid transparent; border-right: 7px solid transparent;
@@ -2052,29 +2449,143 @@ const PET_CSS = `
     position: relative;
     display: flex; flex-direction: column; align-items: center;
   }
+  /* Dust puffs while walking — sells the "scurrying / dashing" feel */
+  .pet-dust { position: absolute; bottom: 6px; left: 58px; z-index: 1; pointer-events: none; }
+  .pet-dust.left { left: auto; right: 58px; }
+  .pet-dust span {
+    position: absolute; bottom: 0; width: 13px; height: 13px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, rgba(255,255,255,0.9), rgba(190,168,140,0.55) 60%, transparent 72%);
+    opacity: 0; animation: pet-dust-puff 0.6s ease-out infinite;
+  }
+  .pet-dust span:nth-child(2) { left: -11px; animation-delay: 0.2s; }
+  .pet-dust span:nth-child(3) { left: -20px; animation-delay: 0.4s; }
+  .pet-dust.left span:nth-child(2) { left: 11px; }
+  .pet-dust.left span:nth-child(3) { left: 20px; }
+  .pet-dust.left span { animation-name: pet-dust-puff-r; }
+  @keyframes pet-dust-puff   { 0% { opacity: 0; transform: translate(0,0) scale(0.4); } 25% { opacity: 0.8; } 100% { opacity: 0; transform: translate(-20px,-9px) scale(1.3); } }
+  @keyframes pet-dust-puff-r { 0% { opacity: 0; transform: translate(0,0) scale(0.4); } 25% { opacity: 0.8; } 100% { opacity: 0; transform: translate(20px,-9px) scale(1.3); } }
+
   .pet-shadow {
     width: 120px; height: 19px; margin-top: -10px;
     background: radial-gradient(ellipse, rgba(0,0,0,0.45), transparent 70%);
     filter: blur(3px);
   }
   .pet-buddy.pose-idle   { animation: pet-idle 2.6s ease-in-out infinite; }
-  .pet-buddy.pose-walk   { animation: pet-walk 0.46s ease-in-out infinite; }
+  .pet-buddy.pose-walk   { animation: pet-walk 0.42s ease-in-out infinite; transform-origin: 50% 100%; }
   .pet-buddy.pose-bounce { animation: pet-bounce 0.7s cubic-bezier(0.34,1.56,0.64,1); }
   .pet-buddy.pose-wiggle { animation: pet-wiggle 0.7s ease-in-out; }
-  .pet-buddy.pose-sleep  { animation: pet-sleep 1.4s ease-in-out; }
+  .pet-buddy.pose-sleep  { animation: pet-sleep 3s ease-in-out infinite; transform-origin: 50% 100%; }
+  .pet-buddy.pose-sleep .pet-shadow { opacity: 0; }
+  .pet-buddy.pose-play   { animation: pet-play 0.55s ease-in-out infinite; transform-origin: 50% 100%; }
+  .pet-buddy.pose-eat    { animation: pet-eat 0.34s ease-in-out infinite; transform-origin: 50% 100%; }
+  @keyframes pet-eat { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-4px) scaleY(0.96); } }
+  .pet-buddy.pose-bath   { animation: pet-pose-bath 0.5s ease-in-out infinite; }
+  @keyframes pet-pose-bath { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+
+  /* Bath effect — rising soap suds + a foam cap */
+  .pet-bath-fx { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+  .pet-bath-fx .bath-sud {
+    position: absolute; bottom: 34%; width: var(--s, 12px); height: var(--s, 12px); border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #ffffff, #cdebff 55%, #8fd0ff);
+    box-shadow: 0 0 7px rgba(150,220,255,0.7); opacity: 0;
+    animation: bath-sud 1.7s ease-out infinite;
+  }
+  @keyframes bath-sud {
+    0% { transform: translateY(0) scale(0.4); opacity: 0; }
+    18% { opacity: 0.95; }
+    80% { opacity: 0.9; }
+    100% { transform: translateY(-104px) scale(1.15); opacity: 0; }
+  }
+  .pet-bath-foam { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); width: 54%; height: 30%;
+    animation: bath-foam-bob 1.2s ease-in-out infinite; }
+  .pet-bath-foam span { position: absolute; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #ffffff, #eaf6ff); box-shadow: 0 1px 3px rgba(120,160,200,0.25); }
+  .pet-bath-foam span:nth-child(1) { width: 46%; height: 64%; left: 27%; top: 18%; }
+  .pet-bath-foam span:nth-child(2) { width: 40%; height: 56%; left: 4%;  top: 30%; }
+  .pet-bath-foam span:nth-child(3) { width: 40%; height: 56%; right: 4%; top: 30%; }
+  .pet-bath-foam span:nth-child(4) { width: 34%; height: 48%; left: 18%; top: 4%; }
+  .pet-bath-foam span:nth-child(5) { width: 34%; height: 48%; right: 18%; top: 6%; }
+  @keyframes bath-foam-bob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-3px); } }
+
+  /* The Sims-style activity progress bar (floats above the buddy) */
+  .pet-activity {
+    position: absolute; bottom: 200px; left: 98px; transform: translateX(-50%);
+    z-index: 7; pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    animation: pet-activity-in 0.25s ease;
+  }
+  @keyframes pet-activity-in { from { opacity: 0; transform: translateX(-50%) translateY(6px); } }
+  .pet-activity-label {
+    font-size: 11px; font-weight: 800; color: #fff;
+    background: rgba(40,30,20,0.62); padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .pet-activity-bar {
+    width: 112px; height: 9px; border-radius: 999px;
+    background: rgba(255,255,255,0.6); box-shadow: 0 1px 4px rgba(0,0,0,0.22); overflow: hidden;
+  }
+  .pet-activity-fill {
+    height: 100%; width: 0; border-radius: 999px;
+    animation-name: pet-activity-fill; animation-timing-function: linear; animation-fill-mode: forwards;
+  }
+  @keyframes pet-activity-fill { from { width: 0; } to { width: 100%; } }
+
+  /* Sleep effect — rising Z's */
+  .pet-sleep-fx { position: absolute; top: 6%; right: 16%; z-index: 6; pointer-events: none; }
+  .pet-sleep-fx .sleep-z {
+    position: absolute; font-weight: 900; color: #9c7bd6; font-family: var(--p-font);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.18); opacity: 0; animation: sleep-z 2.4s ease-out infinite;
+  }
+  .pet-sleep-fx .z1 { font-size: 14px; } .pet-sleep-fx .z2 { font-size: 19px; } .pet-sleep-fx .z3 { font-size: 25px; }
+  @keyframes sleep-z {
+    0% { transform: translate(0,0) rotate(-8deg); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translate(36px,-64px) rotate(10deg); opacity: 0; }
+  }
+
+  /* Play effect — bouncing ball + twinkle stars */
+  .pet-play-fx { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+  .pet-play-fx .play-ball {
+    position: absolute; bottom: 12%; left: 4%; width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff 0 12%, #ff6a6a 12% 55%, #d63b3b);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+    animation: play-ball-bounce 0.8s cubic-bezier(.5,0,.5,1) infinite;
+  }
+  @keyframes play-ball-bounce {
+    0%,100% { transform: translateY(0) scaleY(0.85); }
+    35% { transform: translateY(-74px) scaleY(1.05); }
+    70% { transform: translateY(0) scaleY(0.9); }
+  }
+  .pet-play-fx .play-star {
+    position: absolute; width: 13px; height: 13px; opacity: 0; background: #ffd24d;
+    clip-path: polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+    animation: play-star 1.4s ease-in-out infinite;
+  }
+  @keyframes play-star { 0%,100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(40deg); } }
   .pet-buddy.evolving    { animation: pet-evo-shake 0.4s linear infinite; }
   /* run cycle — springy hop + body tilt reads as the buddy dashing around */
   @keyframes pet-walk {
-    0%   { transform: translateY(0)    rotate(-2.5deg); }
-    25%  { transform: translateY(-9px) rotate(0deg)    scaleY(1.04); }
-    50%  { transform: translateY(0)    rotate(2.5deg); }
-    75%  { transform: translateY(-9px) rotate(0deg)    scaleY(1.04); }
-    100% { transform: translateY(0)    rotate(-2.5deg); }
+    0%   { transform: translateY(0)     rotate(-3deg) scaleY(0.97); }
+    25%  { transform: translateY(-13px) rotate(0deg)  scale(1.05, 1.06); }
+    50%  { transform: translateY(0)     rotate(3deg)  scaleY(0.97); }
+    75%  { transform: translateY(-13px) rotate(0deg)  scale(1.05, 1.06); }
+    100% { transform: translateY(0)     rotate(-3deg) scaleY(0.97); }
   }
-  @keyframes pet-idle   { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+  @keyframes pet-idle   { 0%,100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-7px) scaleY(1.03); } }
   @keyframes pet-bounce { 0% { transform: translateY(0) scale(1); } 40% { transform: translateY(-26px) scale(1.08); } 70% { transform: translateY(0) scale(0.96); } 100% { transform: translateY(0) scale(1); } }
   @keyframes pet-wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
-  @keyframes pet-sleep  { 0%,100% { transform: scale(1); } 50% { transform: scale(0.95) translateY(4px); } }
+  /* gentle, continuous breathing while asleep — no longer freezes stiff */
+  @keyframes pet-sleep  {
+    0%,100% { transform: rotate(-80deg) scaleY(1); }
+    50%     { transform: rotate(-80deg) scaleY(0.96); }
+  }
+  /* lively wiggle-hop while playing */
+  @keyframes pet-play {
+    0%   { transform: translateY(0) rotate(-7deg); }
+    25%  { transform: translateY(-13px) rotate(0deg) scale(1.04); }
+    50%  { transform: translateY(0) rotate(7deg); }
+    75%  { transform: translateY(-9px) rotate(0deg) scale(1.03); }
+    100% { transform: translateY(0) rotate(-7deg); }
+  }
   @keyframes pet-evo-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 
   .pet-evo-flash {
@@ -2117,13 +2628,17 @@ const PET_CSS = `
 
   /* ── Stat bars — iOS grouped inset card ── */
   .pet-stats {
-    display: flex; flex-direction: column;
-    background: var(--p-surface); border-radius: 18px;
-    padding: 4px 14px; margin-bottom: 12px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 9px;
+    background: transparent; padding: 0; margin-bottom: 12px;
   }
-  .pet-stat-row { display: flex; align-items: center; gap: 11px; padding: 9px 0; }
-  .pet-stat-row + .pet-stat-row { box-shadow: 0 -0.5px 0 var(--p-sep); }
-  .pet-stat-icon { width: 22px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .pet-stat-row {
+    display: flex; align-items: center; gap: 9px; padding: 10px 12px;
+    background: var(--p-surface); border-radius: 16px;
+    box-shadow: 0 2px 6px rgba(120,80,40,0.06);
+  }
+  .pet-stat-row + .pet-stat-row { box-shadow: 0 2px 6px rgba(120,80,40,0.06); }
+  .pet-stat-icon { width: 24px; height: 24px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .pet-stat-icon img { width: 100%; height: 100%; }
   .pet-stat-track {
     flex: 1; height: 8px; border-radius: 999px;
     background: color-mix(in srgb, var(--p-label) 12%, transparent); overflow: hidden;
@@ -2133,15 +2648,21 @@ const PET_CSS = `
 
   /* ── EXP ── */
   .pet-exp-wrap { margin-bottom: 14px; padding: 0 2px; }
+  .pet-exp-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; font-weight: 700; color: var(--p-gold); margin-bottom: 6px; letter-spacing: -0.01em;
+  }
   .pet-exp-track {
-    height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--p-label) 12%, transparent); overflow: hidden;
+    height: 9px; border-radius: 999px; background: color-mix(in srgb, var(--p-label) 12%, transparent); overflow: hidden;
   }
   .pet-exp-fill {
     height: 100%; border-radius: 999px;
     background: linear-gradient(90deg, var(--p-accent), var(--p-gold));
     transition: width 0.5s ease;
   }
-  .pet-exp-label { font-size: 11px; font-weight: 600; color: var(--p-label-2); margin-top: 7px; text-align: center; letter-spacing: -0.01em; }
+  .pet-meter-sub { font-weight: 500; color: var(--p-label-3); }
+  /* clear separation between the two meters */
+  .pet-meter + .pet-meter { margin-top: 14px; }
 
   /* ── Actions ── */
   .pet-actions { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
@@ -2151,11 +2672,14 @@ const PET_CSS = `
     background: var(--p-surface); border: none;
     border-radius: 18px; padding: 13px 4px; cursor: pointer; color: var(--p-label);
     font-family: inherit; transition: transform 0.18s, background 0.2s;
+    box-shadow: 0 3px 8px rgba(120,80,40,0.08);
   }
-  .pet-action-btn:hover:not(:disabled) { background: var(--p-surface-2); }
+  .pet-action-btn:hover:not(:disabled) { background: var(--p-surface-2); transform: translateY(-2px); }
   .pet-action-btn:active:not(:disabled) { transform: scale(0.93); }
   .pet-action-btn:disabled { opacity: 0.4; cursor: default; }
-  .pet-action-icon { font-size: 22px; color: var(--ac); display: inline-flex; }
+  .pet-action-btn.dim { opacity: 0.5; }   /* looks unavailable but still clickable → taps show a reason toast */
+  .pet-action-icon { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
+  .pet-action-icon img { width: 100%; height: 100%; }
   .pet-action-label { font-size: 10px; font-weight: 600; color: var(--p-label-2); letter-spacing: -0.01em; }
 
   .pet-roam-toggle {
@@ -2279,7 +2803,52 @@ const PET_CSS = `
   }
   .pet-decor-chip-art {
     height: 52px; display: flex; align-items: flex-end; justify-content: center;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4)); position: relative;
+  }
+  /* Pastel colour picker popup */
+  .pet-color-overlay {
+    position: absolute; inset: 0; z-index: 40;
+    background: rgba(40,30,20,0.45);
+    display: flex; align-items: center; justify-content: center; padding: 18px;
+    animation: pet-fade 0.2s ease;
+  }
+  .pet-color-pop {
+    position: relative;
+    background: var(--p-card); border-radius: 24px; padding: 20px 18px 18px;
+    max-width: 360px; width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35), 0 0 0 1px var(--p-sep) inset;
+    animation: pet-pop 0.32s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .pet-color-close {
+    position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: var(--p-surface); color: var(--p-label-2); cursor: pointer;
+    display: grid; place-items: center; transition: background 0.15s;
+  }
+  .pet-color-close:hover { background: var(--p-surface-2); }
+  .pet-color-head { display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px; }
+  .pet-color-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--p-label-3); }
+  .pet-color-name { font-size: 17px; font-weight: 800; color: var(--p-label); letter-spacing: -0.2px; }
+  .pet-color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .pet-color-chip {
+    position: relative; border: 2px solid rgba(0,0,0,0.06); border-radius: 16px;
+    aspect-ratio: 1 / 1; overflow: hidden; cursor: pointer; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .pet-color-chip > :first-child { width: 46px !important; height: 46px !important; margin-top: 4px; }  /* img or tinted div */
+  .pet-color-chip .pet-color-label {
+    width: 100%; font-size: 9px; font-weight: 800; text-align: center;
+    color: rgba(40,30,20,0.55); padding: 2px 0 3px; letter-spacing: 0.01em;
+  }
+  .pet-color-chip:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,0.16); }
+  .pet-color-chip:active { transform: scale(0.94); }
+  .pet-color-chip.sel { border-color: var(--p-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--p-accent) 35%, transparent); }
+
+  .pet-decor-badge {
+    position: absolute; top: -5px; right: -5px;
+    width: 22px; height: 22px; border-radius: 50%; background: #fff;
+    display: grid; place-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    filter: none;
   }
   .pet-decor-chip {
     display: flex; flex-direction: column; align-items: center; gap: 4px;
@@ -2415,9 +2984,9 @@ const PET_CSS = `
   .pet-bond-wrap { margin-bottom: 12px; padding: 0 2px; }
   .pet-bond-head {
     display: flex; justify-content: space-between; align-items: center;
-    font-size: 12px; font-weight: 600; color: var(--p-pink); margin-bottom: 6px; letter-spacing: -0.01em;
+    font-size: 12px; font-weight: 700; color: var(--p-pink); margin-bottom: 6px; letter-spacing: -0.01em;
   }
-  .pet-bond-track { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--p-label) 12%, transparent); overflow: hidden; }
+  .pet-bond-track { height: 9px; border-radius: 999px; background: color-mix(in srgb, var(--p-label) 12%, transparent); overflow: hidden; }
   .pet-bond-fill {
     height: 100%; border-radius: 999px;
     background: linear-gradient(90deg, #f472b6, #fb7185);

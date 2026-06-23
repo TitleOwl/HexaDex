@@ -5,18 +5,27 @@
 // Same public API as before, so the Changelog UI keeps working unchanged.
 // ═══════════════════════════════════════════════════════════════════════
 
-export const CURRENT_VERSION = "2.0.0";
-const RELEASE_DATE = "2026-06-19";
+export const CURRENT_VERSION = "2.1.0";
+const RELEASE_DATE = "2026-06-23";
 
 // type: feature | fix | ui | perf | security | chore | other
 // (newest first — group by `date` for display)
 // One-line highlight per version (shown at the top of each section)
 export const VERSION_SUMMARY = {
+  "2.1.0": "ยกเครื่องเกมเลี้ยงโปเกมอนใหม่หมด น้องมีชีวิตขึ้นเยอะ เล่นเหมือน The Sims เลย",
   "2.0.0": "อัปเดตใหญ่รอบนี้ แต่งหน้าตาใหม่หมด ใส่เอฟเฟกต์ธาตุในหน้า 3D แล้วก็จูนให้ลื่นขึ้นเยอะ",
   "1.0.0": "เวอร์ชันแรกของ HexaDex เปิดให้ใช้กันแล้ว",
 };
 
 const ENTRIES = [
+  // ─── v2.1.0 — 2026-06-23 ───────────────────────────────────────────
+  { version: "2.1.0", type: "feature", date: "2026-06-23", message: "น้องพูดได้ เดิน-วิ่ง-นอนสมจริงขึ้น และทำกิจกรรมมีหลอดเวลาแบบ The Sims" },
+  { version: "2.1.0", type: "feature", date: "2026-06-23", message: "แต่งห้องได้กว้างขึ้น 3 โซน + เลือกสีเฟอร์นิเจอร์เป็นโทนพาสเทล + เพิ่มหมวดห้องน้ำ" },
+  { version: "2.1.0", type: "feature", date: "2026-06-23", message: "น้องตามมาที่หน้าจับโปเกมอน แถมแบ่งเหรียญโบนัสให้ตามความผูกพัน" },
+  { version: "2.1.0", type: "feature", date: "2026-06-23", message: "มีจุดแจ้งเตือนบนแท็บเกมเวลาน้องหิว/ง่วง/อยากเล่น" },
+  { version: "2.1.0", type: "ui",      date: "2026-06-23", message: "เฟอร์นิเจอร์และไอคอนสวยขึ้น (โทนมันวาว) + รองรับใส่รูปฉากห้องเอง" },
+  { version: "2.1.0", type: "perf",    date: "2026-06-23", message: "จูนการดูแลน้องให้สมจริงและเสถียรขึ้น (สถิติลดช้าลง กันกดรัว)" },
+
   // ─── v2.0.0 — 2026-06-19 ───────────────────────────────────────────
   { version: "2.0.0", type: "feature", date: "2026-06-19", message: "ใส่เอฟเฟกต์ฉากหลังตามธาตุในหน้า 3D ครบ 18 ธาตุ ไฟก็มีไฟ น้ำก็มีฟอง" },
   { version: "2.0.0", type: "feature", date: "2026-06-19", message: "น้อง Buddy ตามมาเดินเล่นในหน้าจับโปเกมอนด้วย แถมกระโดดดีใจตอนจับได้" },

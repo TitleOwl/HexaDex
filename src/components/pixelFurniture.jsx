@@ -48,6 +48,66 @@ export function PixelArt({ rows, scale = 4, pixel = 1, style, className }) {
   );
 }
 
+// Map furniture → pretty Fluent Emoji (free Iconify API). Items without a good
+// match keep the in-house pixel art.
+const FURNI_ICON = {
+  sofa: "couch-and-lamp", armchair: "couch-and-lamp",
+  tv: "television", lamp: "light-bulb", floorlamp: "light-bulb",
+  shelf: "books", bed: "bed", plush: "teddy-bear", toybox: "teddy-bear",
+  plant: "potted-plant", flower: "hibiscus", cactus: "cactus", bonsai: "deciduous-tree",
+  tulip: "tulip", sunflower: "sunflower", palm: "palm-tree",
+  painting: "framed-picture", poster: "framed-picture", "aqua-mirror": "mirror",
+  clock: "mantelpiece-clock", window: "window", balloon: "balloon",
+  aquarium: "tropical-fish", trophy: "trophy", guitar: "guitar",
+  kettle: "teapot", fruitbowl: "red-apple", candle: "candle", gift: "wrapped-gift",
+  diningtable: "fork-and-knife-with-plate",
+  bathtub: "bathtub", toilet: "toilet", shower: "shower", duck: "duck", soap: "soap",
+};
+const ICONIFY = "https://api.iconify.design/fluent-emoji/"; // glossy / 3D-ish — prettier than flat
+
+// Render a furniture piece: a pretty emoji image when mapped, else pixel art.
+// `tint` is an optional exact colour (pastel recolour) — the icon is used as a
+// mask filled with that colour, so the result matches the chosen swatch exactly.
+export function FurnitureArt({ item, scale = 4, tint }) {
+  const icon = FURNI_ICON[item.id];
+  const shadow = "drop-shadow(0 3px 4px rgba(0,0,0,0.22))";
+  if (icon) {
+    const w = item.rows.reduce((m, r) => Math.max(m, r.length), 0);
+    const h = item.rows.length;
+    const size = Math.round(Math.max(w, h) * scale * 1.7); // bigger, easier to see
+    const url = `${ICONIFY}${icon}.svg`;
+    if (tint) {
+      // recolour but KEEP the art's shading/detail: overlay the pastel with the
+      // "color" blend mode (takes the colour's hue, keeps the image's light/dark),
+      // masked to the icon so only the furniture is tinted.
+      const maskStyle = {
+        WebkitMaskImage: `url(${url})`, maskImage: `url(${url})`,
+        WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
+        WebkitMaskSize: "contain", maskSize: "contain",
+        WebkitMaskPosition: "center", maskPosition: "center",
+      };
+      return (
+        <div role="img" aria-label={item.en} style={{
+          position: "relative", width: size, height: size, display: "block",
+          isolation: "isolate", filter: shadow,
+        }}>
+          <img src={url} alt="" draggable={false} loading="lazy"
+            style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }} />
+          <div style={{ position: "absolute", inset: 0, backgroundColor: tint, mixBlendMode: "color", ...maskStyle }} />
+          {/* a soft pastel wash to lift it toward a lighter, pastel tone */}
+          <div style={{ position: "absolute", inset: 0, backgroundColor: tint, mixBlendMode: "soft-light", opacity: 0.5, ...maskStyle }} />
+        </div>
+      );
+    }
+    return (
+      <img src={url} alt={item.en} width={size} height={size}
+        draggable={false} loading="lazy"
+        style={{ display: "block", objectFit: "contain", filter: shadow }} />
+    );
+  }
+  return <PixelArt rows={item.rows} scale={scale} />;
+}
+
 // ─── Furniture catalog ───
 // cat: living | bed | plant | decor    pos: room placement    z: depth
 export const FURNITURE = [
@@ -107,7 +167,7 @@ export const FURNITURE = [
   ]},
 
   // ── Bedroom ──
-  { id: "bed", cat: "bed", th: "เตียง", en: "Bed", scale: 4, z: 2, pos: { left: "2%", bottom: "8px" }, rows: [
+  { id: "bed", cat: "bed", th: "เตียง", en: "Bed", scale: 7, z: 2, pos: { left: "2%", bottom: "8px" }, rows: [
     ".oooooooooooo.",
     "oFFFobbbbbbbbo",
     "oFFFobbbbbbbbo",
@@ -451,13 +511,56 @@ export const FURNITURE = [
     "oryro",
     "ooooo",
   ]},
+
+  // ── Bathroom ──
+  { id: "bathtub", cat: "bath", th: "อ่างอาบน้ำ", en: "Bathtub", scale: 4, rows: [
+    ".oooooooooo.",
+    "obFFFFFFFFbo",
+    "obFeeeeeeFbo",
+    "obFeeeeeeFbo",
+    "obFFFFFFFFbo",
+    ".oWW....WWo.",
+  ]},
+  { id: "toilet", cat: "bath", th: "ชักโครก", en: "Toilet", scale: 4, rows: [
+    ".oooo..",
+    ".oFFo..",
+    ".oFFo..",
+    "ooooooo",
+    "oFFFFFo",
+    "oFFFFFo",
+    ".ooooo.",
+  ]},
+  { id: "shower", cat: "bath", th: "ฝักบัว", en: "Shower", scale: 4, rows: [
+    "..oooo..",
+    ".oggggo.",
+    "..oooo..",
+    "...o....",
+    "..eee...",
+    "..eee...",
+    "..eee...",
+  ]},
+  { id: "duck", cat: "bath", th: "เป็ดยาง", en: "Rubber Duck", scale: 4, rows: [
+    "...yy..",
+    "..yyyy.",
+    ".oyyyy.",
+    ".yyyyyr",
+    "..yyy..",
+  ]},
+  { id: "soap", cat: "bath", th: "สบู่", en: "Soap", scale: 4, rows: [
+    ".ccc.",
+    "ccccc",
+    "ccccc",
+    ".ccc.",
+  ]},
 ];
 
 export const FURNITURE_BY_ID = Object.fromEntries(FURNITURE.map(f => [f.id, f]));
 
 export const FURNITURE_CATS = [
+  { id: "essentials", th: "จำเป็น",     en: "Essentials" },
   { id: "living",  th: "ห้องนั่งเล่น", en: "Living" },
   { id: "bed",     th: "ห้องนอน",     en: "Bedroom" },
+  { id: "bath",    th: "ห้องน้ำ",      en: "Bathroom" },
   { id: "kitchen", th: "ครัว",        en: "Kitchen" },
   { id: "plant",   th: "ต้นไม้",       en: "Plants" },
   { id: "decor",   th: "ของแต่ง",      en: "Decor" },
