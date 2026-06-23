@@ -1,4 +1,4 @@
-const CACHE = "hexadex-v1";
+const CACHE = "hexadex-v2";
 const STATIC = ["/", "/index.html"];
 
 self.addEventListener("install", e => {

@@ -1033,16 +1033,6 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
     const liked = a.kind && a.kind === pers.likes;
     const disliked = a.kind && a.kind === pers.dislikes;
 
-    const stats = { ...pet.stats };
-    for (const k in a.d) {
-      let delta = a.d[k];
-      if (k === "happy" && delta > 0) {
-        if (liked) delta = Math.round(delta * 1.5);
-        else if (disliked) delta = Math.round(delta * 0.5);
-      }
-      stats[k] = clamp(stats[k] + delta);
-    }
-
     // Bond: petting builds it most; a favourite action adds extra, a disliked one barely
     let bondGain = a.kind === "pat" ? 6 : 3;
     if (liked) bondGain += 4;
@@ -1068,7 +1058,20 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
     if (evolved) { setEvolving(true); setTimeout(() => setEvolving(false), 2600); }
     else if (leveled) { setLevelFlash(true); setTimeout(() => setLevelFlash(false), 1200); }
 
-    setPet(prev => prev && ({ ...prev, stats, level, exp, stage, bond, lastTick: Date.now() }));
+    // Apply onto the LATEST stats (functional update) so live-filled needs aren't reverted
+    setPet(prev => {
+      if (!prev) return prev;
+      const s = { ...prev.stats };
+      for (const k in a.d) {
+        let delta = a.d[k];
+        if (k === "happy" && delta > 0) {
+          if (liked) delta = Math.round(delta * 1.5);
+          else if (disliked) delta = Math.round(delta * 0.5);
+        }
+        s[k] = clamp((prev.stats[k] ?? 0) + delta);
+      }
+      return { ...prev, stats: s, level, exp, stage, bond, lastTick: Date.now() };
+    });
 
     // ── lifetime counters + achievements ──
     if (a.kind === "feed") { const l = bumpLife("feeds"); if (l.feeds >= 25) fireAch("feed25"); }
