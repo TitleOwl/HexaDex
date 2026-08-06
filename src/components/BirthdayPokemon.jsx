@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Cake, Download, Loader2, X, Search } from "lucide-react";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
-import { typeColor, getArt, getLocalName, padId } from "../utils.js";
+import { typeColor, getArt, getLocalName, padId, birthdayToPokemonId } from "../utils.js";
 import { useModalLifecycle } from "../perfUtils.js";
 import { MINIMAL_FEATURE_CSS } from "./MetaTierBrowser.jsx";
 
@@ -51,14 +51,6 @@ const BP_CSS = `
   .bp-btn.ghost { background: var(--bg-muted); color: var(--text-primary); }
   .bp-btn:disabled { opacity: 0.5; cursor: default; }
 `;
-
-// ─── Deterministic hash: birthday → Pokémon ID ───
-function birthdayToPokemonId(birthday, maxId = 1025) {
-  const [y, m, d] = birthday.split("-").map(Number);
-  let h = (y * 10000) + (m * 100) + d;
-  h = ((h * 2654435761) >>> 0) & 0x7fffffff;
-  return (h % maxId) + 1;
-}
 
 // Lucky number: sum of digits in birthday (reduced to 1-9)
 function getLuckyNumber(birthday) {

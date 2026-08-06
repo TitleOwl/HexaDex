@@ -7,6 +7,7 @@ import {
 import Catch3DPokemon from "./Catch3DPokemon.jsx";
 import CatchBattleMusic from "./CatchBattleMusic.jsx";
 import BiomeScene from "./BiomeScene.jsx";
+import CatchLeaderboard from "./CatchLeaderboard.jsx";
 import { catchSounds } from "../catchSounds.js";
 import { useWeather } from "../useWeather.js";
 
@@ -605,6 +606,7 @@ export default function CatchAnimation({ pokemon, lang = "en", shiny = false, on
   const [berryId, setBerryId] = useState(null);
   const [showBallPicker, setShowBallPicker] = useState(false);
   const [showBerryPicker, setShowBerryPicker] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [dragPath, setDragPath] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [ballTilt, setBallTilt] = useState(0); // (legacy) ball lean — kept harmless
@@ -1299,7 +1301,10 @@ export default function CatchAnimation({ pokemon, lang = "en", shiny = false, on
           {combo > 1 && (
             <div className="catch-go-combo-badge"><Zap size={13} strokeWidth={2.6} /> {combo}× combo</div>
           )}
-          <div className="catch-go-counter-badge"><Trophy size={14} strokeWidth={2.3} /> {caughtCount}</div>
+          <button type="button" className="catch-go-counter-badge" onClick={() => setShowLeaderboard(true)}
+            title={lang === "th" ? "ดูอันดับนักจับ" : "View leaderboard"}>
+            <Trophy size={14} strokeWidth={2.3} /> {caughtCount}
+          </button>
         </div>
       </div>
 
@@ -1671,6 +1676,11 @@ export default function CatchAnimation({ pokemon, lang = "en", shiny = false, on
       {showBerryPicker && (
         <BerryPicker selectedId={berryId} onSelect={setBerryId}
           onClose={() => setShowBerryPicker(false)} lang={lang} />
+      )}
+
+      {/* 🏆 Catch leaderboard — opened by tapping the catch-counter badge */}
+      {showLeaderboard && (
+        <CatchLeaderboard lang={lang} onClose={() => setShowLeaderboard(false)} />
       )}
 
       {/* 🎓 Tutorial overlay — shown on first open + reopened via ? button */}

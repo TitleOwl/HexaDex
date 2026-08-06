@@ -6,6 +6,8 @@
 // Cute 8-bit animated sprites (gen-5 Black/White) with pixel fallback.
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import QRCode from "qrcode";
+import jsQR from "jsqr";
 import {
   X, Coins, ShoppingBag, ClipboardList, ArrowUp,
   Utensils, Droplets, Moon, Heart, Gamepad2,
@@ -542,6 +544,152 @@ function CuteIcon({ name, size = 22 }) {
 const STAT_ICON = { hunger: "poultry-leg", happy: "smiling-face-with-smiling-eyes", energy: "high-voltage", clean: "droplet" };
 const ACT_ICON  = { feed: "poultry-leg", play: "tennis", bath: "bubbles", rest: "sleeping-face", pat: "sparkling-heart" };
 
+// ═══════════════════════════════════════════════════════════
+// ─── 🌦️ Feature 1: Room Weather (real clock + season) ───────────────────────
+const WEATHER_TYPES = {
+  sunny:   { emoji: "☀️", th: "แดดออก",    en: "Sunny",   bonus: { happy: 0.5 } },
+  rain:    { emoji: "🌧️", th: "ฝนตก",      en: "Rainy",   bonus: { clean: 0.3 } },
+  snow:    { emoji: "❄️", th: "หิมะตก",    en: "Snowy",   bonus: {} },
+  blossom: { emoji: "🌸", th: "ดอกไม้บาน", en: "Blossom", bonus: { happy: 0.3 } },
+  autumn:  { emoji: "🍂", th: "ใบไม้ร่วง",  en: "Autumn",  bonus: {} },
+  night:   { emoji: "🌙", th: "กลางคืน",   en: "Night",   bonus: { energy: 0.2 } },
+  storm:   { emoji: "⛈️", th: "พายุฝน",    en: "Stormy",  bonus: { clean: 0.5 } },
+};
+
+function calcWeather(date = new Date()) {
+  const h = date.getHours(), m = date.getMonth() + 1, d = date.getDate();
+  if (h >= 21 || h < 6) return "night";
+  const seed = (date.getFullYear() * 10000 + m * 100 + d) % 7;
+  if (m === 12 || m <= 2) return seed < 2 ? "snow" : "sunny";
+  if (m >= 3 && m <= 5) return seed < 3 ? "blossom" : seed < 5 ? "rain" : "sunny";
+  if (m >= 6 && m <= 8) return seed < 2 ? "storm" : seed < 4 ? "rain" : "sunny";
+  return seed < 3 ? "autumn" : seed < 5 ? "rain" : "sunny";
+}
+
+function WeatherLayer({ type }) {
+  if (!type || type === "sunny") return null;
+  if (type === "rain" || type === "storm") return (
+    <div className="wx-layer wx-rain" aria-hidden>
+      {Array.from({ length: 16 }).map((_, i) => (
+        <div key={i} className="wx-drop" style={{ left: `${(i * 397) % 90 + 4}%`, animationDelay: `${((i * 0.13) % 0.9).toFixed(2)}s`, animationDuration: `${0.5 + (i % 4) * 0.08}s` }} />
+      ))}
+    </div>
+  );
+  if (type === "snow") return (
+    <div className="wx-layer wx-snow" aria-hidden>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <span key={i} className="wx-flake" style={{ left: `${(i * 503) % 88 + 4}%`, animationDelay: `${((i * 0.21) % 1.5).toFixed(2)}s`, animationDuration: `${2 + (i % 5) * 0.3}s`, fontSize: `${8 + (i % 3) * 4}px` }}>❄</span>
+      ))}
+    </div>
+  );
+  if (type === "blossom") return (
+    <div className="wx-layer" aria-hidden>
+      {Array.from({ length: 10 }).map((_, i) => (
+        <span key={i} className="wx-petal" style={{ left: `${(i * 431) % 88 + 4}%`, animationDelay: `${((i * 0.25) % 2).toFixed(2)}s`, animationDuration: `${2.5 + (i % 4) * 0.4}s` }}>🌸</span>
+      ))}
+    </div>
+  );
+  if (type === "autumn") return (
+    <div className="wx-layer" aria-hidden>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <span key={i} className="wx-petal" style={{ left: `${(i * 479) % 88 + 4}%`, animationDelay: `${((i * 0.3) % 2).toFixed(2)}s`, animationDuration: `${2 + (i % 3) * 0.5}s`, fontSize: "14px" }}>🍂</span>
+      ))}
+    </div>
+  );
+  if (type === "night") return (
+    <div className="wx-layer wx-night" aria-hidden>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <span key={i} className="wx-star" style={{ left: `${(i * 421) % 86 + 4}%`, top: `${(i * 317) % 45 + 4}%`, animationDelay: `${((i * 0.37) % 2).toFixed(2)}s` }}>✦</span>
+      ))}
+    </div>
+  );
+  return null;
+}
+
+function todayDateKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// ─── 🎪 Feature 2: Seasonal Events ──────────────────────────────────────────
+const SEASONAL_EVENTS = [
+  { key: "xmas",      check: (m, d) => m === 12 && d >= 24 && d <= 26, emoji: "🎄", coins: 20,
+    th: "สุขสันต์วันคริสต์มาส!", en: "Merry Christmas!" },
+  { key: "newyear",   check: (m, d) => m === 1 && d === 1,             emoji: "🎆", coins: 30,
+    th: "สวัสดีปีใหม่!",          en: "Happy New Year!" },
+  { key: "valentine", check: (m, d) => m === 2 && d === 14,            emoji: "💕", coins: 15,
+    th: "Happy Valentine's!",    en: "Happy Valentine's!" },
+  { key: "halloween", check: (m, d) => m === 10 && d === 31,           emoji: "🎃", coins: 15,
+    th: "Happy Halloween!",      en: "Happy Halloween!" },
+];
+function getSeasonalEvent(now, bornAt) {
+  const d = new Date(now), m = d.getMonth() + 1, day = d.getDate();
+  if (bornAt) {
+    const born = new Date(bornAt);
+    if (born.getMonth() + 1 === m && born.getDate() === day && now - bornAt >= 365 * 86400000)
+      return { key: "birthday", emoji: "🎂", coins: 25, th: "วันเกิดน้องครบ 1 ปี!", en: "Buddy's 1st Birthday!" };
+  }
+  return SEASONAL_EVENTS.find(e => e.check(m, day)) ?? null;
+}
+
+
+// ─── QR Save / Load ──────────────────────────────────────────────────────────
+const QR_LS_KEYS = {
+  pet:   SAVE_KEY,                    // pkdx_pet_v1
+  coins: "pkdx_pet_coins",
+  food:  "pkdx_pet_food",
+  quest: "pkdx_pet_quests",
+  streak:"pkdx_pet_streak",
+  ach:   "pkdx_pet_ach",
+  life:  "pkdx_pet_life",
+  hall:  "pkdx_pet_hall",
+};
+
+function buildSavePayload() {
+  const out = { v: 1 };
+  for (const [k, lsKey] of Object.entries(QR_LS_KEYS)) {
+    try { const raw = localStorage.getItem(lsKey); if (raw) out[k] = JSON.parse(raw); } catch {}
+  }
+  return out;
+}
+
+async function generateQRDataUrl(payload) {
+  const json = JSON.stringify(payload);
+  const b64  = btoa(unescape(encodeURIComponent(json))); // UTF-8 safe base64
+  return QRCode.toDataURL(b64, { errorCorrectionLevel: "L", margin: 2, width: 320 });
+}
+
+function restoreFromPayload(payload) {
+  for (const [k, lsKey] of Object.entries(QR_LS_KEYS)) {
+    if (payload[k] !== undefined) {
+      try { localStorage.setItem(lsKey, JSON.stringify(payload[k])); } catch {}
+    }
+  }
+}
+
+async function scanQRFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const result = jsQR(imgData.data, imgData.width, imgData.height);
+      if (!result) return reject(new Error("ไม่พบ QR code ในภาพ"));
+      try {
+        const json = decodeURIComponent(escape(atob(result.data)));
+        const payload = JSON.parse(json);
+        if (!payload.v) throw new Error("ไฟล์ไม่ถูกต้อง");
+        resolve(payload);
+      } catch { reject(new Error("QR code ไม่ถูกต้อง")); }
+    };
+    img.onerror = () => reject(new Error("โหลดภาพไม่ได้"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   useModalLifecycle(onClose);
   const t = (th, en, ja) => lang === "th" ? th : lang === "ja" ? (ja ?? en) : en;
@@ -595,6 +743,9 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   const [showAch, setShowAch] = useState(false);       // achievements panel
   const [showHall, setShowHall] = useState(false);     // hall of fame
   const [showGame, setShowGame] = useState(false);     // berry-catch mini-game
+  const [roomWeather, setRoomWeather] = useState(() => calcWeather());
+  const [seasonalEvent, setSeasonalEvent] = useState(null);
+  const [seenEventKey, setSeenEventKey] = useState(() => { try { return localStorage.getItem("pkdx_seen_event") ?? ""; } catch { return ""; } });
   const [achToast, setAchToast] = useState(null);      // newly-unlocked achievement
   const [achState, setAchState] = useState(() => readAchievements());
   const [hall, setHall] = useState(() => readHall());
@@ -602,6 +753,11 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   const [streakReward, setStreakReward] = useState(null); // coins from daily bonus
   const [evoChoosing, setEvoChoosing] = useState(false);  // Eevee branch picker
   const [showSettings, setShowSettings] = useState(false);
+  const [showQR, setShowQR] = useState(null);   // null | "save" | "load"
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [qrStatus, setQrStatus] = useState(null); // null | "loading" | "ok" | "error"
+  const [qrMsg, setQrMsg] = useState("");
+  const qrFileRef = useRef(null);
   const [sfxOn, setSfxOn] = useState(() => { try { return localStorage.getItem("pkdx_pet_sfx") !== "0"; } catch { return true; } });
   const [away, setAway] = useState(null); // "while you were away" summary
   const [showIntro, setShowIntro] = useState(() => {
@@ -800,6 +956,26 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
     const iv = setInterval(applyDecay, 5000);
     return () => clearInterval(iv);
   }, [pet?.base]);
+
+  // ─── Weather: recalc every 5 min ───
+  useEffect(() => {
+    const iv = setInterval(() => setRoomWeather(calcWeather()), 5 * 60 * 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // ─── Seasonal Events: check once on open ───
+  useEffect(() => {
+    if (!pet) return;
+    const ev = getSeasonalEvent(Date.now(), pet.bornAt);
+    setSeasonalEvent(ev);
+    if (ev && seenEventKey !== `${ev.key}-${todayDateKey()}`) {
+      const newKey = `${ev.key}-${todayDateKey()}`;
+      setSeenEventKey(newKey);
+      try { localStorage.setItem("pkdx_seen_event", newKey); } catch {}
+      awardCoins(ev.coins);
+      setCoins(readCoins());
+    }
+  }, [pet?.bornAt]);
 
   // Keep the walk-freeze flag in sync (no rAF restart).
   // Buddy stops to react during any action pose / evolving / editing.
@@ -1444,7 +1620,14 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
                 </div>
                 <div className="room-baseboard" />
                 <RoomAmbient tokens={th.ambient} />
+                <WeatherLayer type={roomWeather} />
                 <div className="room-vignette" />
+                {seasonalEvent && (
+                  <div className="pet-seasonal-banner" aria-label={seasonalEvent.en}>
+                    <span>{seasonalEvent.emoji}</span>
+                    <span className="pet-seasonal-label">{lang === "th" ? seasonalEvent.th : seasonalEvent.en}</span>
+                  </div>
+                )}
                 {/* Optional pretty backdrop image — drop public/rooms/<theme>.jpg to use it */}
                 {!roomImgBad[themeId] && (
                   <img className="room-photo" aria-hidden alt=""
@@ -1515,6 +1698,12 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
             <button className="pet-edit-room" onClick={() => setEditingRoom(true)}>
               <Sofa size={14} strokeWidth={2.2} /> {t("ห้องของฉัน","My Room","マイルーム")}
             </button>
+          )}
+          {/* Weather badge */}
+          {!evolving && !editingRoom && roomWeather && WEATHER_TYPES[roomWeather] && (
+            <div className="pet-weather-badge" title={lang === "th" ? WEATHER_TYPES[roomWeather].th : WEATHER_TYPES[roomWeather].en}>
+              {WEATHER_TYPES[roomWeather].emoji}
+            </div>
           )}
 
           {/* Edit-mode hint */}
@@ -1909,6 +2098,17 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
           <BerryCatchGame lang={lang} onClose={() => setShowGame(false)} onFinish={handleGameFinish} />
         )}
 
+        {/* ─── 🎪 Seasonal Event toast ─── */}
+        {seasonalEvent && seenEventKey === `${seasonalEvent.key}-${todayDateKey()}` && (
+          <div className="pet-ach-toast" style={{ background: "color-mix(in srgb, var(--p-accent) 12%, var(--p-surface))" }}>
+            <div className="pet-ach-toast-icon" style={{ fontSize: 22 }}>{seasonalEvent.emoji}</div>
+            <div>
+              <div className="pet-ach-toast-label">{lang === "th" ? seasonalEvent.th : seasonalEvent.en}</div>
+              <div className="pet-ach-toast-name"><Coins size={11} strokeWidth={2.3} style={{ color: "var(--p-gold)", verticalAlign: "-1px" }} /> +{seasonalEvent.coins} {t("เหรียญ","coins","コイン")}</div>
+            </div>
+          </div>
+        )}
+
         {/* ─── Achievements ─── */}
         {showAch && (
           <div className="pet-sheet-overlay" onClick={() => setShowAch(false)}>
@@ -2046,6 +2246,21 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
                 <span className="pet-setting-ic">{sfxOn ? <Volume2 size={18} strokeWidth={2.2} /> : <VolumeX size={18} strokeWidth={2.2} />}</span>
                 <span className="pet-setting-label">{t("เสียงเอฟเฟกต์","Sound effects","こうかおん")}</span>
                 <span className={`pet-toggle${sfxOn ? " on" : ""}`}><span className="pet-toggle-knob" /></span>
+              </button>
+              {/* ── QR Save / Load ── */}
+              <button className="pet-setting-row" onClick={async () => {
+                setShowQR("save"); setQrStatus("loading"); setQrDataUrl(null);
+                try {
+                  const url = await generateQRDataUrl(buildSavePayload());
+                  setQrDataUrl(url); setQrStatus("ok");
+                } catch { setQrStatus("error"); setQrMsg(t("สร้าง QR ไม่ได้","Failed to generate QR","QR生成失敗")); }
+              }}>
+                <span className="pet-setting-ic" style={{ fontSize: 18 }}>📲</span>
+                <span className="pet-setting-label">{t("บันทึกเป็น QR Code","Save as QR Code","QRコードで保存")}</span>
+              </button>
+              <button className="pet-setting-row" onClick={() => { setShowQR("load"); setQrStatus(null); setQrMsg(""); }}>
+                <span className="pet-setting-ic" style={{ fontSize: 18 }}>📷</span>
+                <span className="pet-setting-label">{t("โหลดจาก QR Code","Load from QR Code","QRコードで読み込む")}</span>
               </button>
               <button className="pet-setting-row danger" onClick={() => { if (confirm(t("ปล่อยน้องคืนธรรมชาติ? (จะถูกเก็บในคอลเลกชัน)","Release this buddy? (it will be saved to your Collection)","にがしますか？"))) { releaseBuddy(); setShowSettings(false); } }}>
                 <span className="pet-setting-ic"><Trash2 size={18} strokeWidth={2.2} /></span>
@@ -3182,4 +3397,43 @@ const PET_CSS = `
     .pet-edit-room { animation: none; }
     .rs-snow, .rs-balloon, .rs-leaf, .rw-star, .rw-snow { animation: none; }
   }
+
+  /* ── 🌦️ Weather Layer ── */
+  .wx-layer {
+    position: absolute; inset: 0; pointer-events: none; z-index: 4; overflow: hidden;
+  }
+  .wx-drop {
+    position: absolute; top: -10px; width: 1.5px; height: 14px;
+    background: linear-gradient(to bottom, transparent, rgba(120,180,255,0.55));
+    border-radius: 2px;
+    animation: wx-fall linear infinite;
+  }
+  .wx-flake { position: absolute; top: -20px; color: rgba(200,230,255,0.85); animation: wx-fall linear infinite; }
+  .wx-petal { position: absolute; top: -24px; font-size: 12px; animation: wx-spiral linear infinite; }
+  .wx-star  { position: absolute; color: rgba(255,240,180,0.85); font-size: 9px; animation: wx-twinkle ease-in-out infinite; }
+  .wx-night { background: rgba(10,10,40,0.12); }
+  @keyframes wx-fall    { from { transform: translateY(0) rotate(0deg);   opacity: 1;   } to { transform: translateY(260px) rotate(20deg); opacity: 0; } }
+  @keyframes wx-spiral  { from { transform: translateY(0) rotate(0deg) translateX(0);  opacity: 1;   } to { transform: translateY(260px) rotate(360deg) translateX(20px); opacity: 0; } }
+  @keyframes wx-twinkle { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+
+  /* ── 🎪 Seasonal Event Banner ── */
+  .pet-seasonal-banner {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    display: inline-flex; align-items: center; gap: 6px; z-index: 12; pointer-events: none;
+    background: rgba(0,0,0,0.45); backdrop-filter: blur(6px);
+    border-radius: 999px; padding: 4px 12px 4px 8px;
+    animation: pet-seasonal-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .pet-seasonal-label { font-size: 12px; font-weight: 800; color: #fff; letter-spacing: -0.01em; white-space: nowrap; }
+  @keyframes pet-seasonal-in { from { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.85); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+
+  /* ── ⛅ Weather Badge ── */
+  .pet-weather-badge {
+    position: absolute; bottom: 46px; right: 10px; z-index: 12;
+    font-size: 18px; background: rgba(0,0,0,0.35); backdrop-filter: blur(4px);
+    border-radius: 999px; width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+
 `;

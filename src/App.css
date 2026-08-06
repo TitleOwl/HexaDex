@@ -12047,13 +12047,20 @@ main.powerup-wrap {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: #fff;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: opacity 0.15s;
 }
+.catch-go-counter-badge:hover { opacity: 0.8; }
 
 /* ─── Name banner + types (Japandi Zen) ──────────────────────── */
 .catch-go-name-banner {
@@ -14984,3 +14991,849 @@ html.perf-lite {
   animation: mode-tab-dot-pulse 1.6s ease-in-out infinite;
 }
 @keyframes mode-tab-dot-pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.7; } }
+
+/* ============================================================
+   AUTH — Login / Register (minimal-luxe, matches Settings drawer)
+   ============================================================ */
+
+/* Header button — same chrome as .settings-btn / .theme-toggle */
+.auth-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.85);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.22s ease;
+  backdrop-filter: blur(8px);
+}
+.auth-btn:hover { background: rgba(255,255,255,0.20); color: #fff; border-color: rgba(255,255,255,0.35); }
+.auth-btn-skeleton { opacity: 0.4; pointer-events: none; }
+.auth-btn-user { padding: 0; border-color: rgba(255,255,255,0.25); }
+.auth-avatar {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-radius: 50%;
+}
+
+/* Overlay + drawer */
+.auth-overlay {
+  position: fixed; inset: 0;
+  background: rgba(20,16,14,0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.2s;
+}
+.auth-drawer {
+  /* A stronger "well" surface for anything sitting on the card (inputs,
+     tiles, chips) — --bg-muted is too close to --bg-card to read as a
+     distinct surface, so push it a fixed amount further from the card
+     in whichever direction (darker in light mode, lighter in dark). */
+  --auth-well-bg: color-mix(in srgb, #000 5%, var(--bg-muted));
+  --auth-well-border: color-mix(in srgb, #000 16%, var(--border));
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  animation: slideUp 0.3s cubic-bezier(.22,1,.36,1);
+}
+[data-theme="dark"] .auth-drawer {
+  --auth-well-bg: color-mix(in srgb, #fff 7%, var(--bg-muted));
+  --auth-well-border: color-mix(in srgb, #fff 18%, var(--border));
+}
+
+/* Hero — brand banner reused from the header gradient */
+.auth-hero {
+  position: relative;
+  padding: 30px 24px 22px;
+  text-align: center;
+  color: #fff;
+  /* One flat brand color, not a gradient — a diagonal multi-stop blend
+     reads as "patchy fading" at this small a size, it only works across
+     the full-width site header. A single hue with one soft light sheen
+     for depth stays readable as "one color". */
+  background: var(--blue);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+}
+.auth-hero-has-overlap { padding-bottom: 40px; }
+.auth-hero::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 22% -12%, rgba(255,255,255,0.16), transparent 58%);
+  pointer-events: none;
+}
+.auth-close { position: absolute; top: 14px; right: 14px; }
+.auth-hero-mark {
+  position: relative;
+  display: inline-flex;
+  width: 52px; height: 52px;
+  align-items: center; justify-content: center;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.20);
+  backdrop-filter: blur(6px);
+  margin-bottom: 12px;
+}
+.auth-hero-title {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+}
+.auth-hero-sub {
+  position: relative;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.62);
+  margin-top: 4px;
+}
+
+.auth-body { padding: 22px 24px 26px; }
+
+/* Login/register — "colorlib login-v14"-faithful plain card: no hero
+   banner, no icons, left-aligned uppercase title, mode switch as a text
+   link instead of tabs. Only this screen was rebuilt to match the
+   reference; Profile/Starter/Leaderboard keep the branded hero. */
+.auth-plain-card {
+  position: relative;
+  padding: 44px 44px 34px;
+  text-align: left;
+}
+.auth-plain-close {
+  position: absolute;
+  top: 18px; right: 18px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.auth-plain-close:hover { color: var(--text-primary); }
+.auth-plain-title {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  padding-right: 28px;
+  margin-bottom: 26px;
+}
+/* Footer row — switch-mode text on the left, leaderboard link on the
+   right, both left/right-anchored on the same baseline instead of two
+   separately centered lines (that mismatch against the left-aligned
+   title/inputs above was reading as "off"). */
+.auth-plain-footer {
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+.auth-switch {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.auth-switch button {
+  border: none;
+  background: none;
+  color: var(--blue);
+  font-weight: 800;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+}
+.auth-switch button:hover { text-decoration: underline; }
+
+/* Form */
+/* Field rhythm + the "colorlib login-v14" glow-ring focus treatment:
+   a soft, near-invisible resting border with an animated ring that
+   scales in from 106% and fades in on focus, instead of an abrupt
+   border-color swap. */
+.auth-form { display: flex; flex-direction: column; gap: 18px; }
+.auth-field { display: flex; flex-direction: column; gap: 7px; }
+.auth-field span {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.auth-input-wrap { position: relative; display: flex; align-items: center; }
+.auth-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--auth-well-border);
+  background: var(--auth-well-bg);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  transition: background 0.25s ease;
+}
+.auth-input-has-toggle { padding-right: 46px; }
+.auth-input::placeholder { color: var(--text-muted); }
+.auth-input:focus { outline: none; }
+.auth-input-ring {
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--blue);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(1.06);
+  transition: opacity 0.35s cubic-bezier(.22,1,.36,1), transform 0.35s cubic-bezier(.22,1,.36,1);
+}
+.auth-input:focus ~ .auth-input-ring {
+  opacity: 1;
+  transform: scale(1);
+  box-shadow: 0 0 0 4px rgba(144,6,3,0.10);
+}
+.auth-input-toggle {
+  position: absolute; right: 12px;
+  display: flex;
+  padding: 6px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+  z-index: 1;
+}
+.auth-input-toggle:hover { color: var(--text-secondary); background: rgba(0,0,0,0.05); }
+
+/* Remember me + Forgot password row (login only, mirrors colorlib v14) */
+.auth-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -6px;
+}
+.auth-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.auth-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+.auth-forgot-link {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.auth-forgot-link:hover { color: var(--blue); }
+.auth-notice {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--auth-well-bg);
+  border: 1px solid var(--auth-well-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b5302d;
+  background: rgba(181,48,45,0.10);
+  border: 1px solid rgba(181,48,45,0.22);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  line-height: 1.5;
+}
+.auth-submit-btn {
+  /* V14's button isn't full-width — it's a compact pill that sits left,
+     following the same left edge as the labels and title above it. */
+  align-self: flex-start;
+  width: auto;
+  min-width: 180px;
+  height: 52px;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 0 28px;
+  font-weight: 800;
+  font-size: 14.5px;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  box-shadow: 0 4px 12px rgba(144,6,3,0.3);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s, background 0.3s;
+  margin-top: 4px;
+}
+.auth-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6e0402, var(--blue));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(144,6,3,0.4);
+}
+.auth-submit-btn:active:not(:disabled) { transform: translateY(0); }
+.auth-submit-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+/* Logged-in profile card — avatar overlaps the hero seam so the two
+   sections read as one connected card instead of two stacked blocks
+   (this also keeps a clear boundary in dark mode, where hero/body colors
+   are otherwise close enough to blend together). */
+.auth-profile { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.auth-profile-avatar {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  box-shadow: 0 8px 20px rgba(144,6,3,0.35);
+  border: 4px solid var(--bg-card);
+  margin-top: -58px;
+  margin-bottom: 12px;
+}
+.auth-profile-name {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+.auth-profile-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--auth-well-bg);
+  border: 1px solid var(--auth-well-border);
+  border-radius: var(--radius-pill);
+  padding: 5px 14px;
+  margin-top: 10px;
+  margin-bottom: 22px;
+}
+.auth-profile-id-badge strong {
+  font-family: var(--font-display);
+  letter-spacing: 1px;
+  color: var(--blue);
+}
+.auth-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid var(--auth-well-border);
+  background: var(--auth-well-bg);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.auth-logout-btn:hover { border-color: #b5302d; color: #b5302d; }
+
+/* Dark mode */
+[data-theme="dark"] .auth-input-toggle:hover { background: rgba(255,255,255,0.08); }
+[data-theme="dark"] .auth-error { background: rgba(207,90,82,0.14); border-color: rgba(207,90,82,0.3); color: #e8857f; }
+[data-theme="dark"] .auth-profile-id-badge strong { color: var(--cyan); }
+[data-theme="dark"] .auth-logout-btn:hover { border-color: #cf5a52; color: #cf5a52; }
+
+/* Mobile — match the compact header button sizing */
+@media (max-width: 640px) {
+  .auth-btn { width: 34px; height: 34px; }
+  .auth-hero { padding: 26px 20px 20px; }
+  .auth-body { padding: 20px 20px 22px; }
+  .auth-plain-card { padding: 34px 22px 26px; }
+}
+
+/* ============================================================
+   HEADER ACTIONS — modern-minimal icon cluster
+   Utility icons (More / Theme / Settings) share one flat pill so
+   the toolbar reads as a single element instead of four separate
+   floating chips; the profile/login button stays visually distinct
+   past a hairline divider, since it's the odd one out (identity,
+   not a utility toggle).
+   ============================================================ */
+.header-icon-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.header-icon-group .more-menu-btn,
+.header-icon-group .theme-toggle,
+.header-icon-group .settings-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  color: rgba(255,255,255,0.72);
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+.header-icon-group .more-menu-btn:hover,
+.header-icon-group .theme-toggle:hover,
+.header-icon-group .settings-btn:hover {
+  background: rgba(255,255,255,0.14);
+  color: #fff;
+  transform: scale(1.06);
+  box-shadow: none;
+}
+.header-icon-group .theme-toggle.auto {
+  border: none;
+  box-shadow: none;
+  color: var(--gold);
+}
+.header-actions-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,0.14);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .header-icon-group { padding: 2px; gap: 0; }
+  .header-icon-group .more-menu-btn,
+  .header-icon-group .theme-toggle,
+  .header-icon-group .settings-btn { width: 32px; height: 32px; }
+  .header-actions-divider { margin: 0 4px; height: 18px; }
+}
+
+/* ============================================================
+   AUTH — Profile extras (stats, birthday/destiny, starter, leaderboard)
+   ============================================================ */
+
+/* Starter thumbnail inside the header pill + profile avatar */
+.auth-avatar img,
+.auth-profile-avatar img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--blue) 12%, var(--bg-card));
+}
+
+/* Stats row */
+.auth-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin: 4px 0 18px;
+}
+.auth-stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  background: var(--auth-well-bg);
+  border: 1px solid var(--auth-well-border);
+  border-radius: var(--radius-md);
+  color: var(--blue);
+}
+.auth-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.auth-stat-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Birthday → Destiny Pokémon */
+.auth-add-birthday-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  border: 1.5px dashed var(--auth-well-border);
+  background: var(--auth-well-bg);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  line-height: 1.4;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  margin-bottom: 18px;
+  transition: border-color 0.18s, color 0.18s;
+}
+.auth-add-birthday-btn svg { flex-shrink: 0; color: var(--gold); }
+.auth-add-birthday-btn:hover { border-color: var(--blue); color: var(--text-primary); }
+
+.auth-destiny-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: linear-gradient(135deg, var(--gold-light), var(--auth-well-bg));
+  border: 1px solid var(--auth-well-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 18px;
+}
+.auth-destiny-art { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
+.auth-destiny-text { flex: 1; min-width: 0; text-align: left; }
+.auth-destiny-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.auth-destiny-date { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-top: 2px; }
+.auth-destiny-edit {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--auth-well-border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.auth-destiny-edit:hover { border-color: var(--blue); color: var(--blue); }
+
+.auth-birthday-edit {
+  width: 100%;
+  background: var(--auth-well-bg);
+  border: 1px solid var(--auth-well-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 18px;
+}
+.auth-date-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--auth-well-border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+}
+.auth-date-input:focus { outline: none; border-color: var(--blue); }
+.auth-birthday-edit-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* Small secondary buttons (cancel/save, change starter, leaderboard) */
+.auth-mini-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1.5px solid var(--auth-well-border);
+  background: var(--auth-well-bg);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 9px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.16s;
+}
+.auth-mini-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+.auth-mini-btn:disabled { opacity: 0.55; cursor: default; }
+.auth-mini-btn.primary {
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+  border-color: transparent;
+  color: #fff;
+}
+.auth-mini-btn.primary:hover:not(:disabled) { color: #fff; opacity: 0.92; }
+
+.auth-profile-links { display: flex; gap: 8px; width: 100%; margin-bottom: 14px; }
+
+/* Sub-screens (starter picker / leaderboard) */
+.auth-sub-screen { width: 100%; text-align: left; }
+.auth-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 14px;
+}
+.auth-back-btn:hover { color: var(--blue); }
+.auth-sub-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+}
+
+.auth-starter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.auth-starter-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px solid var(--auth-well-border);
+  background: var(--auth-well-bg);
+  border-radius: var(--radius-md);
+  padding: 10px 6px 8px;
+  cursor: pointer;
+  transition: all 0.16s;
+}
+.auth-starter-item img { width: 48px; height: 48px; object-fit: contain; }
+.auth-starter-item span { font-size: 10.5px; font-weight: 700; color: var(--text-secondary); }
+.auth-starter-item:hover:not(:disabled) { border-color: var(--blue); transform: translateY(-1px); }
+.auth-starter-item.active { border-color: var(--blue); background: color-mix(in srgb, var(--blue) 10%, var(--bg-muted)); box-shadow: 0 0 0 1px var(--blue); }
+.auth-starter-item:disabled { opacity: 0.5; cursor: default; }
+
+/* Leaderboard */
+.auth-lb-msg { font-size: 13px; color: var(--text-secondary); text-align: center; padding: 24px 0; }
+.auth-lb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.auth-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+}
+.auth-lb-row.me { background: color-mix(in srgb, var(--blue) 8%, transparent); }
+.auth-lb-rank {
+  width: 20px; flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.auth-lb-avatar {
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--cyan));
+}
+.auth-lb-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auth-lb-count { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 800; color: var(--blue); flex-shrink: 0; }
+.auth-lb-you { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.auth-lb-guest-banner {
+  margin-top: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--auth-well-bg);
+  border: 1px solid var(--auth-well-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+
+/* Dark mode */
+[data-theme="dark"] .auth-destiny-card { background: linear-gradient(135deg, rgba(212,176,120,0.16), var(--auth-well-bg)); }
+[data-theme="dark"] .auth-destiny-edit { background: var(--auth-well-bg); }
+[data-theme="dark"] .auth-date-input { background: var(--auth-well-bg); }
+[data-theme="dark"] .auth-starter-item.active { background: color-mix(in srgb, var(--blue) 18%, var(--auth-well-bg)); }
+
+/* ============================================================
+   CATCH LEADERBOARD — opened from the catch-counter badge inside
+   the catch game (CatchAnimation.jsx). Same modal chrome as the
+   ball/berry pickers there (.catch-go-picker-*) so it layers above
+   the fullscreen game (z-index 9999) instead of the auth modal.
+   ============================================================ */
+.catch-lb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10002;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: catch-go-overlay-in 0.25s ease;
+}
+.catch-lb-card {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  max-width: 380px;
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 26px 22px;
+  position: relative;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
+  animation: catch-go-modal-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.catch-lb-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--auth-well-bg, var(--bg-muted));
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.catch-lb-close:hover { background: var(--blue); color: #fff; }
+.catch-lb-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  padding-right: 26px;
+}
+.catch-lb-title svg { color: var(--gold); flex-shrink: 0; }
+.catch-lb-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
+/* ❤️ Guest favorite → login nudge (iOS-style banner) */
+.fav-login-toast {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 14px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(380px, calc(100vw - 24px));
+  padding: 11px 12px 11px 13px;
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg);
+  animation: fav-toast-in 0.5s var(--ease-spring);
+  cursor: pointer;
+}
+.fav-login-toast.leaving { animation: fav-toast-out 0.28s var(--ease-out) forwards; }
+.fav-login-toast-icon {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--grad-brand); color: #fff;
+  box-shadow: var(--glow-blue);
+}
+.fav-login-toast-body { flex: 1; min-width: 0; }
+.fav-login-toast-title {
+  font-size: 13px; font-weight: 700; color: var(--text-primary);
+  letter-spacing: -0.01em; line-height: 1.25;
+}
+.fav-login-toast-sub {
+  font-size: 11.5px; font-weight: 500; color: var(--text-secondary);
+  line-height: 1.35; margin-top: 2px;
+}
+.fav-login-toast-cta {
+  flex-shrink: 0; border: none; cursor: pointer; font-family: inherit;
+  padding: 7px 14px; border-radius: var(--radius-pill);
+  background: var(--grad-brand); color: #fff;
+  font-size: 12.5px; font-weight: 700;
+  box-shadow: var(--glow-blue);
+  transition: transform 0.15s var(--ease-out);
+}
+.fav-login-toast-cta:active { transform: scale(0.94); }
+@keyframes fav-toast-in {
+  from { opacity: 0; transform: translate(-50%, -22px) scale(0.94); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+@keyframes fav-toast-out {
+  from { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -14px) scale(0.96); }
+}
+@media (max-width: 480px) {
+  .fav-login-toast-sub { display: none; }
+}
+
+/* ⏳ Suspense fallback for lazy-loaded tabs/overlays (chunk still fetching) */
+.view-loading {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 50vh;
+}
+.overlay-loading {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+.loading-spinner {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  animation: loading-spin 0.7s linear infinite;
+}
+@keyframes loading-spin { to { transform: rotate(360deg); } }

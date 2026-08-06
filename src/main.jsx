@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './responsive.css'
 import { applyPerfMode } from './perfMode.js'
+import { AuthProvider } from './AuthContext.jsx'
 
 // Heavy effects (backdrop blur, many infinite animations) run smoothly on Apple
 // GPUs but stutter on most Windows/Linux/low-end machines. Resolve the saved /
@@ -11,6 +12,8 @@ applyPerfMode()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 )

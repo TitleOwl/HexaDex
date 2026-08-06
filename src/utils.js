@@ -274,6 +274,19 @@ export function getDailyPokemonId(maxId = 1025) {
   return (h % maxId) + 1;
 }
 
+// ─── Birthday Pokemon ID (deterministic by a "YYYY-MM-DD" string) ─────────────
+// Shared by BirthdayPokemon.jsx (full horoscope) and the profile card (small preview).
+export function birthdayToPokemonId(birthday, maxId = 1025) {
+  const [y, m, d] = birthday.split("-").map(Number);
+  let h = (y * 10000) + (m * 100) + d;
+  h = ((h * 2654435761) >>> 0) & 0x7fffffff;
+  return (h % maxId) + 1;
+}
+
+// ─── Official-artwork sprite by id, no full Pokemon object needed ─────────────
+export const artworkUrl = (id) =>
+  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+
 // ─── Catch chance calculator (Pokemon GO style) ───────────────────────────────
 // Returns a 0-100% chance based on base capture rate, ball multiplier, and berry boost
 export function calculateCatchChance(captureRate, ballMult, berryBoost = 0) {

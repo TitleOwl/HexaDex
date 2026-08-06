@@ -4,6 +4,7 @@ import { setSoundEnabled } from "../utils.js";
 import { getPerfMode, setPerfMode } from "../perfMode.js";
 import { readPetSave, PET_EVENT } from "./PetCareGame.jsx";
 import HexaDexLogo from "./HexaDexLogo.jsx";
+import AuthWidget from "./AuthWidget.jsx";
 import {
   LayoutGrid, Swords, Target, Gamepad2, Search, Settings, Sun, Moon, Sparkles, Heart,
   BarChart3, Cake, Globe, Volume2, VolumeX, Palette, Info, Newspaper, SunMedium, Gauge,
@@ -349,12 +350,16 @@ export default function Header({
           </div>
           <ModeTabs view={view} setView={setView} s={s} lang={lang} />
           <div className="header-actions">
-            <MoreMenu onOpenBirthday={onOpenBirthday} onOpenTier={onOpenTier} lang={lang} />
-            <ThemeToggle theme={theme} onToggle={toggleTheme} autoMode={autoMode} />
-            <button className="settings-btn" onClick={() => setSettingsOpen(true)} title={s.settings}>
-              <Settings size={18} strokeWidth={2.2} />
-              {hasUpdate && <span className="settings-dot" />}
-            </button>
+            <div className="header-icon-group">
+              <MoreMenu onOpenBirthday={onOpenBirthday} onOpenTier={onOpenTier} lang={lang} />
+              <ThemeToggle theme={theme} onToggle={toggleTheme} autoMode={autoMode} />
+              <button className="settings-btn" onClick={() => setSettingsOpen(true)} title={s.settings}>
+                <Settings size={18} strokeWidth={2.2} />
+                {hasUpdate && <span className="settings-dot" />}
+              </button>
+            </div>
+            <span className="header-actions-divider" />
+            <AuthWidget lang={lang} />
           </div>
         </div>
 

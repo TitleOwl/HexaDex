@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from "react";
 import "./App.css";
 import "./responsive.css";
 import {
@@ -11,29 +11,35 @@ import {
   getLocalName, isSoundEnabled, getCryStyle, setCryStyle,
 } from "./utils.js";
 import { useTheme } from "./useTheme.js";
+import { useAuth } from "./AuthContext.jsx";
+import { favoritesApi } from "./auth.js";
+import FavoriteLoginToast from "./components/FavoriteLoginToast.jsx";
 
 // ─── Core Components ─────────────────────────────────────────
 import Header             from "./components/Header.jsx";
 import ScrollToTop        from "./components/ScrollToTop.jsx";
 import PerfWatcher        from "./components/PerfWatcher.jsx";
 import PokemonCard, { SkeletonCard } from "./components/PokemonCard.jsx";
-import PokemonModal       from "./components/PokemonModal.jsx";
-import TeamBuilder        from "./components/TeamBuilder.jsx";
 import DailyBanner        from "./components/DailyBanner.jsx";
 import Footer             from "./components/Footer.jsx";
 
+// Lazy-loaded: tabs/overlays the user may never open in a given visit —
+// each ships as its own chunk instead of bloating the initial bundle.
+const PokemonModal    = lazy(() => import("./components/PokemonModal/index.jsx"));
+const TeamBuilder     = lazy(() => import("./components/TeamBuilder.jsx"));
+const GoToolsHub      = lazy(() => import("./components/GoToolsHub.jsx"));
+const GamesHub        = lazy(() => import("./components/GamesHub.jsx"));
+const CardMode        = lazy(() => import("./components/CardMode.jsx"));
+const BirthdayPokemon = lazy(() => import("./components/BirthdayPokemon.jsx"));
+const MetaTierBrowser = lazy(() => import("./components/MetaTierBrowser.jsx"));
+const MultiplayerQuiz = lazy(() => import("./components/MultiplayerQuiz.jsx"));
+const Changelog       = lazy(() => import("./components/Changelog.jsx"));
+
 // ─── Hubs (main tabs) ────────────────────────────────────────
-import GoToolsHub         from "./components/GoToolsHub.jsx";
-import GamesHub           from "./components/GamesHub.jsx";
 import BuddyCompanion     from "./components/BuddyCompanion.jsx";
 import { trackView }       from "./components/petQuests.js";
 
 // ─── Overlays ────────────────────────────────────────────────
-import CardMode           from "./components/CardMode.jsx";
-import BirthdayPokemon    from "./components/BirthdayPokemon.jsx";
-import MetaTierBrowser    from "./components/MetaTierBrowser.jsx";
-import MultiplayerQuiz    from "./components/MultiplayerQuiz.jsx";
-import Changelog          from "./components/Changelog.jsx";
 import { hasUnseenVersion, fetchChangelog, getCurrentVersion, getLatestCommitDate } from "./data/changelog.js";
 
 // ─── Search add-ons (passed to Header) ───────────────────────
@@ -43,6 +49,15 @@ import SnapSearch         from "./components/SnapSearch.jsx";
 // ─── 🎵 Music Player ─────────────────────────────────────────
 import MusicPlayer        from "./components/MusicPlayer.jsx";
 import WeatherStatus      from "./components/WeatherStatus.jsx";
+
+// Suspense fallbacks for the lazy tabs/overlays above — just a spinner,
+// shown only on the first open of each chunk (cached after that).
+function ViewLoading() {
+  return <div className="view-loading"><div className="loading-spinner" /></div>;
+}
+function OverlayLoading() {
+  return <div className="overlay-loading"><div className="loading-spinner" /></div>;
+}
 
 export default function App() {
   // ─── Language & Sound ──────────────────────────────────────
@@ -130,9 +145,19 @@ export default function App() {
   const [search, setSearch]   = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [genIdx, setGenIdx]   = useState(0);
-  const [favorites, setFavorites] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("pkdx_favs") ?? "[]"); } catch { return []; }
-  });
+  // Guests keep favorites in memory only (gone on refresh); logged-in users
+  // get them from the server so likes survive across sessions/devices.
+  const { user } = useAuth();
+  // PokemonCard is memoized and doesn't compare the onFav prop, so toggleFav
+  // must keep a stable identity — read the live user via ref, not a closure.
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+  const [favorites, setFavorites] = useState([]);
+  const favoritesRef = useRef(favorites);
+  useEffect(() => { favoritesRef.current = favorites; }, [favorites]);
+  // Bumped each time a guest favorites something, to (re)trigger the
+  // "log in to keep this" nudge banner.
+  const [favToastPulse, setFavToastPulse] = useState(0);
   const [showFavsOnly, setShowFavsOnly] = useState(false);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -151,9 +176,19 @@ export default function App() {
   const moveCache    = useRef(new Map());
 
   useEffect(() => {
-    try { localStorage.setItem("pkdx_favs", JSON.stringify(favorites)); } catch {}
     if (favorites.length === 0 && showFavsOnly) setShowFavsOnly(false);
   }, [favorites]);
+
+  // Logged-in users: pull saved favorites from the server. Guests: nothing
+  // to load — their favorites live only in this session's state.
+  useEffect(() => {
+    if (!user) { setFavorites([]); return; }
+    let cancelled = false;
+    favoritesApi.list().then((data) => {
+      if (!cancelled) setFavorites(data.favorites ?? []);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user]);
 
   useModelViewerScript();
 
@@ -292,7 +327,17 @@ export default function App() {
     } catch {}
   }, []);
   const toggleFav = useCallback((id) => {
+    const wasFav = favoritesRef.current.includes(id);
     setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
+    if (userRef.current) {
+      // Sync to the server; toggle is its own inverse, so re-applying it
+      // locally on failure cleanly reverts the optimistic update above.
+      favoritesApi.toggle(id).catch(() => {
+        setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
+      });
+    } else if (!wasFav) {
+      setFavToastPulse(p => p + 1);
+    }
   }, []);
 
   // 🔊 Wrapped handler — opens Pokemon modal
@@ -350,6 +395,11 @@ export default function App() {
 
   return (
     <>
+      <FavoriteLoginToast
+        pulse={favToastPulse}
+        lang={lang}
+        onLogin={() => window.dispatchEvent(new CustomEvent("auth:open-login"))}
+      />
       <Header
         lang={lang} setLang={setLang}
         soundOn={soundOn} setSoundOn={setSoundOn}
@@ -431,89 +481,107 @@ export default function App() {
 
       {/* ── Team Builder ── */}
       {view === "team" && (
-        <TeamBuilder
-          allList={allList} thaiArr={thaiArr} jpArr={jpArr}
-          lang={lang} cachedFetch={cachedFetch}
-          onClose={() => setView("pokedex")}
-        />
+        <Suspense fallback={<ViewLoading />}>
+          <TeamBuilder
+            allList={allList} thaiArr={thaiArr} jpArr={jpArr}
+            lang={lang} cachedFetch={cachedFetch}
+            onClose={() => setView("pokedex")}
+          />
+        </Suspense>
       )}
 
       {/* ── GO Tools Hub ── */}
       {view === "gotools" && (
-        <GoToolsHub
-          allList={allList} loaded={loaded}
-          thaiArr={thaiArr} jpArr={jpArr}
-          lang={lang} cachedFetch={cachedFetch}
-          onOpen={handleSelect}
-        />
+        <Suspense fallback={<ViewLoading />}>
+          <GoToolsHub
+            allList={allList} loaded={loaded}
+            thaiArr={thaiArr} jpArr={jpArr}
+            lang={lang} cachedFetch={cachedFetch}
+            onOpen={handleSelect}
+          />
+        </Suspense>
       )}
 
       {/* ── Games Hub ── */}
       {view === "games" && (
-        <GamesHub
-          allList={allList} loaded={loaded}
-          thaiArr={thaiArr} jpArr={jpArr}
-          lang={lang} cachedFetch={cachedFetch}
-          genIdx={genIdx}
-          onOpen={handleSelect}
-          onOpenMultiplayer={() => setMultiplayerOpen(true)}
-          autoOpenPet={buddyOpenPet}
-          onAutoOpened={() => setBuddyOpenPet(false)}
-        />
+        <Suspense fallback={<ViewLoading />}>
+          <GamesHub
+            allList={allList} loaded={loaded}
+            thaiArr={thaiArr} jpArr={jpArr}
+            lang={lang} cachedFetch={cachedFetch}
+            genIdx={genIdx}
+            onOpen={handleSelect}
+            onOpenMultiplayer={() => setMultiplayerOpen(true)}
+            autoOpenPet={buddyOpenPet}
+            onAutoOpened={() => setBuddyOpenPet(false)}
+          />
+        </Suspense>
       )}
 
       {/* ── Pokemon Modal ── */}
       {selected && (
-        <PokemonModal
-          pokemon={selected}
-          onClose={() => setSelected(null)}
-          onNavigate={(p) => setSelected(p)}
-          lang={lang} thaiArr={thaiArr} jpArr={jpArr}
-          speciesCache={speciesCache} evoCache={evoCache} moveCache={moveCache}
-          onOpenCardMode={(p) => setCardModePokemon(p)}
-          isFav={favorites.includes(selected.id)}
-          onFav={toggleFav}
-        />
+        <Suspense fallback={<OverlayLoading />}>
+          <PokemonModal
+            pokemon={selected}
+            onClose={() => setSelected(null)}
+            onNavigate={(p) => setSelected(p)}
+            lang={lang} thaiArr={thaiArr} jpArr={jpArr}
+            speciesCache={speciesCache} evoCache={evoCache} moveCache={moveCache}
+            onOpenCardMode={(p) => setCardModePokemon(p)}
+            isFav={favorites.includes(selected.id)}
+            onFav={toggleFav}
+          />
+        </Suspense>
       )}
 
       {/* ── Overlays ── */}
       {birthdayOpen && (
-        <BirthdayPokemon
-          lang={lang} thaiArr={thaiArr} jpArr={jpArr}
-          cachedFetch={cachedFetch} allList={allList}
-          onOpen={(p) => { setBirthdayOpen(false); handleSelect(p); }}
-          onClose={() => setBirthdayOpen(false)}
-        />
+        <Suspense fallback={<OverlayLoading />}>
+          <BirthdayPokemon
+            lang={lang} thaiArr={thaiArr} jpArr={jpArr}
+            cachedFetch={cachedFetch} allList={allList}
+            onOpen={(p) => { setBirthdayOpen(false); handleSelect(p); }}
+            onClose={() => setBirthdayOpen(false)}
+          />
+        </Suspense>
       )}
       {tierOpen && (
-        <MetaTierBrowser
-          loaded={loaded} allList={allList} thaiArr={thaiArr} jpArr={jpArr}
-          lang={lang} cachedFetch={cachedFetch}
-          onOpen={(p) => { setTierOpen(false); handleSelect(p); }}
-          onClose={() => setTierOpen(false)}
-        />
+        <Suspense fallback={<OverlayLoading />}>
+          <MetaTierBrowser
+            loaded={loaded} allList={allList} thaiArr={thaiArr} jpArr={jpArr}
+            lang={lang} cachedFetch={cachedFetch}
+            onOpen={(p) => { setTierOpen(false); handleSelect(p); }}
+            onClose={() => setTierOpen(false)}
+          />
+        </Suspense>
       )}
       {multiplayerOpen && (
-        <MultiplayerQuiz
-          allList={allList} thaiArr={thaiArr} jpArr={jpArr}
-          lang={lang}
-          onClose={() => setMultiplayerOpen(false)}
-        />
+        <Suspense fallback={<OverlayLoading />}>
+          <MultiplayerQuiz
+            allList={allList} thaiArr={thaiArr} jpArr={jpArr}
+            lang={lang}
+            onClose={() => setMultiplayerOpen(false)}
+          />
+        </Suspense>
       )}
       {cardModePokemon && (
-        <CardMode
-          pokemon={cardModePokemon} lang={lang}
-          thaiArr={thaiArr} jpArr={jpArr}
-          onClose={() => setCardModePokemon(null)}
-        />
+        <Suspense fallback={<OverlayLoading />}>
+          <CardMode
+            pokemon={cardModePokemon} lang={lang}
+            thaiArr={thaiArr} jpArr={jpArr}
+            onClose={() => setCardModePokemon(null)}
+          />
+        </Suspense>
       )}
 
       {/* ── 📋 Changelog Modal ── */}
       {showChangelog && (
-        <Changelog
-          lang={lang}
-          onClose={() => setShowChangelog(false)}
-        />
+        <Suspense fallback={<OverlayLoading />}>
+          <Changelog
+            lang={lang}
+            onClose={() => setShowChangelog(false)}
+          />
+        </Suspense>
       )}
 
       {/* ── 🐾 Roaming buddy ── */}
