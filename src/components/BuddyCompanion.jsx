@@ -197,6 +197,22 @@ export default function BuddyCompanion({ lang = "en", onOpenGame }) {
     return () => clearTimeout(id);
   }, [caughtTick, visible, cheer]);
 
+  // AuthContext sends the buddy out roaming + fires this right after login —
+  // greet the trainer back with the same happy reaction as a "kin spotted".
+  const [welcomeTick, setWelcomeTick] = useState(0);
+  useEffect(() => {
+    const onWelcome = () => setWelcomeTick((t) => t + 1);
+    window.addEventListener("pet:welcome-back", onWelcome);
+    return () => window.removeEventListener("pet:welcome-back", onWelcome);
+  }, []);
+  useEffect(() => {
+    if (!welcomeTick || !visible) return;
+    setEmote({ Icon: Heart, color: "#f472b6" });
+    const t1 = setTimeout(() => setEmote(null), 2600);
+    const t2 = setTimeout(cheer, 300);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [welcomeTick, visible, cheer]);
+
   // ─── Walking + physics engine (rAF) ───
   useEffect(() => {
     if (!visible) return;

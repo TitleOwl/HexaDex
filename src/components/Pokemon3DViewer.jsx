@@ -2,13 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { GLB_URL } from "../data.js";
 import { useModelViewerScript } from "../utils.js";
 
-export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny, lang, types }) {
+export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny, lang, onTap }) {
   const containerRef  = useRef(null);
   const mvRef         = useRef(null);
   const animationsRef = useRef([]);
+  const startedRef    = useRef(false);
+  // Kept in a ref so a new callback identity never remounts the model.
+  const onTapRef      = useRef(onTap);
+  useEffect(() => { onTapRef.current = onTap; }, [onTap]);
   const [status,      setStatus]      = useState("loading");
   const [animations,  setAnimations]  = useState([]);
-  const [currentAnim, setCurrentAnim] = useState(null);
 
   useModelViewerScript();
 
@@ -19,7 +22,6 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
   const errorLabel   = lang==="th" ? "ไม่มีโมเดล 3D สำหรับตัวนี้"
                      : lang==="ja" ? "3Dモデルが見つかりません" : "3D model not available";
   const arLabel      = lang==="th" ? "ดูใน AR" : lang==="ja" ? "ARで見る" : "View in AR";
-  const posesLabel   = lang==="th" ? "ท่า" : lang==="ja" ? "ポーズ" : "poses";
 
   useEffect(() => { animationsRef.current = animations; }, [animations]);
 
@@ -28,7 +30,7 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
     if (!container) return;
     setStatus("loading");
     setAnimations([]);
-    setCurrentAnim(null);
+    startedRef.current = false;
     container.innerHTML = "";
 
     const mv = document.createElement("model-viewer");
@@ -37,7 +39,6 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
     mv.setAttribute("src",                 glbUrl);
     mv.setAttribute("alt",                 pokemonName);
     mv.setAttribute("camera-controls",     "");
-    mv.setAttribute("autoplay",            "");
     mv.setAttribute("animation-crossfade-duration", "250");
     mv.setAttribute("environment-image",   "legacy");
     mv.setAttribute("tone-mapping",        "neutral");
@@ -80,36 +81,83 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
           anims[0];
         try {
           mv.animationName = idleAnim;
+          // Show the pose's first frame, then hold it: no motion until tapped.
           mv.play();
+          mv.pause();
         } catch {}
-        setCurrentAnim(idleAnim);
       }
     });
     mv.addEventListener("error", () => setStatus("error"));
-
-    // Click to cycle animations
-    mv.addEventListener("click", () => {
-      const anims = animationsRef.current;
-      if (!anims || anims.length < 2) return;
-      const cur  = mv.animationName || anims[0];
-      const idx  = anims.indexOf(cur);
-      const next = anims[(idx + 1) % anims.length];
+    // Stopping after exactly one pass can't rely on play({repetitions:1}):
+    // assigning animationName restarts playback with the default (infinite)
+    // repetition count, so tapping through poses left it looping. Instead the
+    // pass is timed off the clip's own duration, with "finished" as a backup
+    // for whenever repetitions does hold.
+    let stopTimer = null;
+    const stopSoon = () => {
+      if (stopTimer) clearTimeout(stopTimer);
+      requestAnimationFrame(() => {
+        const dur = Number(mv.duration);
+        if (!dur || !isFinite(dur) || dur <= 0) return;
+        stopTimer = setTimeout(() => { try { mv.pause(); } catch {} }, dur * 1000 + 60);
+      });
+    };
+    const playOnce = () => {
       try {
-        mv.animationName = next;
-        mv.play();
-        setCurrentAnim(next);
-      } catch {}
+        mv.currentTime = 0;
+        mv.play({ repetitions: 1 });
+      } catch {
+        try { mv.play(); } catch {}
+      }
+      stopSoon();
+    };
+    mv.addEventListener("finished", () => { try { mv.pause(); } catch {} });
+
+    // A rotate-drag also fires "click" on model-viewer, so taps are detected
+    // from pointer travel instead: press and release within a few pixels.
+    let downX = 0, downY = 0, downAt = 0, isDown = false, dragged = false;
+    const TAP_SLOP_PX = 6;
+    const TAP_MAX_MS  = 600;
+
+    mv.addEventListener("pointerdown", (e) => {
+      isDown = true; dragged = false;
+      downX = e.clientX; downY = e.clientY; downAt = Date.now();
+    });
+    mv.addEventListener("pointermove", (e) => {
+      if (!isDown) return;
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > TAP_SLOP_PX) dragged = true;
+    });
+    mv.addEventListener("pointercancel", () => { isDown = false; });
+    mv.addEventListener("pointerup", (e) => {
+      if (!isDown) return;
+      isDown = false;
+      if (dragged) return;
+      if (Math.hypot(e.clientX - downX, e.clientY - downY) > TAP_SLOP_PX) return;
+      if (Date.now() - downAt > TAP_MAX_MS) return;
+
+      const anims = animationsRef.current ?? [];
+      if (anims.length > 0) {
+        if (!startedRef.current) {
+          // first tap plays the idle pose once; later taps step to the next
+          startedRef.current = true;
+        } else if (anims.length > 1) {
+          const cur = mv.animationName || anims[0];
+          const idx = anims.indexOf(cur);
+          try { mv.animationName = anims[(idx + 1) % anims.length]; } catch {}
+        }
+        playOnce();
+      }
+      onTapRef.current?.();
     });
 
     container.appendChild(mv);
-    return () => { container.innerHTML = ""; mvRef.current = null; };
+    return () => {
+      if (stopTimer) clearTimeout(stopTimer);
+      container.innerHTML = "";
+      mvRef.current = null;
+    };
   }, [glbUrl, pokemonName, color, arLabel]);
 
-  const formatAnimName = (n) =>
-    n.replace(/^[a-z_-]*\|/i, "")
-     .replace(/[_-]+/g, " ")
-     .replace(/\b\w/g, (c) => c.toUpperCase())
-     .trim() || n;
 
   return (
     <div className="viewer-3d-wrap" style={{ position: "relative" }}>
@@ -132,17 +180,8 @@ export default function Pokemon3DViewer({ pokemonId, pokemonName, color, isShiny
                  position:"relative", zIndex:2 }}
       />
 
-      {status === "loaded" && currentAnim && animations.length > 0 && (
-        <div className="anim-indicator">
-          <span className="anim-playing-dot" />
-          <span className="anim-indicator-name">{formatAnimName(currentAnim)}</span>
-          {animations.length > 1 && (
-            <span className="anim-indicator-count">
-              {animations.length} {posesLabel}
-            </span>
-          )}
-        </div>
-      )}
+      {/* The pose-name indicator was removed — the raw animation names come
+          straight from the GLB files and read as debug output. */}
     </div>
   );
 }

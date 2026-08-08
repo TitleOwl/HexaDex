@@ -3,7 +3,7 @@ import {
   VERSION_ORDER, VERSION_LABELS, CAT_CONFIG,
   TYPE_NAMES_TH, TYPE_NAMES_JA,
 } from "../data.js";
-import { typeColor } from "../utils.js";
+import { pastelTypeColor as typeColor } from "./PokemonModal/palette.js";
 
 function CategoryBadge({ cat, lang }) {
   const c = CAT_CONFIG[cat] ?? CAT_CONFIG.status;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { STRINGS, GENERATIONS, ALL_TYPES, TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import { setSoundEnabled } from "../utils.js";
 import { getPerfMode, setPerfMode } from "../perfMode.js";
@@ -6,14 +6,55 @@ import { readPetSave, PET_EVENT } from "./PetCareGame.jsx";
 import HexaDexLogo from "./HexaDexLogo.jsx";
 import AuthWidget from "./AuthWidget.jsx";
 import {
-  LayoutGrid, Swords, Target, Gamepad2, Search, Settings, Sun, Moon, Sparkles, Heart,
+  Gamepad2, Search, Settings, Sun, Moon, Sparkles, Heart, Swords,
   BarChart3, Cake, Globe, Volume2, VolumeX, Palette, Info, Newspaper, SunMedium, Gauge,
+  Filter, ChevronDown,
 } from "lucide-react";
 
 // tiny helper: inline icon aligned with text
 const Ico = ({ as: C, size = 15 }) => (
   <C size={size} strokeWidth={2.2} style={{ verticalAlign: "-2px", marginRight: 6, flexShrink: 0 }} />
 );
+
+// Flat Poké Ball line-icon for the Pokédex tab — same conventions as lucide
+// icons (24x24 viewBox, currentColor stroke) so it drops into <t.Icon .../>
+// and inherits the tab's gray/red active-state color automatically.
+function PokeballIcon({ size = 17, strokeWidth = 2.2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="9" y2="12" />
+      <line x1="15" y1="12" x2="22" y2="12" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+// Pikachu-head icon for the Pokédex tab — the actual artwork (public/
+// pikachu-icon.png), recolored via CSS mask so it still turns gray/red
+// with the tab's active state instead of showing its native yellow/black
+// colors. Ignores the incoming `size` (17px, sized for simple line icons)
+// — a detailed photo-style mask needs to render noticeably bigger to
+// carry the same visual weight as the other tabs' icons.
+function PikachuHeadIcon() {
+  const size = 38;
+  const maskStyle = {
+    display: "inline-block",
+    width: size,
+    height: size,
+    backgroundColor: "currentColor",
+    WebkitMaskImage: "url(/pikachu-icon.png)",
+    maskImage: "url(/pikachu-icon.png)",
+    WebkitMaskSize: "contain",
+    maskSize: "contain",
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskPosition: "center",
+    maskPosition: "center",
+  };
+  return <span aria-hidden="true" style={maskStyle} />;
+}
 
 export function ModeTabs({ view, setView, s, lang }) {
   const goLabel    = lang === "th" ? "GO Tools" : lang === "ja" ? "GOツール" : "GO Tools";
@@ -36,10 +77,10 @@ export function ModeTabs({ view, setView, s, lang }) {
   }, []);
 
   const tabs = [
-    { id:"pokedex",  Icon: LayoutGrid, label:s.pokedex },
-    { id:"team",     Icon: Swords,     label:s.teamBuilder },
-    { id:"gotools",  Icon: Target,     label:goLabel },
-    { id:"games",    Icon: Gamepad2,   label:gamesLabel },
+    { id:"pokedex",  Icon: PikachuHeadIcon, label:s.pokedex },
+    { id:"team",     Icon: Swords,          label:s.teamBuilder },
+    { id:"gotools",  Icon: PokeballIcon,    label:goLabel },
+    { id:"games",    Icon: Gamepad2,        label:gamesLabel },
   ];
 
   return (
@@ -114,15 +155,6 @@ function MoreMenu({ onOpenBirthday, onOpenTier, lang }) {
         </>
       )}
     </div>
-  );
-}
-
-function ThemeToggle({ theme, onToggle, autoMode }) {
-  return (
-    <button className={`theme-toggle${autoMode ? " auto" : ""}`} onClick={onToggle}
-      title={autoMode ? `Auto (${theme})` : theme}>
-      {theme === "dark" ? <Moon size={17} strokeWidth={2.2} /> : <Sun size={17} strokeWidth={2.2} />}
-    </button>
   );
 }
 
@@ -298,6 +330,7 @@ export default function Header({
   favCount = 0, showFavsOnly = false, onToggleFavs,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const searchInputRef = useRef(null);
   const s = STRINGS[lang];
   const isLangLoading = (lang === "th" && thaiLoading) || (lang === "ja" && jpLoading);
 
@@ -344,7 +377,7 @@ export default function Header({
           <div className="logo">
             <HexaDexLogo
               size="md"
-              mode="dark"
+              mode="light"
               tagline={s.subtitle}
             />
           </div>
@@ -352,14 +385,11 @@ export default function Header({
           <div className="header-actions">
             <div className="header-icon-group">
               <MoreMenu onOpenBirthday={onOpenBirthday} onOpenTier={onOpenTier} lang={lang} />
-              <ThemeToggle theme={theme} onToggle={toggleTheme} autoMode={autoMode} />
-              <button className="settings-btn" onClick={() => setSettingsOpen(true)} title={s.settings}>
-                <Settings size={18} strokeWidth={2.2} />
-                {hasUpdate && <span className="settings-dot" />}
-              </button>
             </div>
             <span className="header-actions-divider" />
-            <AuthWidget lang={lang} />
+            <AuthWidget lang={lang}
+              theme={theme} toggleTheme={toggleTheme} autoMode={autoMode}
+              onOpenSettings={() => setSettingsOpen(true)} settingsHasUpdate={hasUpdate} />
           </div>
         </div>
 
@@ -367,23 +397,32 @@ export default function Header({
           <>
             <div className="header-row header-row-filters">
               <div className="search-wrap">
-                <span className="search-icon"><Search size={16} strokeWidth={2.4} /></span>
-                <input className="search-box" placeholder={s.searchPlaceholder}
-                  value={search} onChange={(e) => setSearch(e.target.value)} />
-                {voiceSearchEl}
-                {snapSearchEl}
+                <div className="search-input-group">
+                  <input ref={searchInputRef} className="search-box" placeholder={s.searchPlaceholder}
+                    value={search} onChange={(e) => setSearch(e.target.value)} />
+                  {voiceSearchEl}
+                  {snapSearchEl}
+                </div>
+                <button type="button" className="search-go-btn" title={s.searchPlaceholder}
+                  onClick={() => searchInputRef.current?.focus()}>
+                  <Search size={18} strokeWidth={2.6} />
+                </button>
               </div>
               {!showFavsOnly && (
-                <select className="type-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                  <option value="all">{s.allTypes}</option>
-                  {ALL_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {lang === "th" ? `${TYPE_NAMES_TH[t] ?? t}`
-                        : lang === "ja" ? `${TYPE_NAMES_JA[t] ?? t}`
-                        : t.charAt(0).toUpperCase() + t.slice(1)}
-                    </option>
-                  ))}
-                </select>
+                <label className="filter-pill">
+                  <Filter size={14} strokeWidth={2.4} className="filter-pill-icon" />
+                  <select className="type-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                    <option value="all">{s.allTypes}</option>
+                    {ALL_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {lang === "th" ? `${TYPE_NAMES_TH[t] ?? t}`
+                          : lang === "ja" ? `${TYPE_NAMES_JA[t] ?? t}`
+                          : t.charAt(0).toUpperCase() + t.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} strokeWidth={2.6} className="filter-pill-chevron" />
+                </label>
               )}
               <button
                 className={`fav-filter-btn${showFavsOnly ? " active" : ""}${favCount === 0 && !showFavsOnly ? " empty" : ""}`}

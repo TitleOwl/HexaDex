@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   LogIn, LogOut, Eye, EyeOff, Cake, Pencil, ChevronLeft, Heart, Flame, Target,
+  User, Settings, Moon, Sun,
 } from "lucide-react";
 import { useAuth } from "../AuthContext.jsx";
 import { catchApi, favoritesApi } from "../auth.js";
@@ -205,9 +206,60 @@ function StarterGrid({ lang, current, onPick, onBack, saving }) {
   );
 }
 
-export default function AuthWidget({ lang = "en" }) {
+// Compact anchored dropdown (avatar → Profile/Log in, Settings, Dark Mode,
+// Log out) — mirrors Header.jsx's MoreMenu overlay+dropdown pattern.
+function ProfileMenu({
+  lang, user, theme, toggleTheme, autoMode, settingsHasUpdate,
+  onProfile, onSettings, onLogout, onClose,
+}) {
+  return (
+    <>
+      <div className="profile-menu-overlay" onClick={onClose} />
+      <div className="profile-menu-dropdown">
+        <button type="button" className="profile-menu-item" onClick={onProfile}>
+          <span className="profile-menu-item-icon">
+            {user ? <User size={18} strokeWidth={2.2} /> : <LogIn size={18} strokeWidth={2.2} />}
+          </span>
+          <span className="profile-menu-item-label">
+            {user ? t(lang, "Profile", "โปรไฟล์", "プロフィール") : t(lang, "Log in", "เข้าสู่ระบบ", "ログイン")}
+          </span>
+        </button>
+        <span className="profile-menu-divider" />
+        <button type="button" className="profile-menu-item" onClick={onSettings}>
+          <span className="profile-menu-item-icon"><Settings size={18} strokeWidth={2.2} /></span>
+          <span className="profile-menu-item-label">{t(lang, "Settings", "ตั้งค่า", "設定")}</span>
+          {settingsHasUpdate && <span className="profile-menu-dot" />}
+        </button>
+        <span className="profile-menu-divider" />
+        <div className="profile-menu-item profile-menu-item-static">
+          <span className="profile-menu-item-icon">
+            {theme === "dark" ? <Moon size={18} strokeWidth={2.2} /> : <Sun size={18} strokeWidth={2.2} />}
+          </span>
+          <span className="profile-menu-item-label">{t(lang, "Dark Mode", "ธีมมืด", "ダークモード")}</span>
+          <button type="button" className={`profile-menu-switch${theme === "dark" ? " on" : ""}`}
+            onClick={toggleTheme} aria-label="Toggle dark mode"
+            title={autoMode ? `Auto (${theme})` : theme}>
+            <span className="profile-menu-switch-knob" />
+          </button>
+        </div>
+        {user && (
+          <>
+            <span className="profile-menu-divider" />
+            <button type="button" className="profile-menu-item profile-menu-item-danger" onClick={onLogout}>
+              <span className="profile-menu-item-icon"><LogOut size={18} strokeWidth={2.2} /></span>
+              <span className="profile-menu-item-label">{t(lang, "Log out", "ออกจากระบบ", "ログアウト")}</span>
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+export default function AuthWidget({ lang = "en", theme, toggleTheme, autoMode, onOpenSettings, settingsHasUpdate }) {
   const { user, loading, login, register, logout, updateProfile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState("login");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -219,6 +271,25 @@ export default function AuthWidget({ lang = "en" }) {
 
   useEffect(() => {
     if (!open) { setError(""); setTab("login"); setSubScreen("home"); }
+  }, [open]);
+
+  // Lock background scroll while open — and compensate for the vertical
+  // scrollbar disappearing (which otherwise shifts the whole page sideways
+  // the instant the modal opens, since the header/content reflow into the
+  // space the scrollbar track used to occupy).
+  useEffect(() => {
+    if (!open) return;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const prevOverflow = document.body.style.overflow;
+    const prevPaddingRight = document.body.style.paddingRight;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPaddingRight;
+    };
   }, [open]);
 
   // FavoriteLoginToast (and anything else) can ask this widget to pop open
@@ -302,21 +373,32 @@ export default function AuthWidget({ lang = "en" }) {
 
   return (
     <>
-      <button
-        className={`auth-btn${user ? " auth-btn-user" : ""}`}
-        onClick={() => setOpen(true)}
-        title={user ? user.username : t(lang, "Log in", "เข้าสู่ระบบ", "ログイン")}
-      >
-        {user
-          ? (
-            <span className="auth-avatar">
-              {user.starter
-                ? <img src={artworkUrl(user.starter)} alt="" />
-                : user.username.charAt(0).toUpperCase()}
-            </span>
-          )
-          : <LogIn size={17} strokeWidth={2.2} />}
-      </button>
+      <div className="profile-menu-wrap">
+        <button
+          className={`auth-btn${user ? " auth-btn-user" : ""}`}
+          onClick={() => setMenuOpen((v) => !v)}
+          title={user ? user.username : t(lang, "Log in", "เข้าสู่ระบบ", "ログイン")}
+        >
+          {user
+            ? (
+              <span className="auth-avatar">
+                {user.starter
+                  ? <img src={artworkUrl(user.starter)} alt="" />
+                  : user.username.charAt(0).toUpperCase()}
+              </span>
+            )
+            : <LogIn size={17} strokeWidth={2.2} />}
+        </button>
+        {menuOpen && (
+          <ProfileMenu lang={lang} user={user} theme={theme} toggleTheme={toggleTheme} autoMode={autoMode}
+            settingsHasUpdate={settingsHasUpdate}
+            onProfile={() => { setMenuOpen(false); setOpen(true); }}
+            onSettings={() => { setMenuOpen(false); onOpenSettings?.(); }}
+            onLogout={() => { setMenuOpen(false); logout(); }}
+            onClose={() => setMenuOpen(false)}
+          />
+        )}
+      </div>
       {open && createPortal(
         <div className="auth-overlay" onClick={() => setOpen(false)}>
           <div className="auth-drawer" onClick={(e) => e.stopPropagation()}>

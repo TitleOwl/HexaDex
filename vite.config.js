@@ -96,6 +96,9 @@ function authDevApiPlugin() {
     "/api/catch/increment": () => import("./api/catch/increment.js"),
     "/api/catch/leaderboard": () => import("./api/catch/leaderboard.js"),
     "/api/favorites": () => import("./api/favorites/index.js"),
+    "/api/sync/pet": () => import("./api/sync/pet.js"),
+    "/api/sync/team": () => import("./api/sync/team.js"),
+    "/api/sync/catchstats": () => import("./api/sync/catchstats.js"),
   };
   return {
     name: "auth-dev-api",

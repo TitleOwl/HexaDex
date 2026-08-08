@@ -14,6 +14,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Camera } from "lucide-react";
 import { typeColor, getArt, getLocalName, padId, playCry, isSoundEnabled } from "../utils.js";
 
 const API_ENDPOINT = "/api/detect-pokemon";
@@ -373,7 +374,7 @@ export default function SnapSearch({ loaded, thaiArr, jpArr, lang, onOpen }) {
         onClick={openModal}
         title={t.pickHow}
         aria-label={t.pickHow}>
-        📷
+        <Camera size={16} strokeWidth={2.4} />
       </button>
 
       {open && createPortal(

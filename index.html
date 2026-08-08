@@ -34,9 +34,20 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
+      // SW is production-only: on localhost it would cache-first Vite's dev
+      // modules and keep serving stale code, so there we actively unregister
+      // any old SW + wipe its caches instead of registering.
       if ("serviceWorker" in navigator) {
+        const isDev = ["localhost", "127.0.0.1"].includes(location.hostname);
         window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/sw.js").catch(() => {});
+          if (isDev) {
+            navigator.serviceWorker.getRegistrations()
+              .then((rs) => rs.forEach((r) => r.unregister()))
+              .catch(() => {});
+            if (window.caches) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
+          } else {
+            navigator.serviceWorker.register("/sw.js").catch(() => {});
+          }
         });
       }
     </script>

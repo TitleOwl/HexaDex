@@ -29,3 +29,8 @@ export const favoritesApi = {
   list: () => call("/api/favorites"),
   toggle: (id) => call("/api/favorites", { method: "POST", body: { id } }),
 };
+
+export const syncApi = {
+  load: (slot) => call(`/api/sync/${slot}`),
+  save: (slot, data) => call(`/api/sync/${slot}`, { method: "POST", body: data }),
+};

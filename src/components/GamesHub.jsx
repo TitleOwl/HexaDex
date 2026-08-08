@@ -78,6 +78,16 @@ export default function GamesHub({ allList, thaiArr, jpArr, lang, cachedFetch, g
     }
   }, [autoOpenPet, onAutoOpened]);
 
+  // AuthContext fires this before wiping the local pet save on logout — if
+  // the Pet Care screen is still open, its own decay-tick effect would just
+  // keep re-writing localStorage out from under that clear. Force it closed
+  // (unmounting it, which stops that interval) first.
+  useEffect(() => {
+    const onForceClose = () => setGameState((g) => (g === "pet" ? null : g));
+    window.addEventListener("pet:force-close", onForceClose);
+    return () => window.removeEventListener("pet:force-close", onForceClose);
+  }, []);
+
   // Read high scores from localStorage (refresh after game closes)
   useEffect(() => {
     const next = {};

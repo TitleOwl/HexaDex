@@ -1,4 +1,4 @@
-const CACHE = "hexadex-v2";
+const CACHE = "hexadex-v3";
 const STATIC = ["/", "/index.html"];
 
 self.addEventListener("install", e => {
@@ -17,6 +17,10 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
+  // Never cache API responses — auth/favorites/pet-team-catch sync are all
+  // dynamic and per-session; caching them means a stale response (e.g. "no
+  // pet yet") gets served forever regardless of what the server now has.
+  if (url.pathname.startsWith("/api/")) return;
   // Cache-first for same-origin static assets
   if (url.origin === location.origin && e.request.method === "GET") {
     e.respondWith(

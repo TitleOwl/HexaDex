@@ -1,5 +1,6 @@
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../../../data.js";
-import { typeColor, calcDefMatchups } from "../../../utils.js";
+import { calcDefMatchups } from "../../../utils.js";
+import { pastelTypeColor } from "../palette.js";
 
 export default function TypeMatchupTab({ types, lang, s }) {
   const matchups = calcDefMatchups(types);
@@ -14,11 +15,11 @@ export default function TypeMatchupTab({ types, lang, s }) {
   return (
     <div className="matchup-section">
       {[
-        { key:"immune",  label:`${s.immune} (0×)`, tc:"#374151" },
-        { key:"quarter", label:"¼×", tc:"#14532d" },
-        { key:"half",    label:`${s.resist} (½×)`, tc:"#166534" },
-        { key:"double",  label:`${s.weak} (2×)`, tc:"#9a3412" },
-        { key:"quad",    label:"4×", tc:"#991b1b" },
+        { key:"immune",  label:`${s.immune} (0×)`, tc:"#8F9396" },
+        { key:"quarter", label:"¼×", tc:"#2FA98C" },
+        { key:"half",    label:`${s.resist} (½×)`, tc:"#2FA98C" },
+        { key:"double",  label:`${s.weak} (2×)`, tc:"#E05B5B" },
+        { key:"quad",    label:"4×", tc:"#C74444" },
       ].map(({ key, label, tc }) => groups[key].length === 0 ? null : (
         <div key={key} className="matchup-group">
           <div className="matchup-group-label" style={{ color:tc }}>{label}</div>
@@ -28,8 +29,7 @@ export default function TypeMatchupTab({ types, lang, s }) {
               const name = lang === "th" ? (TYPE_NAMES_TH[tn]??tn)
                          : lang === "ja" ? (TYPE_NAMES_JA[tn]??tn) : tn;
               return (
-                <span key={tn} className="matchup-pill"
-                  style={{ background:typeColor(tn), boxShadow:`0 2px 8px ${typeColor(tn)}55` }}>
+                <span key={tn} className="matchup-pill" style={{ background: pastelTypeColor(tn) }}>
                   {name}
                 </span>
               );

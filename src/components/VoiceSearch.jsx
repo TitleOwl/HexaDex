@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Mic } from "lucide-react";
 import { getLocalName } from "../utils.js";
 
 const SPEECH_LANG = { en: "en-US", th: "th-TH", ja: "ja-JP" };
@@ -90,7 +91,7 @@ export default function VoiceSearch({ allList, thaiArr, jpArr, lang, onOpen, onS
         onClick={start}
         title={lang==="th"?"ค้นหาด้วยเสียง":lang==="ja"?"音声検索":"Voice search"}
       >
-        {listening ? "🔴" : "🎙️"}
+        <Mic size={16} strokeWidth={2.4} />
       </button>
       {showBanner && (
         <div className="search-feedback">

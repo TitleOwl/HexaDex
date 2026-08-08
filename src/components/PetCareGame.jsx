@@ -724,6 +724,25 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
   const [roaming, setRoaming] = useState(() => {
     try { return localStorage.getItem(ROAM_KEY) === "1"; } catch { return false; }
   });
+
+  // AuthContext can restore a save from the cloud (on login) after this
+  // screen has already mounted with no pet — pick it up instead of leaving
+  // the adoption prompt showing over a save that now actually exists.
+  // Guarded to only fill the gap (never overwrites an active `pet`/`roaming`
+  // with what's on disk, so it can't clobber unsaved in-game changes).
+  useEffect(() => {
+    const onExternalUpdate = () => {
+      if (!pet) {
+        const restored = readPetSave();
+        if (restored) setPet(restored);
+      }
+      if (!roaming) {
+        try { if (localStorage.getItem(ROAM_KEY) === "1") setRoaming(true); } catch {}
+      }
+    };
+    window.addEventListener(PET_EVENT, onExternalUpdate);
+    return () => window.removeEventListener(PET_EVENT, onExternalUpdate);
+  }, [pet, roaming]);
   const [editingRoom, setEditingRoom] = useState(false);
   const [editCat, setEditCat] = useState("essentials"); // active furniture category tab
   const [colorPick, setColorPick] = useState(null);     // { id, uid? } — pastel picker popup

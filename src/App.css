@@ -11510,81 +11510,23 @@ main.powerup-wrap {
 
 /* Wrapper inherits catch-pokemon-inline sizing and phase animations.
    We just need to make sure layout + pointer-events behave. */
-.catch-3d-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: visible;
-  /* Let the ball-drag handlers receive pointer events even though
-     this element sits in front of the arena visually */
-  pointer-events: none;
-}
 
 /* The actual <model-viewer> container */
-.catch-3d-scale {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-.catch-3d-container {
-  width: 100%;
-  height: 100%;
-  display: block;
-  pointer-events: none;
-}
 
 /* Fallback 2D image (shown during load OR on permanent error) */
-.catch-3d-fallback {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  pointer-events: none;
-  user-select: none;
-  -webkit-user-drag: none;
-}
 
 /* Pulse while waiting for GLB to download */
-.catch-3d-fallback.catch-3d-loading {
-  animation: catch-3d-pulse 1.2s ease-in-out infinite;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
-}
 
-@keyframes catch-3d-pulse {
-  0%, 100% { opacity: 0.55; transform: scale(0.97); }
-  50%      { opacity: 0.95; transform: scale(1.02); }
-}
 
 /* When the 3D model is in suckIn phase, also fade the fallback
    (just in case it's still showing under a slow load) */
-.catch-3d-wrap.phase-suckIn .catch-3d-fallback {
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
 
 /* Ensure model-viewer inside our wrapper inherits no decorations */
-.catch-3d-container model-viewer {
-  --poster-color: transparent;
-  --progress-bar-color: transparent;
-  background: transparent;
-  outline: none;
-}
 
 /* Mobile: keep 3D model crisp but bound to reasonable pixel ratio */
 @media (max-width: 720px) {
-  .catch-3d-container model-viewer {
-    --max-pixel-ratio: 1.25;
-  }
 }
 @media (max-width: 480px) {
-  .catch-3d-container model-viewer {
-    --max-pixel-ratio: 1;
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -11611,40 +11553,20 @@ main.powerup-wrap {
 .catch-arena-v6.dragging { cursor: grabbing; }
 
 /* The 3D Pokemon wrapper (Catch3DPokemon component) */
-.catch-arena-v6 .catch-3d-wrap {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 280px;
-  height: 280px;
-  transform: translate(-50%, -50%);
-  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
-              opacity 0.5s ease;
-  z-index: 1;
-}
 
 /* Idle bobbing */
-.catch-arena-v6 .catch-3d-wrap.phase-idle {
-  animation: catch-pokemon-bob 3s ease-in-out infinite;
-}
 @keyframes catch-pokemon-bob {
   0%, 100% { transform: translate(-50%, -50%); }
   50%      { transform: translate(-50%, calc(-50% - 8px)); }
 }
 
 /* Throwing: shake a tiny bit */
-.catch-arena-v6 .catch-3d-wrap.phase-throwing {
-  animation: catch-pokemon-anticipate 0.8s ease;
-}
 @keyframes catch-pokemon-anticipate {
   0%, 100% { transform: translate(-50%, -50%); }
   50%      { transform: translate(-50%, -50%) scale(1.04); }
 }
 
 /* Hit: quick shake */
-.catch-arena-v6 .catch-3d-wrap.phase-hit {
-  animation: catch-pokemon-hit 0.2s ease;
-}
 @keyframes catch-pokemon-hit {
   0%, 100% { transform: translate(-50%, -50%); }
   25%      { transform: translate(calc(-50% - 8px), -50%); }
@@ -11652,10 +11574,6 @@ main.powerup-wrap {
 }
 
 /* SuckIn: SHRINK INTO BALL (the key new animation) */
-.catch-arena-v6 .catch-3d-wrap.phase-suckIn {
-  animation: catch-pokemon-suckin 0.7s cubic-bezier(0.55, 0, 0.85, 0.55) forwards;
-  transform-origin: center 75%; /* shrink toward bottom (where ball is) */
-}
 @keyframes catch-pokemon-suckin {
   0% {
     transform: translate(-50%, -50%) scale(1);
@@ -11675,9 +11593,6 @@ main.powerup-wrap {
 }
 
 /* Escape: BURST BACK */
-.catch-arena-v6 .catch-3d-wrap.catch-pokemon-escape-inline {
-  animation: catch-pokemon-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
 @keyframes catch-pokemon-burst {
   0% {
     transform: translate(-50%, -50%) scale(0);
@@ -11871,10 +11786,6 @@ main.powerup-wrap {
 @media (max-width: 720px) {
   
   
-  .catch-arena-v6 .catch-3d-wrap {
-    width: 220px;
-    height: 220px;
-  }
   
   
   
@@ -11887,10 +11798,6 @@ main.powerup-wrap {
   
   
   
-  .catch-arena-v6 .catch-3d-wrap {
-    width: 180px;
-    height: 180px;
-  }
   
   
   
@@ -11905,1001 +11812,96 @@ main.powerup-wrap {
 /* ─── Try It CTA button (in PokemonModal) ─────────────────── */
 
 
-@keyframes catch-cta-ball-spin {
-  from { transform: rotate(0); }
-  to   { transform: rotate(360deg); }
-}
 
 /* ═══════════════════════════════════════════════════════════
    Catch Screen — rebuilt from scratch · minimal · elegant · modern
    (class + keyframe names preserved so the component keeps working)
    ═══════════════════════════════════════════════════════════ */
-.catch-go-screen {
-  --cg-glass: rgba(22, 20, 26, 0.46);
-  --cg-glass-hover: rgba(40, 36, 46, 0.58);
-  --cg-hairline: rgba(255, 255, 255, 0.14);
-  --cg-shadow: 0 10px 30px rgba(0, 0, 0, 0.32);
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-  color: #fff;
-  user-select: none;
-  -webkit-user-select: none;
-  animation: catch-go-screen-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes catch-go-screen-in {
-  from { opacity: 0; transform: scale(1.03); }
-  to   { opacity: 1; transform: scale(1); }
-}
 
 /* ─── Backdrop — living BiomeScene paints sky/weather/ground ──── */
-.catch-go-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  background: #0c0a10; /* fallback while the scene mounts */
-}
 
 /* ─── Frosted-glass tap targets (icons + dock buttons only) ──── */
-.catch-go-icon-btn,
-.catch-go-bottom-btn {
-  background: var(--cg-glass);
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid var(--cg-hairline);
-  box-shadow: var(--cg-shadow);
-  color: #fff;
-}
 
 /* ─── Top bar ────────────────────────────────────────────────── */
-.catch-go-topbar {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  right: 18px;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.catch-go-icon-btn {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0;
-  font-family: inherit;
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-.catch-go-icon-btn:hover:not(:disabled) { background: var(--cg-glass-hover); transform: scale(1.07); }
-.catch-go-icon-btn:active:not(:disabled) { transform: scale(0.96); }
-.catch-go-icon-btn:disabled { opacity: 0.45; }
 
 /* top-right cluster (combo + counter) */
-.catch-go-topbar-right { display: inline-flex; align-items: center; gap: 10px; }
-.catch-go-combo-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 999px;
-  font-size: 12px; font-weight: 800; letter-spacing: 0.4px;
-  color: #fff;
-  background: linear-gradient(135deg, #f59e0b, #b5302d);
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
-  animation: catch-go-combo-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes catch-go-combo-pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
 /* ✨ Shiny sparkles around the idle Pokémon */
-.catch-go-shiny-sparkles { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
-.catch-go-shiny-sparkles svg {
-  position: absolute; color: #fde047;
-  filter: drop-shadow(0 0 6px rgba(253, 224, 71, 0.8));
-  animation: catch-go-shiny-twinkle 1.8s ease-in-out infinite;
-  animation-delay: calc(var(--si) * 0.32s);
-}
-.catch-go-shiny-sparkles svg:nth-child(1) { top: 12%; left: 18%; }
-.catch-go-shiny-sparkles svg:nth-child(2) { top: 22%; right: 14%; }
-.catch-go-shiny-sparkles svg:nth-child(3) { top: 46%; left: 8%; }
-.catch-go-shiny-sparkles svg:nth-child(4) { top: 38%; right: 10%; }
-.catch-go-shiny-sparkles svg:nth-child(5) { top: 64%; left: 24%; }
-@keyframes catch-go-shiny-twinkle {
-  0%, 100% { opacity: 0.2; transform: scale(0.7) rotate(0deg); }
-  50%      { opacity: 1;   transform: scale(1.15) rotate(20deg); }
-}
 
 /* 🍬 Reward toast */
-.catch-go-reward-toast {
-  position: absolute; top: 152px; left: 50%; transform: translateX(-50%);
-  z-index: 11; display: inline-flex; align-items: center; gap: 8px;
-  padding: 9px 18px; border-radius: 999px;
-  background: rgba(20, 18, 22, 0.5); backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #fff; font-size: 14px; font-weight: 800; white-space: nowrap;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  animation: catch-go-reward-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes catch-go-reward-in { 0% { opacity: 0; transform: translate(-50%, 8px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
-.catch-go-reward-item { display: inline-flex; align-items: baseline; gap: 4px; }
-.catch-go-reward-lbl { font-size: 10px; font-weight: 600; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.5px; }
-.catch-go-reward-dot { opacity: 0.4; }
-.catch-go-reward-shiny { display: inline-flex; align-items: center; gap: 4px; color: #fde047; font-size: 12px; }
 
 /* 🏃 Flee overlay */
-.catch-go-flee-overlay {
-  position: absolute; inset: 0; z-index: 30;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-  background: rgba(8, 7, 10, 0.55); backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px); color: #cbd5e1;
-  animation: catch-go-overlay-in 0.3s ease;
-}
-.catch-go-flee-title { font-size: 22px; font-weight: 800; letter-spacing: 1px; color: #fff; }
-.catch-go-flee-sub { font-size: 13px; color: #94a3b8; }
 
 /* counter — Japandi: plain text, no pill */
-.catch-go-counter-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  border: none;
-  background: transparent;
-  padding: 4px 2px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: #fff;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.catch-go-counter-badge:hover { opacity: 0.8; }
 
 /* ─── Name banner + types (Japandi Zen) ──────────────────────── */
-.catch-go-name-banner {
-  position: absolute;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 8;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
-.catch-go-name-pill {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  box-shadow: none;
-  padding: 0;
-}
-.catch-go-pokemon-name-txt {
-  font-size: 27px;
-  font-weight: 300;
-  letter-spacing: 5px;
-  color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  padding-left: 5px; /* balance the letter-spacing */
-}
-.catch-go-encounter-sub {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
-}
 
-.catch-go-types-row { display: flex; gap: 7px; margin-top: 2px; }
-.catch-go-type-pill {
-  font-size: 9.5px;
-  padding: 3px 13px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 1.4px;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  color: #fff;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-}
 
 /* ─── Catch-chance (top-right) — Japandi number, no ring ──────── */
-.catch-go-chance-ring {
-  position: absolute;
-  top: 92px;
-  right: 22px;
-  z-index: 9;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  background: none;
-  border: none;
-  box-shadow: none;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-.catch-go-chance-ring svg { display: none; }
-.catch-go-chance-pct {
-  font-size: 38px;
-  font-weight: 200;
-  line-height: 0.9;
-  color: #fff;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-}
-.catch-go-chance-pct i { font-size: 18px; font-weight: 300; font-style: normal; margin-left: 1px; opacity: 0.85; }
-.catch-go-chance-lbl {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.78);
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
-  margin-top: 2px;
-}
 
 /* ─── Arena (subject + drag surface) ─────────────────────────── */
-.catch-go-arena {
-  position: absolute;
-  top: 178px;
-  bottom: 158px;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  touch-action: none;
-  cursor: grab;
-}
-.catch-go-arena.dragging { cursor: grabbing; }
 
-.catch-go-pokemon-stage {
-  position: absolute;
-  bottom: 18%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 330px;
-  height: 330px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 3;
-}
-.catch-go-pokemon-stage .catch-3d-wrap {
-  position: relative !important;
-  width: 100% !important;
-  height: 100% !important;
-  top: auto !important;
-  left: auto !important;
-  transform: none !important;
-}
 
 /* phase-driven subject motion */
-.catch-go-arena.phase-idle .catch-3d-wrap { animation: catch-go-pokemon-bob 3.2s ease-in-out infinite; }
-@keyframes catch-go-pokemon-bob {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-12px); }
-}
 
 /* GO-style sidestep — the wild Pokémon dodges left/right (moving target).
    Wide & smooth (eased) so it reads cleanly and is stable to track/aim. */
-.catch-go-pokemon-stage { --sway: 92px; }
-.catch-go-arena.phase-idle .catch-go-pokemon-stage {
-  animation: catch-go-pokemon-sway 3.6s ease-in-out infinite;
-  will-change: transform;
-}
-@keyframes catch-go-pokemon-sway {
-  0%, 100% { transform: translateX(calc(-50% - var(--sway))); }
-  50%      { transform: translateX(calc(-50% + var(--sway))); }
-}
 /* Freeze the sidestep while attacking — the Pokémon stops to strike */
-.catch-go-arena.phase-idle .catch-go-pokemon-stage.attacking {
-  animation-play-state: paused;
-}
 /* Attack lunge "tell" — throw during this and the ball gets knocked away.
    Runs on the inner model (vertical lunge) so the horizontal sway keeps going
    underneath it → no snap-to-centre, stays smooth. */
-.catch-go-pokemon-stage.attacking .catch-3d-wrap {
-  animation: catch-go-pokemon-attack 1.2s ease !important;
-}
-@keyframes catch-go-pokemon-attack {
-  0%   { transform: translateY(0) scale(1); filter: brightness(1); }
-  20%  { transform: translateY(9px) scale(1.06) rotate(-3deg); filter: brightness(1.08); }
-  35%  { transform: translateY(10px) scale(1.05) rotate(-2deg); filter: brightness(1.12); }
-  58%  { transform: translateY(-14px) scale(1.2) rotate(4deg); filter: brightness(1.45) saturate(1.3); }
-  100% { transform: translateY(0) scale(1); filter: brightness(1); }
-}
-.catch-go-arena.phase-throwing .catch-3d-wrap { animation: catch-go-pokemon-antic 0.8s ease; }
-@keyframes catch-go-pokemon-antic {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-4px) scale(1.05); }
-}
-.catch-go-arena.phase-hit .catch-3d-wrap { animation: catch-go-pokemon-hit 0.22s ease; }
-@keyframes catch-go-pokemon-hit {
-  0%, 100% { transform: translateX(0); }
-  25%      { transform: translateX(-10px); }
-  75%      { transform: translateX(10px); }
-}
-.catch-go-arena.phase-suckIn .catch-3d-wrap {
-  animation: catch-go-pokemon-suckin 0.7s cubic-bezier(0.55, 0, 0.85, 0.55) forwards;
-  transform-origin: center 80%;
-}
-@keyframes catch-go-pokemon-suckin {
-  0%   { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); }
-  40%  { transform: translateY(0) scale(0.8) rotate(-3deg); opacity: 1; filter: brightness(1.5) saturate(1.8); }
-  100% { transform: translateY(80px) scale(0) rotate(8deg); opacity: 0; filter: brightness(2.8) saturate(2.5); }
-}
-.catch-go-arena.phase-escape .catch-3d-wrap { animation: catch-go-pokemon-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-@keyframes catch-go-pokemon-burst {
-  0%   { transform: scale(0); opacity: 0; }
-  60%  { transform: scale(1.18); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
 
 /* soft contact shadow */
-.catch-go-pokemon-shadow {
-  position: absolute;
-  bottom: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 184px;
-  height: 26px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.42) 0%, transparent 70%);
-  filter: blur(5px);
-  z-index: -1;
-  animation: catch-go-shadow-pulse 3.2s ease-in-out infinite;
-}
-@keyframes catch-go-shadow-pulse {
-  0%, 100% { width: 184px; opacity: 0.4; }
-  50%      { width: 206px; opacity: 0.56; }
-}
 
 /* ─── Ball in motion ─────────────────────────────────────────── */
 /* dragging element position is set inline by JS; keep visuals subtle */
-.catch-go-ball-dragging { will-change: transform; }
 
 /* settle on subject (hit / suckIn) — flight itself is JS-driven */
-.catch-go-ball-fly {
-  position: absolute;
-  z-index: 6;
-  pointer-events: none;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.36));
-}
-.catch-go-ball-fly.phase-throwing { animation: catch-go-ball-throw 0.8s cubic-bezier(0.25, 0.6, 0.35, 1) forwards; }
-@keyframes catch-go-ball-throw {
-  0%   { bottom: 40px; transform: translateX(-50%) scale(1) rotate(0); }
-  55%  { bottom: 58%; transform: translateX(-50%) scale(0.78) rotate(220deg); }
-  100% { bottom: 35%; transform: translateX(-50%) scale(0.64) rotate(360deg); }
-}
-.catch-go-ball-fly.phase-hit {
-  bottom: 35%;
-  transform: translateX(-50%) scale(0.7);
-  animation: catch-go-ball-hit 0.22s ease;
-}
-@keyframes catch-go-ball-hit {
-  0%, 100% { transform: translateX(-50%) scale(0.7); }
-  50%      { transform: translateX(-50%) scale(0.85); filter: brightness(1.6); }
-}
-.catch-go-ball-fly.phase-suckIn {
-  bottom: 28%;
-  transform: translateX(-50%) scale(1);
-  animation: catch-go-ball-open 0.7s ease;
-}
-@keyframes catch-go-ball-open {
-  0%   { transform: translateX(-50%) scale(0.7); bottom: 35%; }
-  30%  { transform: translateX(-50%) scale(1.2); filter: brightness(1.8); bottom: 30%; }
-  100% { transform: translateX(-50%) scale(1); filter: brightness(1); bottom: 28%; }
-}
 /* legacy wobble keyframe kept for safety (WobbleEffect owns the live one) */
-@keyframes catch-go-ball-wobble {
-  0%, 100% { transform: translateX(-50%) rotate(0); }
-  20%      { transform: translateX(-50%) rotate(-24deg); }
-  60%      { transform: translateX(-50%) rotate(24deg); }
-}
 
 /* ready ball gentle pulse (drag me!) */
-.catch-go-ball-ready {
-  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.3));
-  animation: catch-go-ball-ready-pulse 2.2s ease-in-out infinite;
-  cursor: grab;
-}
-.catch-go-ball-ready:active { cursor: grabbing; }
-@keyframes catch-go-ball-ready-pulse {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50%      { transform: translateY(-9px) scale(1.04); }
-}
 
 /* ─── Success: ball glow + GO confirm stars + sparkles ───────── */
-.catch-go-ball-success {
-  position: absolute;
-  bottom: 30%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 6;
-  animation: catch-go-ball-success 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  filter: drop-shadow(0 0 22px #facc15) drop-shadow(0 0 46px #fbbf24);
-}
-@keyframes catch-go-ball-success {
-  0%   { transform: translateX(-50%) scale(0.8); }
-  50%  { transform: translateX(-50%) scale(1.4) rotate(20deg); }
-  100% { transform: translateX(-50%) scale(1); }
-}
-.catch-go-catch-stars {
-  position: absolute;
-  top: -14px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  pointer-events: none;
-  z-index: 2;
-}
-.catch-go-catch-star {
-  filter: drop-shadow(0 2px 4px rgba(180, 83, 9, 0.5));
-  opacity: 0;
-  transform: scale(0) rotate(-40deg);
-  animation: catch-go-star-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  animation-delay: calc(0.55s + var(--si) * 0.13s);
-}
-.catch-go-catch-star:nth-child(2) { margin-bottom: 8px; }
-@keyframes catch-go-star-pop {
-  0%   { opacity: 0; transform: scale(0) rotate(-40deg); }
-  60%  { opacity: 1; transform: scale(1.25) rotate(8deg); }
-  100% { opacity: 1; transform: scale(1) rotate(0); }
-}
-.catch-go-sparkle {
-  position: absolute;
-  left: 50%;
-  bottom: 35%;
-  width: 11px;
-  height: 11px;
-  background: #facc15;
-  border-radius: 50%;
-  box-shadow: 0 0 10px #facc15, 0 0 20px #fbbf24;
-  pointer-events: none;
-  z-index: 7;
-  --dist: 184px;
-  transform-origin: center;
-  animation: catch-go-sparkle-burst 1.4s ease-out forwards;
-  animation-delay: calc(var(--i) * 35ms);
-}
-@keyframes catch-go-sparkle-burst {
-  0%   { transform: translateX(-50%) rotate(var(--angle)) translateY(0) scale(0); opacity: 1; }
-  60%  { transform: translateX(-50%) rotate(var(--angle)) translateY(calc(-1 * var(--dist))) scale(1); opacity: 1; }
-  100% { transform: translateX(-50%) rotate(var(--angle)) translateY(calc(-1 * var(--dist))) scale(0); opacity: 0; }
-}
 
 /* ─── Throw-quality banner (Nice / Great / Excellent) ────────── */
-.catch-go-quality-banner {
-  position: absolute;
-  top: 46%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 9px 26px;
-  border-radius: 999px;
-  font-size: 21px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1.6px;
-  z-index: 9;
-  color: #fff;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-  white-space: nowrap;
-  animation: catch-go-quality-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.catch-go-quality-banner.quality-excellent {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  box-shadow: 0 8px 26px rgba(251, 191, 36, 0.55);
-}
-.catch-go-quality-banner.quality-great {
-  background: linear-gradient(135deg, #b5302d 0%, #900603 100%);
-  box-shadow: 0 8px 26px color-mix(in srgb, var(--blue) 60%, transparent);
-}
-.catch-go-quality-banner.quality-nice {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 8px 26px rgba(16, 185, 129, 0.55);
-}
-@keyframes catch-go-quality-pop {
-  0%   { transform: translate(-50%, -50%) scale(0) rotate(-10deg); opacity: 0; }
-  50%  { transform: translate(-50%, -50%) scale(1.16); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-}
 
 /* result-card keyframe kept (used by success/fail sub-screens) */
-@keyframes catch-go-result-pop {
-  0%   { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-  60%  { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-}
 
 /* ─── Bottom bar (Berry · placeholder · Ball) ────────────────── */
-.catch-go-bottombar {
-  position: absolute;
-  bottom: 26px;
-  left: 0;
-  right: 0;
-  z-index: 8;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0 24px;
-  gap: 12px;
-  pointer-events: none;
-}
-.catch-go-bottombar > * { pointer-events: auto; }
-.catch-go-bottom-btn {
-  width: 66px;
-  height: 66px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  padding: 0;
-  font-family: inherit;
-  flex-shrink: 0;
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-.catch-go-bottom-btn:hover:not(:disabled) { background: var(--cg-glass-hover); transform: scale(1.07); }
-.catch-go-bottom-btn:active:not(:disabled) { transform: scale(0.96); }
-.catch-go-bottom-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.catch-go-ball-placeholder { width: 110px; height: 110px; flex-shrink: 0; }
 
 /* dock item = button + Japandi label beneath */
-.catch-go-dock-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 9px;
-  pointer-events: auto;
-}
-.catch-go-dock-label {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.82);
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-}
 
 /* drag hint — quiet, wide-tracked, fades gently */
-.catch-go-drag-hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 124px;
-  z-index: 7;
-  text-align: center;
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.82);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
-  pointer-events: none;
-  animation: catch-go-hint-fade 2.6s ease-in-out infinite;
-}
-@keyframes catch-go-hint-fade {
-  0%, 100% { opacity: 0.5; }
-  50%      { opacity: 0.95; }
-}
 
 /* ═══════════════════════════════════════════════════════════
    Picker modals (Ball / Berry) — theme-aware
    ═══════════════════════════════════════════════════════════ */
-.catch-go-picker-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  background: rgba(0, 0, 0, 0.68);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  animation: catch-go-overlay-in 0.25s ease;
-}
-@keyframes catch-go-overlay-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes catch-cta-shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
-}
-.catch-go-picker-modal {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  max-width: 540px;
-  width: 100%;
-  max-height: 86vh;
-  overflow-y: auto;
-  padding: 24px;
-  position: relative;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
-  animation: catch-go-modal-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes catch-go-modal-in {
-  from { transform: translateY(14px) scale(0.97); opacity: 0; }
-  to   { transform: translateY(0) scale(1); opacity: 1; }
-}
-.catch-go-picker-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg-muted);
-  border: none;
-  cursor: pointer;
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s, color 0.2s;
-}
-.catch-go-picker-close:hover { background: var(--blue); color: #fff; }
-.catch-go-picker-title {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0 0 18px;
-  text-align: center;
-  color: var(--text-primary);
-}
 
 /* preview panel */
-.catch-go-detail-preview {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 18px;
-  background: var(--bg-muted);
-  border-radius: 20px;
-  margin-bottom: 16px;
-  min-height: 94px;
-}
-.catch-go-detail-info { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
-.catch-go-detail-name { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; color: var(--text-primary); }
-.catch-go-detail-rate { font-size: 14px; font-weight: 700; }
-.catch-go-detail-tag {
-  display: inline-block;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 3px 11px;
-  border-radius: 999px;
-}
-.catch-go-detail-desc { font-size: 12.5px; font-weight: 500; color: var(--text-secondary); line-height: 1.55; margin: 2px 0 0; }
-.catch-go-detail-hintmsg { font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin-top: 4px; display: inline-flex; }
-.catch-go-detail-none { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 14px; font-weight: 600; padding: 4px; }
-.catch-go-none-ic { display: inline-flex; color: var(--text-muted); }
 
 /* item grid */
-.catch-go-picker-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
-  margin-bottom: 18px;
-}
-.catch-go-picker-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 13px 6px;
-  background: var(--bg-muted);
-  border: 1.5px solid transparent;
-  border-radius: 19px;
-  cursor: pointer;
-  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
-  font-family: inherit;
-}
-.catch-go-picker-item:hover { transform: translateY(-2px); border-color: var(--ball-glow, var(--blue)); }
-.catch-go-picker-item.selected {
-  border-color: var(--ball-glow, var(--blue));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ball-glow, var(--blue)) 22%, transparent);
-}
-.catch-go-picker-item.hinting {
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent);
-}
-.catch-go-picker-label { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.2; color: var(--text-primary); }
 
 /* confirm button */
-.catch-go-pick-confirm {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #b5302d 0%, #900603 100%);
-  color: #fff;
-  border: none;
-  border-radius: 17px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--blue) 40%, transparent);
-}
-.catch-go-pick-confirm:hover { transform: translateY(-2px); box-shadow: 0 10px 24px color-mix(in srgb, var(--blue) 50%, transparent); }
 
 /* floating detail pop-up (hover / press-and-hold) */
-.catch-go-berry-tip {
-  position: fixed;
-  z-index: 10001;
-  transform: translate(-50%, -100%);
-  width: 270px;
-  max-width: 82vw;
-  pointer-events: none;
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 19px;
-  padding: 13px 14px;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
-  animation: catch-tip-in 0.14s ease;
-}
-.catch-go-berry-tip::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  width: 11px;
-  height: 11px;
-  background: var(--bg-card);
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  transform: translateX(-50%) rotate(45deg);
-}
 @keyframes catch-tip-in { from { opacity: 0; transform: translate(-50%, -100%) translateY(5px); } to { opacity: 1; } }
-.catch-go-berry-tip-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 9px; border-bottom: 1px solid var(--border); }
-.catch-go-berry-tip-name { font-size: 14px; font-weight: 800; letter-spacing: -0.01em; flex: 1; min-width: 0; }
-.catch-go-berry-tip-tag { font-size: 10px; font-weight: 800; color: #fff; padding: 2px 9px; border-radius: 999px; flex-shrink: 0; }
-.catch-go-berry-tip-rows { display: flex; flex-direction: column; gap: 8px; }
-.catch-go-tip-row { display: grid; grid-template-columns: 16px 56px 1fr; align-items: start; gap: 7px; }
-.catch-go-tip-ic { display: inline-flex; align-items: center; justify-content: center; color: var(--text-muted); margin-top: 1px; }
-.catch-go-tip-lbl { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; margin-top: 1px; }
-.catch-go-tip-val { font-size: 12px; font-weight: 600; color: var(--text-primary); line-height: 1.45; }
 
 /* dark-mode picker accents */
-[data-theme="dark"] .catch-go-detail-preview {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--blue) 15%, transparent) 0%, color-mix(in srgb, var(--gold) 15%, transparent) 100%);
-}
 
 /* ═══════════════════════════════════════════════════════════
    How-to-Play tutorial — rebuilt, theme-aware, minimal
    (keyframes tutorial-modal-in / tutorial-card-in / viz-* live
     in the component's scoped <style>)
    ═══════════════════════════════════════════════════════════ */
-.catch-tut-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10001;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(9px);
-  -webkit-backdrop-filter: blur(9px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  animation: catch-go-overlay-in 0.25s ease;
-}
-.catch-tut-modal {
-  position: relative;
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  max-width: 420px;
-  width: 100%;
-  max-height: 92vh;
-  overflow-y: auto;
-  padding: 26px 22px 20px;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.42);
-  animation: tutorial-modal-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-}
-.catch-tut-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--bg-muted);
-  border: none;
-  cursor: pointer;
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s, color 0.2s;
-}
-.catch-tut-close:hover { background: var(--blue); color: #fff; }
-.catch-tut-head { text-align: center; margin-bottom: 18px; }
-.catch-tut-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 19px;
-  margin-bottom: 9px;
-  background: color-mix(in srgb, var(--blue) 14%, transparent);
-  color: var(--blue);
-}
-.catch-tut-title {
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  margin: 0;
-  color: var(--text-primary);
-}
-.catch-tut-sub {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-  margin: 5px 0 0;
-}
-.catch-tut-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.catch-tut-card {
-  background: var(--bg-muted);
-  border: 1.5px solid color-mix(in srgb, var(--acc, var(--blue)) 32%, transparent);
-  border-radius: 19px;
-  padding: 14px 10px 11px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  animation: tutorial-card-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-}
-.catch-tut-card-viz {
-  width: 80px;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.catch-tut-card-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--acc, var(--blue));
-  text-align: center;
-  letter-spacing: 0.2px;
-}
-.catch-tut-crit {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border-radius: 19px;
-  background: linear-gradient(135deg, color-mix(in srgb, #fbbf24 24%, var(--bg-muted)) 0%, color-mix(in srgb, #f59e0b 18%, var(--bg-muted)) 100%);
-  border: 1.5px solid color-mix(in srgb, #fbbf24 48%, transparent);
-  animation: tutorial-card-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
-}
-.catch-tut-crit-viz {
-  width: 70px;
-  height: 70px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.catch-tut-crit-title {
-  font-size: 13px;
-  font-weight: 900;
-  color: #b45309;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.catch-tut-crit-sub {
-  font-size: 11px;
-  font-weight: 600;
-  color: #92400e;
-  margin-top: 2px;
-}
-[data-theme="dark"] .catch-tut-crit-title { color: #fbbf24; }
-[data-theme="dark"] .catch-tut-crit-sub { color: #fcd34d; }
-.catch-tut-foot {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-.catch-tut-check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  font-weight: 600;
-  margin-bottom: 12px;
-  user-select: none;
-}
-.catch-tut-check input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--blue);
-  cursor: pointer;
-}
-.catch-tut-start {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #c23a36 0%, #900603 50%, #6e0402 100%);
-  background-size: 200% 200%;
-  color: #fff;
-  border: none;
-  border-radius: 17px;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  font-family: inherit;
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--blue) 42%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  animation: catch-cta-shimmer 3s ease-in-out infinite;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: transform 0.2s;
-}
-.catch-tut-start:hover { transform: translateY(-2px); }
 
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 720px) {
   /* Lift the Pokémon up so it's not stuck near the bottom on phones */
-  .catch-go-pokemon-stage { width: 256px; height: 256px; bottom: 30%; --sway: 64px; }
-  .catch-go-pokemon-name-txt { font-size: 22px; }
-  .catch-go-chance-ring { top: 92px; right: 18px; }
-  .catch-go-chance-pct { font-size: 32px; }
-  .catch-go-arena { top: 150px; bottom: 150px; }
-  .catch-go-drag-hint { bottom: 120px; }
 }
 @media (max-width: 480px) {
-  .catch-go-pokemon-stage { width: 220px; height: 220px; bottom: 33%; --sway: 50px; }
-  .catch-go-name-banner { top: 74px; }
-  .catch-go-pokemon-name-txt { font-size: 20px; letter-spacing: 3px; }
-  .catch-go-encounter-sub { font-size: 9px; letter-spacing: 3px; }
-  .catch-go-chance-ring { top: 76px; right: 14px; }
-  .catch-go-chance-pct { font-size: 28px; }
-  .catch-go-chance-pct i { font-size: 14px; }
-  .catch-go-arena { top: 132px; bottom: 146px; }
-  .catch-go-bottombar { padding: 0 18px; bottom: 20px; }
-  .catch-go-bottom-btn { width: 60px; height: 60px; }
-  .catch-go-ball-placeholder { width: 92px; height: 92px; }
-  .catch-go-quality-banner { font-size: 17px; padding: 7px 20px; }
-  .catch-go-counter-badge { font-size: 11px; }
-  .catch-go-icon-btn { width: 42px; height: 42px; }
 }
 /* Short / landscape phones — keep the subject comfortably in view */
 @media (max-height: 680px) {
-  .catch-go-pokemon-stage { bottom: 26%; }
-  .catch-go-arena { top: 128px; }
 }
 
 /* ================================================================
@@ -15322,21 +14324,21 @@ html.perf-lite {
    are otherwise close enough to blend together). */
 .auth-profile { display: flex; flex-direction: column; align-items: center; text-align: center; }
 .auth-profile-avatar {
-  width: 72px; height: 72px;
+  width: 84px; height: 84px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-display);
-  font-size: 1.8rem;
+  font-size: 2rem;
   color: #fff;
   background: linear-gradient(135deg, var(--blue), var(--cyan));
-  box-shadow: 0 8px 20px rgba(144,6,3,0.35);
   border: 4px solid var(--bg-card);
-  margin-top: -58px;
-  margin-bottom: 12px;
+  box-shadow: 0 10px 24px rgba(144,6,3,0.38), 0 0 0 5px var(--auth-well-border);
+  margin-top: -52px;
+  margin-bottom: 14px;
 }
 .auth-profile-name {
   font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   letter-spacing: 0.5px;
   color: var(--text-primary);
 }
@@ -15351,35 +14353,118 @@ html.perf-lite {
   border: 1px solid var(--auth-well-border);
   border-radius: var(--radius-pill);
   padding: 5px 14px;
-  margin-top: 10px;
-  margin-bottom: 22px;
+  margin-top: 9px;
+  margin-bottom: 20px;
 }
 .auth-profile-id-badge strong {
   font-family: var(--font-display);
   letter-spacing: 1px;
   color: var(--blue);
 }
+/* Secondary action (change starter) stays an outlined pill; log out is a
+   quieter ghost/text button beneath it — it's an exit action, not something
+   that should visually compete with the actual profile actions above it. */
 .auth-logout-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  border: 1.5px solid var(--auth-well-border);
-  background: var(--auth-well-bg);
-  color: var(--text-secondary);
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
   font-weight: 700;
-  font-size: 13px;
-  padding: 10px 20px;
+  font-size: 12.5px;
+  padding: 10px 18px;
   border-radius: var(--radius-pill);
   cursor: pointer;
   transition: all 0.18s;
+  margin-top: 2px;
 }
-.auth-logout-btn:hover { border-color: #b5302d; color: #b5302d; }
+.auth-logout-btn:hover { color: #b5302d; background: color-mix(in srgb, #b5302d 8%, transparent); }
 
 /* Dark mode */
 [data-theme="dark"] .auth-input-toggle:hover { background: rgba(255,255,255,0.08); }
 [data-theme="dark"] .auth-error { background: rgba(207,90,82,0.14); border-color: rgba(207,90,82,0.3); color: #e8857f; }
 [data-theme="dark"] .auth-profile-id-badge strong { color: var(--cyan); }
-[data-theme="dark"] .auth-logout-btn:hover { border-color: #cf5a52; color: #cf5a52; }
+[data-theme="dark"] .auth-logout-btn:hover { color: #cf5a52; background: color-mix(in srgb, #cf5a52 12%, transparent); }
+
+/* ============================================================
+   PROFILE MENU — compact avatar dropdown (Profile/Log in, Settings,
+   Dark Mode, Log out). Anchored under the avatar, same overlay+dropdown
+   mechanics as Header.jsx's MoreMenu.
+   ============================================================ */
+.profile-menu-wrap { position: relative; }
+.profile-menu-overlay { position: fixed; inset: 0; z-index: 990; }
+.profile-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  min-width: 230px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: dropdownIn 0.18s ease-out;
+}
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.profile-menu-item:hover { background: var(--bg-muted); }
+.profile-menu-item-static { cursor: default; }
+.profile-menu-item-static:hover { background: transparent; }
+.profile-menu-item-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.profile-menu-item-label { flex: 1; min-width: 0; }
+.profile-menu-item-danger .profile-menu-item-icon,
+.profile-menu-item-danger .profile-menu-item-label { color: var(--blue); }
+.profile-menu-item-danger:hover { background: color-mix(in srgb, var(--blue) 8%, transparent); }
+.profile-menu-divider { height: 1px; background: var(--border); margin: 4px 6px; }
+.profile-menu-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #ef4444; flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(239,68,68,0.6);
+}
+/* Dark-mode toggle switch */
+.profile-menu-switch {
+  flex-shrink: 0;
+  width: 38px; height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: var(--auth-well-border, var(--border));
+  padding: 3px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.profile-menu-switch-knob {
+  display: block;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  transition: transform 0.2s cubic-bezier(.22,1,.36,1);
+}
+.profile-menu-switch.on { background: var(--blue); }
+.profile-menu-switch.on .profile-menu-switch-knob { transform: translateX(16px); }
 
 /* Mobile — match the compact header button sizing */
 @media (max-width: 640px) {
@@ -15466,22 +14551,23 @@ html.perf-lite {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   width: 100%;
-  margin: 4px 0 18px;
+  margin: 0 0 20px;
 }
 .auth-stat-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 12px 6px;
+  gap: 5px;
+  padding: 14px 6px 12px;
   background: var(--auth-well-bg);
   border: 1px solid var(--auth-well-border);
   border-radius: var(--radius-md);
   color: var(--blue);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 .auth-stat-value {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   color: var(--text-primary);
   line-height: 1;
 }
@@ -15509,7 +14595,7 @@ html.perf-lite {
   padding: 12px 14px;
   border-radius: var(--radius-md);
   cursor: pointer;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   transition: border-color 0.18s, color 0.18s;
 }
 .auth-add-birthday-btn svg { flex-shrink: 0; color: var(--gold); }
@@ -15524,7 +14610,7 @@ html.perf-lite {
   border: 1px solid var(--auth-well-border);
   border-radius: var(--radius-md);
   padding: 10px 12px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 .auth-destiny-art { width: 44px; height: 44px; object-fit: contain; flex-shrink: 0; }
 .auth-destiny-text { flex: 1; min-width: 0; text-align: left; }
@@ -15554,7 +14640,7 @@ html.perf-lite {
   border: 1px solid var(--auth-well-border);
   border-radius: var(--radius-md);
   padding: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 .auth-date-input {
   width: 100%;
@@ -15596,7 +14682,7 @@ html.perf-lite {
 }
 .auth-mini-btn.primary:hover:not(:disabled) { color: #fff; opacity: 0.92; }
 
-.auth-profile-links { display: flex; gap: 8px; width: 100%; margin-bottom: 14px; }
+.auth-profile-links { display: flex; gap: 8px; width: 100%; margin-bottom: 4px; }
 
 /* Sub-screens (starter picker / leaderboard) */
 .auth-sub-screen { width: 100%; text-align: left; }
@@ -15695,7 +14781,7 @@ html.perf-lite {
 /* ============================================================
    CATCH LEADERBOARD — opened from the catch-counter badge inside
    the catch game (CatchAnimation.jsx). Same modal chrome as the
-   ball/berry pickers there (.catch-go-picker-*) so it layers above
+   the old catch UI's pickers, so it layers above
    the fullscreen game (z-index 9999) instead of the auth modal.
    ============================================================ */
 .catch-lb-overlay {
@@ -15818,6 +14904,31 @@ html.perf-lite {
   .fav-login-toast-sub { display: none; }
 }
 
+/* 🐾 "saved before logout" confirmation toast */
+.pet-save-toast {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 14px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 24px));
+  padding: 11px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  animation: fav-toast-in 0.4s var(--ease-spring);
+}
+
 /* ⏳ Suspense fallback for lazy-loaded tabs/overlays (chunk still fetching) */
 .view-loading {
   display: flex; align-items: center; justify-content: center;
@@ -15837,3 +14948,294 @@ html.perf-lite {
   animation: loading-spin 0.7s linear infinite;
 }
 @keyframes loading-spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   POKÉDEX PAGE — REDESIGN
+   Same brand red (--blue), new chrome: light floating nav instead of
+   the dark wine-glass header, plain underline tabs, clean pill search
+   + filter row, softer page backdrop behind the card grid. Scoped to
+   the header (shared across all views) and the Pokédex grid — Team
+   Builder / GO Tools / Games keep their existing look for now.
+   Appended last on purpose: this file has accumulated many earlier
+   passes on the same selectors (some with !important), and being last
+   in source order is the only reliable way to win that cascade without
+   hunting down and editing every prior layer.
+   ============================================================ */
+
+.header {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: 0 2px 20px rgba(28,27,30,0.06) !important;
+}
+
+/* Nav pills → plain underline tabs */
+.mode-tabs {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  gap: 26px !important;
+  padding: 0 !important;
+}
+.mode-tab {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 8px 0 !important;
+  position: relative;
+}
+.mode-tab:hover { background: transparent !important; color: var(--text-primary) !important; }
+.mode-tab.active,
+[data-theme="dark"] .mode-tab.active {
+  background: transparent !important;
+  color: var(--blue) !important;
+  box-shadow: none !important;
+}
+.mode-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 2px; right: 2px; bottom: -1px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--blue);
+}
+.mode-tab-go.active { background: transparent !important; color: var(--blue) !important; }
+.mode-tab-go.active::after { background: var(--blue) !important; }
+
+/* Icon buttons (More menu) + avatar/login button — light chrome */
+.header-icon-group {
+  background: var(--bg-muted) !important;
+  border: 1px solid var(--border) !important;
+}
+.header-icon-group .more-menu-btn,
+.more-menu-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary) !important;
+}
+.header-icon-group .more-menu-btn:hover,
+.more-menu-btn:hover {
+  background: var(--bg-card) !important;
+  color: var(--blue) !important;
+  border-color: transparent !important;
+  transform: scale(1.06) !important;
+}
+.header-actions-divider { background: var(--border) !important; }
+.auth-btn {
+  background: var(--bg-muted) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+.auth-btn:hover { background: var(--bg-card) !important; color: var(--blue) !important; border-color: var(--blue) !important; }
+.auth-btn-user { border-color: transparent !important; background: transparent !important; }
+
+/* Search bar — pill input + a separate glowing circular red button at
+   the end (voice/snap search icons keep floating inside the input). */
+.search-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+/* The voice/snap icon buttons are absolutely positioned against the
+   nearest positioned ancestor (right: 44px / 8px) — that has to be
+   this inner wrapper (same width as the input alone), not the outer
+   .search-wrap, now that .search-go-btn is a sibling taking up space
+   on the right. */
+.search-input-group {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.search-wrap .search-box {
+  width: 100%;
+  height: 46px !important;
+  padding-left: 20px !important;
+  border-radius: 999px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--bg-muted) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: none !important;
+  font-weight: 600 !important;
+}
+.search-box::placeholder { color: var(--text-muted) !important; }
+.search-box:focus, .search-box:focus-within {
+  background: var(--bg-card) !important;
+  border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 14%, transparent) !important;
+}
+.search-go-btn {
+  flex-shrink: 0;
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--blue-light), var(--blue));
+  color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--blue) 45%, transparent),
+              0 0 0 4px color-mix(in srgb, var(--blue) 10%, transparent);
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.search-go-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--blue) 55%, transparent),
+              0 0 0 5px color-mix(in srgb, var(--blue) 14%, transparent);
+}
+.search-go-btn:active { transform: scale(0.94); }
+
+/* Voice/snap search icons — plain lucide icons now (see VoiceSearch.jsx /
+   SnapSearch.jsx), styled to sit on the new light pill correctly. */
+.search-icon-btn {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 1px 3px rgba(28,27,30,0.08) !important;
+}
+.search-icon-btn:hover {
+  background: var(--bg-card) !important;
+  color: var(--blue) !important;
+  border-color: var(--blue) !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--blue) 20%, transparent) !important;
+}
+.voice-icon.listening {
+  background: linear-gradient(135deg, var(--blue-light), var(--blue)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--blue) 45%, transparent) !important;
+}
+
+/* Type filter — icon + label + chevron pill wrapping the native <select> */
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s;
+}
+.filter-pill:hover, .filter-pill:focus-within {
+  background: var(--bg-card);
+  border-color: var(--blue);
+}
+.filter-pill-icon { color: var(--blue); flex-shrink: 0; }
+.filter-pill-chevron { color: var(--text-muted); flex-shrink: 0; }
+.filter-pill .type-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+}
+.filter-pill .type-select:focus { outline: none !important; }
+
+.count-badge {
+  background: var(--bg-muted) !important;
+  border: 1px solid var(--border) !important;
+}
+.count-num { color: var(--blue) !important; }
+.count-label { color: var(--text-muted) !important; opacity: 1 !important; }
+
+.fav-filter-btn {
+  border: 1.5px solid var(--border) !important;
+  background: var(--bg-muted) !important;
+  color: var(--text-secondary) !important;
+  backdrop-filter: none !important;
+}
+.fav-filter-btn:hover { background: var(--bg-card) !important; border-color: var(--blue) !important; color: var(--blue) !important; }
+.fav-filter-btn.active {
+  background: var(--blue) !important;
+  border-color: var(--blue) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--blue) 35%, transparent) !important;
+}
+.fav-filter-btn.active .fav-filter-count { background: rgba(255,255,255,0.3) !important; }
+
+/* Generation row — plain strip, no dark backing bar */
+.header-gen-row { background: transparent !important; border-top: 1px solid var(--border) !important; }
+.gen-btn {
+  border: 1.5px solid var(--border) !important;
+  background: var(--bg-muted) !important;
+  color: var(--text-secondary) !important;
+}
+.gen-btn:hover { background: var(--bg-card) !important; border-color: var(--blue) !important; color: var(--blue) !important; }
+.gen-btn.active {
+  background: var(--blue) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--blue) 40%, transparent) !important;
+}
+
+/* ── Pokédex grid backdrop + cards ── */
+.grid-wrap {
+  background: color-mix(in srgb, var(--blue) 3%, var(--bg)) !important;
+}
+.poke-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 1px 3px rgba(28,27,30,0.05) !important;
+}
+.poke-card:hover {
+  border-color: color-mix(in srgb, var(--blue) 30%, var(--border)) !important;
+  box-shadow: 0 10px 28px rgba(28,27,30,0.09) !important;
+  transform: translateY(-3px) !important;
+}
+.poke-card::before, .poke-card::after, .poke-card .card-img-wrap::after { display: none !important; }
+.card-img-wrap { border-bottom: none !important; }
+.card-type-bar { display: none !important; }
+.card-num {
+  color: var(--text-muted) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+}
+.card-name {
+  color: var(--text-primary) !important;
+  font-family: var(--font-display) !important;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+}
+.type-tag {
+  border-radius: var(--radius-pill) !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.4px !important;
+  box-shadow: none !important;
+}
+.fav-btn {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-muted) !important;
+  box-shadow: 0 2px 6px rgba(28,27,30,0.08) !important;
+}
+.fav-btn:hover, .fav-btn.fav-active-state {
+  color: var(--blue) !important;
+  border-color: var(--blue) !important;
+}
+
+/* Kept for CatchLeaderboard, whose overlay/card still reference them after the
+   rest of the old catch UI was removed. */
+@keyframes catch-go-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes catch-go-modal-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}

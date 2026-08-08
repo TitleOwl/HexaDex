@@ -48,6 +48,7 @@ export function buildEvoTree(chain) {
       minLevel: node.evolution_details?.[0]?.min_level ?? null,
       trigger: node.evolution_details?.[0]?.trigger?.name ?? null,
       item: node.evolution_details?.[0]?.item?.name ?? null,
+      minHappiness: node.evolution_details?.[0]?.min_happiness ?? null,
       children: (node.evolves_to ?? []).map(parseNode),
     };
   };

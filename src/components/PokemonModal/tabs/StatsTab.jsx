@@ -1,80 +1,80 @@
-// Horizontal Stat Bars — modern stat visualization
-function StatBars({ stats }) {
-  const STAT_INFO = {
-    "hp":              { label: "HP",   color: "#ef4444", glow: "rgba(239,68,68,0.35)"   },
-    "attack":          { label: "ATK",  color: "#f97316", glow: "rgba(249,115,22,0.35)"  },
-    "defense":         { label: "DEF",  color: "#eab308", glow: "rgba(234,179,8,0.35)"   },
-    "special-attack":  { label: "SP.A", color: "#06b6d4", glow: "rgba(6,182,212,0.35)"   },
-    "special-defense": { label: "SP.D", color: "#22c55e", glow: "rgba(34,197,94,0.35)"   },
-    "speed":           { label: "SPD",  color: "#ec4899", glow: "rgba(236,72,153,0.35)"  },
-  };
-  const MAX = 200; // visual scale max (real max is 255 but most stats are <200)
+import TypeMatchups from "./TypeMatchups.jsx";
+
+// Length says HOW MUCH, color says WHICH STAT — two separate data
+// dimensions. Stat colors are FIXED across every Pokémon (never the type
+// color), so "the blue row is Sp. Atk" stays learnable page to page.
+const STAT_META = {
+  "hp":              { label: "HP",      abbr: "HP",  color: "#E24B5B" },
+  "attack":          { label: "Attack",  abbr: "ATK", color: "#F0913E" },
+  "defense":         { label: "Defense", abbr: "DEF", color: "#F5CB44" },
+  "special-attack":  { label: "Sp. Atk", abbr: "SpA", color: "#6FC7EE" },
+  "special-defense": { label: "Sp. Def", abbr: "SpD", color: "#8ED98A" },
+  "speed":           { label: "Speed",   abbr: "SPD", color: "#F08497" },
+};
+const TOTAL_COLOR = "#4C57C8";
+
+// Scale caps: 180 for single stats (most sit 40–130, so /255 would squash
+// them into an unreadable stub) and 720 for the six-stat total.
+const STAT_MAX  = 180;
+const TOTAL_MAX = 720;
+const AVERAGE   = 80; // marker position, shared by all six stat rows
+
+function StatRow({ meta, value, max, delay, marker, thick }) {
+  const pct = Math.min(100, (value / max) * 100);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
-      {stats.map(s => {
-        const info = STAT_INFO[s.stat.name] ?? { label: s.stat.name, color: "#9c988e", glow: "rgba(148,163,184,0.3)" };
-        const pct = Math.min(100, (s.base_stat / MAX) * 100);
-        return (
-          <div key={s.stat.name} style={{
-            display: "grid",
-            gridTemplateColumns: "56px 40px 1fr",
-            alignItems: "center",
-            gap: 14,
-          }}>
-            <div style={{
-              fontSize: 10.5,
-              fontWeight: 600,
-              color: "var(--stat-lbl, #a89e8c)",
-              letterSpacing: 2,
-              textTransform: "uppercase",
-            }}>
-              {info.label}
-            </div>
-            <div style={{
-              fontSize: 15,
-              fontWeight: 400,
-              color: "var(--stat-num, #3a352e)",
-              textAlign: "right",
-              fontVariantNumeric: "tabular-nums",
-            }}>
-              {s.base_stat}
-            </div>
-            <div style={{
-              position: "relative",
-              height: 4,
-              background: "var(--stat-track, #ddd3c2)",
-              borderRadius: 999,
-              overflow: "hidden",
-            }}>
-              <div style={{
-                position: "absolute",
-                left: 0, top: 0, bottom: 0,
-                width: `${pct}%`,
-                background: "var(--stat-num, #3a352e)",
-                borderRadius: 999,
-                transition: "width 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
-              }} />
-            </div>
-          </div>
-        );
-      })}
-      <style>{`
-        :root { --stat-num: #3a352e; --stat-track: #ddd3c2; --stat-lbl: #a89e8c; }
-        [data-theme="dark"] { --stat-num: #e7e1d6; --stat-track: #38332c; --stat-lbl: #8a8170; }
-      `}</style>
+    <div className={`stat-row${thick ? " total" : ""}`}>
+      <span className="stat-badge" style={{ background: meta.color }}>{meta.abbr}</span>
+      <span className="stat-value">{value}</span>
+      <div className="stat-track">
+        <div
+          className="stat-fill"
+          style={{ width: `${pct}%`, background: meta.color, "--stagger": `${delay}ms` }}
+        />
+        {marker != null && (
+          <span className="stat-marker" style={{ left: `${(marker / max) * 100}%` }} aria-hidden />
+        )}
+      </div>
     </div>
   );
 }
 
-export default function StatsTab({ stats, total, s }) {
+export default function StatsTab({ stats, total, types, lang, s }) {
+  const markerNote = lang === "th" ? `เส้น = ค่าเฉลี่ยทั่วไป (${AVERAGE})`
+    : lang === "ja" ? `線 = 平均値 (${AVERAGE})`
+    : `Line = typical average (${AVERAGE})`;
+
   return (
     <div>
-      <div className="modal-section-title">{s.baseStats}</div>
-      <StatBars stats={stats} />
-      <div className="stat-total-row">
-        <span className="stat-total-label">{s.total}</span>
-        <span className="stat-total-val">{total}</span>
+      <div className="stat-rows">
+        {stats.map((st, i) => {
+          const meta = STAT_META[st.stat.name]
+            ?? { label: st.stat.name, abbr: st.stat.name.slice(0, 3).toUpperCase(), color: TOTAL_COLOR };
+          return (
+            <StatRow
+              key={st.stat.name}
+              meta={meta}
+              value={st.base_stat}
+              max={STAT_MAX}
+              delay={i * 40}
+              marker={AVERAGE}
+            />
+          );
+        })}
       </div>
+
+      <div className="stat-total-wrap">
+        <StatRow
+          meta={{ label: s.total, abbr: "TOT", color: TOTAL_COLOR }}
+          value={total}
+          max={TOTAL_MAX}
+          delay={240}
+          thick
+        />
+      </div>
+
+      <p className="stat-marker-note">{markerNote}</p>
+
+      <TypeMatchups types={types} lang={lang} />
     </div>
   );
 }
