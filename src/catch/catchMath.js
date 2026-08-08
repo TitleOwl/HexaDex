@@ -2,20 +2,63 @@
 // be reasoned about (and unit-checked) on its own. All values are the tuning
 // defaults from the spec — expect to adjust them after playing.
 
+// The Pokémon GO line-up, with GO's own rates. `mult` is the catch multiplier;
+// the two special cases are marked rather than faked with a big number, because
+// neither of them is really a multiplier:
+//   master    — catches, full stop.
+//   beast     — ×5 against Ultra Beasts and a penalty against anything else,
+//               which is why it needs the species, not just the ball.
 export const BALLS = [
-  { id: "poke",  mult: 1.0, img: "/poke-ball.png",  labelEN: "Poké Ball",  labelTH: "มอนสเตอร์บอล",  labelJA: "モンスターボール", color: "#EE4B3C" },
-  { id: "great", mult: 1.5, img: "/great-ball.png", labelEN: "Great Ball", labelTH: "ซูเปอร์บอล",    labelJA: "スーパーボール",   color: "#3E7BE8" },
-  { id: "ultra", mult: 2.0, img: "/ultra-ball.png", labelEN: "Ultra Ball", labelTH: "ไฮเปอร์บอล",    labelJA: "ハイパーボール",   color: "#F0B429" },
+  { id: "poke",    mult: 1.0, img: "/poke-ball.png",       labelEN: "Poké Ball",    labelTH: "มอนสเตอร์บอล",  labelJA: "モンスターボール", color: "#EE4B3C" },
+  { id: "great",   mult: 1.5, img: "/great-ball.png",      labelEN: "Great Ball",   labelTH: "ซูเปอร์บอล",    labelJA: "スーパーボール",   color: "#3E7BE8" },
+  { id: "ultra",   mult: 2.0, img: "/ultra-ball.png",      labelEN: "Ultra Ball",   labelTH: "ไฮเปอร์บอล",    labelJA: "ハイパーボール",   color: "#F0B429" },
+  { id: "premier", mult: 1.0, img: "",                     labelEN: "Premier Ball", labelTH: "พรีเมียร์บอล",  labelJA: "プレミアボール",   color: "#E8E8E8" },
+  { id: "safari",  mult: 1.5, img: "/go-safari-ball.png",  labelEN: "Safari Ball",  labelTH: "ซาฟารีบอล",     labelJA: "サファリボール",   color: "#8BC34A" },
+  { id: "beast",   mult: 0.1, ub: 5.0, img: "",            labelEN: "Beast Ball",   labelTH: "อัลตราบีสต์บอล", labelJA: "ウルトラボール",   color: "#4FC3D9" },
+  { id: "master",  mult: 255, guaranteed: true, img: "",   labelEN: "Master Ball",  labelTH: "มาสเตอร์บอล",   labelJA: "マスターボール",   color: "#7B3FA0" },
 ];
 
+// National dex ids of the Ultra Beasts — the only targets a Beast Ball is for.
+const ULTRA_BEASTS = new Set([793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806]);
+export const isUltraBeast = (id) => ULTRA_BEASTS.has(Number(id));
+
+/** The ball's multiplier against THIS species (Beast Ball is the only one that
+ *  cares who it is thrown at). */
+export function ballMult(ballId, pokemonId) {
+  const b = ballById(ballId);
+  if (b.ub != null) return isUltraBeast(pokemonId) ? b.ub : b.mult;
+  return b.mult;
+}
+
+// Pokémon GO's berries, with GO's own effects. A berry does one of two things
+// and never both: it raises the odds (`mult`), or it buys control by holding
+// the target still (`calm`, a fraction of the drift taken away — §5.4).
+// Pinap is the odd one out: in GO it does not touch the catch rate at all, it
+// doubles the candy. There is no candy here, so it doubles the only reward this
+// game actually pays — the balls a catch hands back (`reward`). That reward is
+// invisible while balls are unlimited; it is still recorded, so it means
+// something again the moment the supply is switched back on.
 export const BERRIES = [
-  { id: "boost", mult: 1.5, calm: 0,   shape: "razz",  labelEN: "Razz Berry", labelTH: "เบอร์รี่เพิ่มโอกาส", labelJA: "ズリのみ",   color: "#E0575B", icon: "🍓" },
-  // A calm berry buys control rather than probability: it doesn't raise the
-  // odds, it makes the target easier to hit (§5.4).
-  { id: "calm",  mult: 1.0, calm: 0.7, shape: "nanab", labelEN: "Nanab Berry", labelTH: "เบอร์รี่ทำให้อยู่นิ่ง", labelJA: "ナナのみ", color: "#F0B429", icon: "🍌" },
+  // §5.1 — every berry must SHOW its effect, not just change a number, so each
+  // one carries what it does to the target's motion alongside its odds:
+  //   slow    — fraction of the sway SPEED left (0.35 = moves at a third pace)
+  //   calm    — fraction of the sway DISTANCE taken away (0.7 = 30% left)
+  //   stopHop — the idle bob stops dead
+  //   aura    — a sparkle that stays on the target while the effect is live
+  { id: "razz",        mult: 1.5, slow: 0.35, calm: 0,    stopHop: false, aura: false, shape: "razz",  labelEN: "Razz Berry",         labelTH: "ซูริเบอร์รี่",     labelJA: "ズリのみ",        color: "#E0575B" },
+  { id: "goldenrazz",  mult: 2.5, slow: 0.35, calm: 0,    stopHop: false, aura: true,  shape: "razz",  labelEN: "Golden Razz Berry",  labelTH: "ซูริเบอร์รี่ทอง",  labelJA: "きんのズリのみ",   color: "#F5A524" },
+  { id: "nanab",       mult: 1.0, slow: 1,    calm: 0.70, stopHop: true,  aura: false, shape: "nanab", labelEN: "Nanab Berry",        labelTH: "นานะเบอร์รี่",     labelJA: "ナナのみ",        color: "#F0B429" },
+  { id: "pinap",       mult: 1.0, slow: 1,    calm: 0,    stopHop: false, aura: true,  reward: 2, shape: "pinap", labelEN: "Pinap Berry",        labelTH: "พินะเบอร์รี่",     labelJA: "パイルのみ",      color: "#F4C430" },
+  { id: "silverpinap", mult: 1.8, slow: 0.35, calm: 0,    stopHop: false, aura: true,  reward: 2, shape: "pinap", labelEN: "Silver Pinap Berry", labelTH: "พินะเบอร์รี่เงิน", labelJA: "ぎんのパイルのみ", color: "#B8C4CC" },
 ];
 
 export const ballById  = (id) => BALLS.find(b => b.id === id)  ?? BALLS[0];
+/** How much of the target's drift a berry takes away: 0 none, 1 dead still. */
+export const berryCalm = (id) => berryById(id)?.calm ?? 0;
+/** Fraction of the target's sway SPEED left: 1 normal, 0.35 a third pace. */
+export const berrySlow = (id) => berryById(id)?.slow ?? 1;
+/** What a berry multiplies the catch reward by — GO's candy bonus. */
+export const berryReward = (id) => berryById(id)?.reward ?? 1;
 export const berryById = (id) => BERRIES.find(b => b.id === id) ?? null;
 
 // ── Throw bonus by ring size at impact (§4.2) ──────────────────────────────
@@ -61,9 +104,12 @@ export function fleeChance(rate, failedAttempts) {
 export const CURVE_BONUS = 1.25;
 
 // ── catchChance (§5.1) ─────────────────────────────────────────────────────
-export function catchChance({ rate, ballId, berryId, throwMult = 1.0, curve = false }) {
+export function catchChance({ rate, ballId, berryId, throwMult = 1.0, curve = false, pokemonId }) {
+  // The Master Ball is not a good multiplier, it is an exemption: capping at
+  // 0.95 like everything else would leave it failing one throw in twenty.
+  if (ballById(ballId).guaranteed) return 1;
   const raw = rate
-    * ballById(ballId).mult
+    * ballMult(ballId, pokemonId)
     * (berryById(berryId)?.mult ?? 1)
     * throwMult
     * (curve ? CURVE_BONUS : 1);

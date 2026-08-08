@@ -16,7 +16,7 @@ export const TUNING = {
   spinTurnGate: 3.6,       // rad (~206°) · accumulated turn needed as well
   flightTime: 0.6,         // s
   arcHeight: 64,           // px · height of the lob
-  minFlickSpeed: 260,      // px/s upward · below this it isn't a throw
+  minFlickSpeed: 250,      // px/s upward · below this it isn't a throw (§4.2)
   spinIdleMs: 140,         // ms of stillness before spin starts bleeding
   spinDecayPerFrame: 0.04,
   // The u² term alone bows the path only shift/4 off a straight line — about
@@ -34,9 +34,9 @@ export const TUNING = {
   curveMinShift: 8,        // px · below this the curve doesn't count
   dodgeRange: 40,          // px · base sideways drift of the target
   dodgeRangeMax: 60,       // px · cap, past which it's just luck
-  ringMin: 18,             // px
-  ringMax: 70,             // px
-  ringPeriod: 2000,        // ms
+  // px · how far off centre a throw may land and still connect. Fixed, since
+  // there is no longer a pulsing ring whose current size decided it.
+  hitRadius: 70,
   trailLifeMs: 300,
   resolveMs: 450,
 };
@@ -155,8 +155,18 @@ export function flightAt(u, p, tune = TUNING) {
 }
 
 // ── Target + ring ───────────────────────────────────────────────────────────
-export function targetOffset(tMs, dodgeRange) {
-  const t = tMs / 1000;
+/**
+ * Where the target has drifted to. `speed` is the berry slow-down (§5.1): it
+ * scales TIME, not distance, so a slowed target still covers the same ground —
+ * it just takes longer about it, which is what "moves slower" has to mean if
+ * the sway is to stay readable rather than merely shrink.
+ *
+ * NOTE the phase carry: t is scaled inside the sine, so changing `speed`
+ * mid-encounter jumps the argument. The caller passes an already-warped clock
+ * for exactly this reason — see slowClock in CatchScreen.
+ */
+export function targetOffset(tMs, dodgeRange, speed = 1) {
+  const t = (tMs / 1000) * speed;
   return {
     x: dodgeRange * Math.sin(t * 0.9),
     hop: Math.abs(Math.sin(t * 1.7)) * 5,
@@ -168,15 +178,16 @@ export function dodgeRangeFor(rate, tune = TUNING) {
   return Math.min(tune.dodgeRangeMax, tune.dodgeRange + rarity * 20);
 }
 
-/** Ring radius right now. Bigger Pokémon are naturally easier to hit. */
-export function ringRadiusAt(tMs, spriteScale = 1, tune = TUNING) {
-  const p = (tMs % tune.ringPeriod) / tune.ringPeriod;
-  const tri = p < 0.5 ? 1 - p * 2 : (p - 0.5) * 2;        // 1 → 0 → 1
-  const r = tune.ringMin + tri * (tune.ringMax - tune.ringMin);
-  return r * spriteScale;
+/** How far off centre a throw may land and still connect, for this target. */
+export function hitRadiusFor(spriteScale = 1, tune = TUNING) {
+  return tune.hitRadius * spriteScale;
 }
 
 // ── Judging ─────────────────────────────────────────────────────────────────
+// Thresholds are unchanged, but what they measure is not: `pct` used to be the
+// pulsing ring's size at the moment of contact, so the tier was a matter of
+// timing. With the ring gone there is nothing to time, so the same numbers now
+// read as accuracy — the fraction of the hit radius the ball missed centre by.
 export const RESULT_TIERS = [
   { max: 0.30, key: "excellent", mult: 1.7 },
   { max: 0.55, key: "great",     mult: 1.4 },
@@ -185,13 +196,14 @@ export const RESULT_TIERS = [
 ];
 
 /**
- * Did it land, and how well? `pct` is the ring's size at contact relative to
- * its maximum, so a tight ring is a better throw.
+ * Did it land, and how well? `pct` is 0 dead centre and 1 at the edge of the
+ * hit radius, so a tighter throw is a better throw.
  */
-export function judge({ landing, targetX, ringRadius, spriteScale = 1, tune = TUNING }) {
+export function judge({ landing, targetX, spriteScale = 1, tune = TUNING }) {
+  const radius = hitRadiusFor(spriteScale, tune);
   const distance = Math.abs(landing - targetX);
-  if (distance >= ringRadius) return { hit: false, key: "missed", mult: 1.0, pct: 1 };
-  const pct = ringRadius / (tune.ringMax * spriteScale);
+  if (distance >= radius) return { hit: false, key: "missed", mult: 1.0, pct: 1 };
+  const pct = distance / radius;
   const tier = RESULT_TIERS.find(x => pct <= x.max);
   return { hit: true, key: tier.key, mult: tier.mult, pct };
 }

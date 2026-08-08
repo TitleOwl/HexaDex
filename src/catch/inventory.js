@@ -11,8 +11,14 @@ const KEY = "pkdx_catch_state_v1";
 // signed-in user silently stops working.
 const LEGACY_COUNT_KEY = "pkdx_caught_count";
 
-export const BALL_IDS  = ["poke", "great", "ultra"];
-export const BERRY_IDS = ["boost", "calm"];
+export const BALL_IDS  = ["poke", "great", "ultra", "premier", "safari", "beast", "master"];
+
+// Balls are free and endless. Kept as one switch rather than as edits scattered
+// through the UI, so the economy below stays intact and turning this off
+// restores it — the stored counts are still read, written and refilled.
+export const UNLIMITED_BALLS = true;
+export const UNLIMITED_BERRIES = true;
+export const BERRY_IDS = ["razz", "goldenrazz", "nanab", "pinap", "silverpinap"];
 
 // Balls trickle back so running dry is a pause, not a dead end (§8.2).
 export const REFILL_INTERVAL_MS = 10 * 60 * 1000; // one Poké Ball / 10 min
@@ -20,8 +26,8 @@ export const POKE_BALL_CAP      = 20;
 export const CATCH_REWARD_BALLS = 2;              // per successful catch
 
 const DEFAULTS = () => ({
-  balls:   { poke: 20, great: 5, ultra: 1 },
-  berries: { boost: 3, calm: 2 },
+  balls:   { poke: 20, great: 5, ultra: 1, premier: 5, safari: 3, beast: 1, master: 1 },
+  berries: { razz: 3, goldenrazz: 1, nanab: 2, pinap: 2, silverpinap: 1 },
   caught:  [],
   lastRefillAt: Date.now(),
 });
@@ -77,13 +83,19 @@ function withRefill(state) {
 
 export function getState() { return write(withRefill(read())); }
 
-export const ballCount  = (st, id) => st.balls[id]   ?? 0;
-export const berryCount = (st, id) => st.berries[id] ?? 0;
-export const totalBalls = (st) => BALL_IDS.reduce((a, id) => a + (st.balls[id] ?? 0), 0);
+export const ballCount  = (st, id) =>
+  UNLIMITED_BALLS ? Infinity : (st.balls[id] ?? 0);
+export const berryCount = (st, id) =>
+  UNLIMITED_BERRIES ? Infinity : (st.berries[id] ?? 0);
+export const totalBalls = (st) =>
+  UNLIMITED_BALLS ? Infinity : BALL_IDS.reduce((a, id) => a + (st.balls[id] ?? 0), 0);
 
-/** Spend one ball. Returns new state, or null if there were none. */
+/** Spend one ball. Returns new state, or null if there were none.
+ *  Under UNLIMITED_BALLS nothing is deducted, but the current state is still
+ *  returned so every caller's `if (!st) return` guard keeps its meaning. */
 export function spendBall(id) {
   const st = getState();
+  if (UNLIMITED_BALLS) return st;
   if ((st.balls[id] ?? 0) <= 0) return null;
   return write({ ...st, balls: { ...st.balls, [id]: st.balls[id] - 1 } });
 }
@@ -91,18 +103,21 @@ export function spendBall(id) {
 /** Spend one berry. Returns new state, or null if there were none. */
 export function spendBerry(id) {
   const st = getState();
+  if (UNLIMITED_BERRIES) return st;
   if ((st.berries[id] ?? 0) <= 0) return null;
   return write({ ...st, berries: { ...st.berries, [id]: st.berries[id] - 1 } });
 }
 
-/** Record a catch (set semantics) and pay the ball reward. */
-export function recordCaught(pokemonId) {
+/** Record a catch (set semantics) and pay the ball reward, doubled by a Pinap
+ *  berry — GO's candy bonus, applied to the only reward this game pays. */
+export function recordCaught(pokemonId, rewardMult = 1) {
   const st = getState();
   const caught = st.caught.includes(pokemonId) ? st.caught : [...st.caught, pokemonId];
+  const earned = Math.round(CATCH_REWARD_BALLS * rewardMult);
   return write({
     ...st,
     caught,
-    balls: { ...st.balls, poke: Math.min(POKE_BALL_CAP, st.balls.poke + CATCH_REWARD_BALLS) },
+    balls: { ...st.balls, poke: Math.min(POKE_BALL_CAP, st.balls.poke + earned) },
   });
 }
 
@@ -112,6 +127,7 @@ export function resetState() { return write(DEFAULTS()); }
 
 /** ms until the next Poké Ball, or 0 when already capped. */
 export function msUntilNextBall(st = getState()) {
+  if (UNLIMITED_BALLS) return 0;              // nothing to wait for
   if (st.balls.poke >= POKE_BALL_CAP) return 0;
   return Math.max(0, REFILL_INTERVAL_MS - (Date.now() - st.lastRefillAt));
 }

@@ -57,7 +57,7 @@ export default function CatchDebug({ telemetry, lastThrow, captureRoll, onClose 
         <span>ω (rad/s)</span><b>{fmt(tm.omega ?? 0)}</b>
         <span>tangential</span>
         <b className={(tm.tang ?? 0) >= 0.55 ? "ok" : "no"}>{fmt(tm.tang ?? 0)}</b>
-        <span>ring r</span><b>{fmt(tm.ring ?? 0)}</b>
+        <span>hit r</span><b>{fmt(tm.hitR ?? 0)}</b>
         <span>target x</span><b>{fmt(tm.targetX ?? 0)}</b>
       </div>
 
@@ -72,7 +72,7 @@ export default function CatchDebug({ telemetry, lastThrow, captureRoll, onClose 
           <span>landing x</span><b>{fmt(lt.landing)}</b>
           <span>target x</span><b>{fmt(lt.targetX)}</b>
           <span>distance</span><b>{fmt(lt.distance)} px</b>
-          <span>ring at hit</span><b>{fmt(lt.ring)}</b>
+          <span>hit r</span><b>{fmt(lt.hitR)}</b>
           <span>verdict</span>
           <b className={lt.verdict === "missed" ? "no" : "ok"}>{lt.verdict}</b>
           <span>curve bonus</span>

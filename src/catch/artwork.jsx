@@ -10,17 +10,28 @@
 import { useState } from "react";
 import { BERRIES, ballById } from "./catchMath.js";
 
-const GO_BALL_SPRITE = { poke: "pokeball", great: "greatball", ultra: "ultraball" };
+// Verified to resolve on the asset host. Safari has no sprite there, so it is
+// left out and served from the bundled png instead.
+const GO_BALL_SPRITE = {
+  poke: "pokeball", great: "greatball", ultra: "ultraball",
+  master: "masterball", premier: "premierball", beast: "beastball",
+};
 const GO_BALL_ICON = (slug) =>
   `https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/${slug}_sprite.png`;
 
 // PokeMiners item ids: 701 Razz, 703 Nanab.
-const GO_BERRY_ICON_ID = { boost: 701, calm: 703 };
+// PokeMiners item ids, each one opened and eyeballed before being wired up:
+// 701 Razz, 703 Nanab, 705 Pinap (yellow), 706 Golden Razz, 707 Silver Pinap
+// (its internal name is GOLDEN_PINAP, but the art is the silver one).
+const GO_BERRY_ICON_ID = {
+  razz: 701, nanab: 703, pinap: 705, goldenrazz: 706, silverpinap: 707,
+};
 const GO_ITEM_ICON = (n) =>
   `https://raw.githubusercontent.com/PokeMiners/pogo_assets/master/Images/Items/Item_${String(n).padStart(4, "0")}.png`;
 
-/** Ball icon. `spinDeg` rotates it, `charged` adds the wound-up glow. */
-export function BallImg({ ballId, size = 60, spinDeg = 0, charged = false }) {
+/** Ball icon. `spinDeg` rotates it. No shadow and no glow of its own: the ball
+ *  is drawn as it is, and a wound-up one says so by spinning. */
+export function BallImg({ ballId, size = 60, spinDeg = 0 }) {
   const ball = ballById(ballId);
   // 0 = GO icon, 1 = bundled png, 2 = drawn fallback
   const [stage, setStage] = useState(0);
@@ -29,9 +40,7 @@ export function BallImg({ ballId, size = 60, spinDeg = 0, charged = false }) {
 
   const style = {
     transform: spinDeg ? `rotate(${spinDeg}deg)` : undefined,
-    filter: charged
-      ? `drop-shadow(0 0 15px ${ball.color}) drop-shadow(0 6px 9px rgba(0,0,0,0.22))`
-      : "drop-shadow(0 6px 9px rgba(0,0,0,0.22))",
+
     // The bundled sprites are 30px pixel art; the GO icons are not.
     imageRendering: stage === 0 && slug ? "auto" : "pixelated",
   };
@@ -128,7 +137,25 @@ export function BerryGO({ berryId, size = 40, animate = false }) {
       </svg>
     );
   }
-  return null;
+  // Generic berry. The point of this file is that SOMETHING always renders —
+  // returning null here meant any berry without a hand-drawn shape vanished if
+  // its icon failed to load, which is the case the fallback chain exists for.
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100"
+      className={`berry-go${animate ? " berry-spin" : ""}`}>
+      <defs>
+        <radialGradient id={`gen-${uid}`} cx="35%" cy="30%">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.85" />
+          <stop offset="55%" stopColor={berry.color} />
+          <stop offset="100%" stopColor={berry.color} stopOpacity="0.85" />
+        </radialGradient>
+      </defs>
+      <path d="M 50 30 Q 26 34 26 58 Q 26 84 50 90 Q 74 84 74 58 Q 74 34 50 30 Z"
+        fill={`url(#gen-${uid})`} stroke="rgba(0,0,0,0.35)" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M 34 32 Q 44 16 50 26 Q 56 16 66 32 Q 58 26 50 30 Q 42 26 34 32 Z"
+        fill="#5FBF4A" stroke="#2F7A24" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 /** Berry icon: the GO art when it loads, the drawn one when it doesn't. */

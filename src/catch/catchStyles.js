@@ -6,18 +6,96 @@
 // control is a translucent blurred circle at an edge.
 
 export const CATCH_CSS = `
-.cx-screen {
+/* ── Modal shell ─────────────────────────────────────────────────────────
+   A floating 9:16 card centred in the viewport, over a blurred copy of the
+   same scene. Everything the encounter draws lives inside .cx-card, so every
+   absolute rule below is card-relative rather than viewport-relative — that
+   is the whole reason the layout survives being taken off fullscreen. */
+.cx-overlay {
   position: fixed;
   inset: 0;
   z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* The encounter opens from inside the detail modal, and .modal-overlay carries
+   a backdrop-filter — which makes it the containing block for our fixed
+   overlay, padding box and all. Left alone, its 24px/16px padding leaves an
+   uncovered ring of the page's own scrim around every edge, and its
+   overflow:auto is the thing a missed drag actually scrolls (the body lock in
+   the JS cannot reach it, because the body is not the scroller here). */
+.modal-overlay:has(> .cx-overlay) { padding: 0; overflow: hidden; }
+
+/* The detail page the player came from stays exactly where it was; this layer
+   only dims and softens it. A blurred copy of the game scene was the wrong
+   answer — it duplicated what is already inside the card and told the eye
+   nothing about where it had come from.
+   Enough blur to put the page out of play, not so much that it stops being the
+   Pokémon it belongs to. What gets sampled is the detail card itself: the
+   enclosing .modal-overlay's own backdrop-filter makes it the backdrop root, so
+   this reads its content, not the whole app underneath. */
+.cx-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 26, 32, 0.5);
+  backdrop-filter: blur(10px) saturate(0.9);
+  -webkit-backdrop-filter: blur(10px) saturate(0.9);
+  animation: cx-fade-in 250ms ease-out;
+}
+.cx-overlay.closing .cx-backdrop { animation: cx-fade-out 200ms ease-in forwards; }
+
+/* Economy mode already strips every backdrop-filter in the app (App.css), so
+   there is no blur to lean on here and the detail page reads straight through
+   at full sharpness, competing with the card. Nothing to add back — just more
+   scrim, which costs a single flat fill. */
+html.perf-lite .cx-backdrop { background: rgba(16, 20, 26, 0.74); }
+
+.cx-card {
+  position: relative;
+  /* Portrait 9:16. The vh term is what shrinks the card on short screens:
+     with an explicit width, aspect-ratio alone would overflow rather than
+     scale, because height is the derived axis. 50.6vh = 90vh x 9/16. */
+  width: min(440px, 92vw, 50.6vh);
+  aspect-ratio: 9 / 16;
+  max-height: 90vh;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34);
   user-select: none;
   -webkit-user-select: none;
-  /* Without this a drag scrolls the page on mobile instead of throwing. */
+  /* Only the card swallows drags — without this a throw scrolls the page on
+     mobile, and putting it on the whole overlay would take gestures the modal
+     behind still owns. */
   touch-action: none;
   overscroll-behavior: none;
   color: #fff;
   font-family: var(--font-body, system-ui, sans-serif);
+  /* Everything inside sizes off the card, never the viewport — see the
+     @container blocks at the bottom of this sheet.
+     container-type: size, not inline-size: the composition is stacked
+     vertically, so the
+     height is what actually runs out first, and only a size container can be
+     asked about it. Safe here because the card's height never depends on its
+     contents — width is definite, aspect-ratio derives the rest. */
+  container-type: size;
+  container-name: cxcard;
+  animation: cx-card-in 250ms ease-out;
+}
+.cx-card.closing { animation: cx-card-out 200ms ease-in forwards; }
+
+@keyframes cx-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cx-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes cx-card-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes cx-card-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(0.94); }
 }
 
 /* Visually hidden, still announced. */
@@ -27,12 +105,20 @@ export const CATCH_CSS = `
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
 }
 
-/* ── Scene: three depth bands, centre kept clear ───────────────────────── */
-.cx-scene { position: absolute; inset: 0; }
+/* ── Scene: three depth bands, centre kept clear ─────────────────────────
+   --cx-horizon is where the grass starts, and it is the one number the whole
+   composition hangs off: the target stands just below it and the ball lands
+   between it and the dock. It used to sit at 72%, which left the only footing
+   in the bottom quarter of a 9:16 card — the target had to float in the sky to
+   stay in frame. Raising it gives the character ground to stand on and the
+   throw somewhere to travel. */
+.cx-scene { position: absolute; inset: 0; --cx-horizon: 52%; }
 .cx-scene-sky    { position: absolute; inset: 0; }
-.cx-scene-haze   { position: absolute; left: 0; right: 0; top: 46%; height: 20%; opacity: 0.85; }
-.cx-scene-mid    { position: absolute; left: 0; right: 0; bottom: 26%; width: 100%; height: 22%; }
-.cx-scene-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 28%; }
+.cx-scene-haze   { position: absolute; left: 0; right: 0; top: 38%; height: 16%; opacity: 0.85; }
+/* Bases sink 2% past the horizon so the masses stand ON the ground plane
+   rather than hovering with a seam under them. */
+.cx-scene-mid    { position: absolute; left: 0; right: 0; bottom: 46%; width: 100%; height: 22%; }
+.cx-scene-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 48%; }
 .cx-scene-near   { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 14%; }
 .cx-scene-lights {
   position: absolute; left: 0; right: 0; bottom: 22%; height: 30%;
@@ -66,15 +152,37 @@ export const CATCH_CSS = `
 .cx-btn:disabled { opacity: 0.4; cursor: default; }
 .cx-btn.out { opacity: 0.4; }
 .cx-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* §3.3 — which item is loaded must be readable without pressing anything, and
+   never by colour alone: this is a ring, so it survives a colourblind viewer
+   and a greyscale screenshot alike. */
+.cx-btn.picked {
+  border-color: var(--sel, #fff);
+  box-shadow: 0 0 0 2.5px var(--sel, #fff);
+  outline-offset: 2px;
+}
+.cx-badge {
+  position: absolute;
+  top: -4px; right: -4px;
+  min-width: 18px; height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(16, 18, 24, 0.92);
+  border: 1px solid rgba(255,255,255,0.35);
+  font-size: 10.5px; font-weight: 800; line-height: 16px;
+  text-align: center;
+}
 .cx-flee { top: max(16px, env(safe-area-inset-top)); left: 16px; }
 .cx-lb   { top: max(16px, env(safe-area-inset-top)); right: 16px; width: 40px; height: 40px; }
 
 /* ── Arena ─────────────────────────────────────────────────────────────── */
 .cx-arena { position: absolute; inset: 0; }
 
+/* Measured UP from the stage's ground line, like everything else on the stage,
+   so it clears the sprite at every size instead of at one. */
 .cx-nameplate {
   position: absolute;
-  top: -190px;
+  bottom: 238px;
   left: 50%;
   display: inline-flex; align-items: center; gap: 10px;
   padding: 7px 16px;
@@ -89,29 +197,54 @@ export const CATCH_CSS = `
 .cx-name { font-size: 15px; font-weight: 800; text-transform: capitalize; letter-spacing: 0.3px; }
 .cx-diff { font-size: 11.5px; font-weight: 700; }
 
+/* The stage's origin is the GROUND CONTACT POINT — the spot on the grass the
+   target stands on, a little below the horizon. Everything on the stage is
+   measured up from there with a bottom offset, so a sprite that changes size
+   keeps its feet planted instead of drifting off the floor.
+   The stage itself carries only the horizontal drift; the vertical bob is a
+   CSS animation one level down (see .cx-bob) precisely so the shadow can stay
+   behind on the ground. */
 .cx-stage {
   position: absolute;
-  left: 50%; top: 38%;
+  left: 50%; top: 56%;
   width: 0; height: 0;
-  display: flex; align-items: center; justify-content: center;
   z-index: 5;
 }
-.cx-ring { position: absolute; width: 300px; height: 300px; left: -150px; top: -150px; }
+
+/* Sprite-sized box that does the idle bob. It exists so .cx-poke's own
+   transform stays free for the capture animations — shake, suck-in, reappear
+   and flee all write transform, and sharing one element would mean the bob
+   cancelling them mid-sequence.
+   The negative bottom is the transparent margin baked into the official
+   artwork: the drawn feet sit a little above the image's own edge, so the box
+   has to overshoot the ground line for them to land on it. */
+.cx-bob {
+  position: absolute;
+  left: -105px; bottom: -14px;
+  width: 210px; height: 210px;
+  animation: cx-bob 2800ms ease-in-out infinite;
+}
+/* Held still from contact onward: the capture is laid out in coordinates frozen
+   at the moment of impact, and 5px of bob is enough to slide the sprite out
+   from under the beam. */
+.cx-bob.still { animation: none; }
+@keyframes cx-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+
 .cx-poke {
   position: absolute;
-  width: 210px; height: 210px;
-  left: -105px; top: -118px;
+  inset: 0;
+  width: 100%; height: 100%;
   object-fit: contain;
   -webkit-user-drag: none;
-  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.28));
+  /* Contact shadow only. The cast shadow on the grass is a real element now, so
+     this one is tightened up to avoid reading as a second, floating one. */
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.22));
   transition: transform 0.35s cubic-bezier(0.34,1.4,0.64,1), opacity 0.3s;
 }
-.cx-poke.hop { animation: cx-hop 420ms ease-out; }
 .cx-poke.flee { transform: translateY(-140px) scale(0.4); opacity: 0; transition: transform 700ms ease-out, opacity 700ms; }
-@keyframes cx-hop {
-  0%,100% { transform: translateY(0); }
-  45%     { transform: translateY(-26px); }
-}
 
 /* §3 — the target flinches on contact. Small and fast: it confirms the hit
    without competing with the absorb that follows a quarter-second later. */
@@ -161,10 +294,13 @@ export const CATCH_CSS = `
   100% { transform: none; opacity: 1; }
 }
 
-/* Small detail, but the character floats without it. */
+/* Small detail, but the character floats without it. The ellipse straddles the
+   ground line — half above, half below — because that is where a contact shadow
+   sits, and it stays on .cx-stage rather than inside .cx-bob so the bob lifts
+   the body off it instead of dragging it along. */
 .cx-shadow {
   position: absolute;
-  left: -52px; top: 74px;
+  left: -52px; bottom: -11px;
   width: 104px; height: 22px;
   border-radius: 50%;
   background: rgba(20, 24, 20, 0.32);
@@ -184,7 +320,6 @@ export const CATCH_CSS = `
   z-index: 7;
   pointer-events: none;
   will-change: transform;
-  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
 }
 
 /* ══ Capture sequence (§3–§7) ═══════════════════════════════════════════════
@@ -475,30 +610,85 @@ export const CATCH_CSS = `
 .cx-gotcha { color: #FFD35C; }
 
 /* ── Bottom row: item · ball · swap, ball dominant (§2) ────────────────── */
+/* §3.1 — a centred cluster, not edge-to-edge. Pinning the side buttons to the
+   card's edges put them ~173px from the middle on a 440px card; the spec caps
+   that at 140px so the whole set is reachable without the thumb leaving the
+   slot. A 40px gap puts them at 59 + 40 = 99px.
+   align-items: center also does the "slightly lower" of §3.1 for free: the slot
+   column is taller than a button because of its label, so centring on the
+   column drops the buttons ~11px below the slot's own centre. */
 .cx-bottom {
   position: absolute;
   left: 0; right: 0;
   bottom: max(22px, env(safe-area-inset-bottom));
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 40px;
+  padding: 0 16px;
   z-index: 20;
 }
-.cx-btn.cx-item, .cx-btn.cx-swap, .cx-btn.cx-spacer { position: static; flex-shrink: 0; }
+/* relative, not static: each carries an absolutely-placed count badge (§3.3),
+   and a static button would hand that badge to .cx-bottom instead — parking it
+   in the corner of the card. */
+.cx-btn.cx-item, .cx-btn.cx-swap, .cx-btn.cx-spacer { position: relative; flex-shrink: 0; }
 .cx-btn.cx-spacer { background: none; border: none; backdrop-filter: none; pointer-events: none; }
 .cx-item-icon { font-size: 22px; line-height: 1; }
 
-.cx-ball-dock { position: relative; display: flex; flex-direction: column; align-items: center; }
+/* ── Throw slot (throwable-item-spec §2) ─────────────────────────────────
+   The one place anything is thrown from. It is the biggest tappable thing on
+   the card by a clear margin (§2.1: ~1.6× a side button) because it is the
+   only one the player uses every round. */
+.cx-slot-dock { position: relative; display: flex; flex-direction: column; align-items: center; }
+.cx-slot-label {
+  margin-top: 6px;
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.2px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.55);
+  white-space: nowrap;
+}
+
+/* §2.2 — a cross-fade, so both items are on screen at once for 180ms. Stacked
+   absolutely: laying them out in flow would shove the slot sideways mid-swap. */
+.cx-slot-item {
+  width: 72px; height: 72px;
+  display: grid; place-items: center;
+}
+.cx-slot-item.out {
+  position: absolute; inset: 0;
+  animation: cx-slot-out 180ms ease-in forwards;
+  pointer-events: none;
+}
+.cx-slot-item.in { animation: cx-slot-in 180ms ease-out; }
+/* §4.3 — the automatic reload is not a swap the player asked for, so it gets
+   its own softer entrance: 260ms, from 0.7, on a spring. */
+.cx-slot-item.in.rl { animation: cx-slot-reload 260ms cubic-bezier(.2,1.4,.5,1); }
+@keyframes cx-slot-reload { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+/* The bounce that says the press registered (§2.2). Only on a real swap — the
+   first paint of the encounter has nothing to confirm. */
+.cx-slot-item.in.bump { animation: cx-slot-in 180ms ease-out, cx-slot-bump 200ms cubic-bezier(.2,1.4,.5,1); }
+@keyframes cx-slot-in  { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes cx-slot-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.6); } }
+@keyframes cx-slot-bump { 0% { transform: scale(1); } 45% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .cx-ball {
   border: none;
   background: none;
   padding: 0;
   cursor: grab;
   touch-action: none;
-  filter: drop-shadow(0 8px 18px rgba(0,0,0,0.35));
-  transition: transform 0.08s linear;
   z-index: 2;
 }
-.cx-ball.held { cursor: grabbing; transition: none; }
+.cx-ball.held { cursor: grabbing; }
+
+/* Carries the drag: translated and rolled straight from the pointer handler.
+   Separate from the button so the button's box — which geom() measures the dock
+   from — stays put while the ball is carried around. */
+.cx-ball-vis {
+  display: block;
+  will-change: transform;
+  /* Only the trip HOME is animated. While the finger is down the transform is
+     rewritten every move, and a transition there would lag the ball behind the
+     finger by its own duration. */
+  transition: transform 260ms cubic-bezier(.22, 1, .36, 1);
+}
+.cx-ball.held .cx-ball-vis { transition: none; }
 .cx-ball:disabled { opacity: 0.45; cursor: default; }
 .cx-ball:focus-visible { outline: 3px solid #fff; outline-offset: 4px; border-radius: 50%; }
 
@@ -546,61 +736,116 @@ export const CATCH_CSS = `
 }
 .cx-tier-curve { color: #7FC6FF; }
 
-/* Marker pinned to the finger's angle. It must be visibly still whenever spin
-   is off — an earlier build span it during flight too, which made players think
-   they had curved the ball when they hadn't (§5). */
-.cx-spin-orbit {
+/* Neither the dot that rode the ball's edge nor the halo a wound-up ball used
+   to wear is here any more, both by request. What announces spin now is the
+   ball turning — which it does under the finger, and keeps doing in flight. */
+
+/* The spin meter under the ball is gone by request. */
+
+/* ── Eating a berry (§5.2) ───────────────────────────────────────────────
+   Sparks first, then the chew. Both live on the stage so they travel with the
+   target rather than sitting where it used to be. */
+.cx-eat-spark {
+  position: absolute;
+  left: 0; bottom: 120px;
+  width: 7px; height: 7px;
+  margin: 0 0 -3.5px -3.5px;
+  border-radius: 50%;
+  background: var(--c, #fff);
+  box-shadow: 0 0 8px var(--c, #fff);
+  transform: rotate(var(--a)) translateY(0);
+  animation: cx-eat-spark 430ms ease-out forwards;
+  pointer-events: none;
+  z-index: 7;
+}
+@keyframes cx-eat-spark {
+  0%   { opacity: 0;   transform: rotate(var(--a)) translateX(0) scale(0.4); }
+  25%  { opacity: 1; }
+  100% { opacity: 0;   transform: rotate(var(--a)) translateX(34px) scale(1); }
+}
+
+/* Four chews at 140ms, squashing one way then the other. The spec also asks for
+   the mouth to open — the target is the official artwork, a flat sprite with no
+   mouth to move, so the squash carries the whole beat. */
+.cx-poke.chew { animation: cx-chew 140ms ease-in-out 4; }
+@keyframes cx-chew {
+  0%   { transform: scale(1, 1); }
+  50%  { transform: scale(1.06, 0.95); }
+  100% { transform: scale(0.96, 1.05); }
+}
+
+/* §5.1 — the sparkle a reward berry leaves behind while its effect is live. */
+.cx-aura {
+  position: absolute;
+  left: -84px; bottom: -20px;
+  width: 168px; height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 55%,
+    color-mix(in srgb, var(--aura) 32%, transparent), transparent 68%);
+  animation: cx-aura 1800ms ease-in-out infinite;
+  pointer-events: none;
+  z-index: 4;
+}
+@keyframes cx-aura { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+/* §3.2 / §5.2 — one line, centred over the controls, gone in 1400ms. */
+.cx-toast {
+  position: absolute;
+  left: 50%; bottom: calc(max(22px, env(safe-area-inset-bottom)) + 196px);
+  transform: translateX(-50%);
+  max-width: 82%;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: rgba(18, 20, 26, 0.9);
+  border: 1px solid rgba(255,255,255,0.16);
+  font-size: 12px; font-weight: 700;
+  text-align: center;
+  z-index: 21;
+  animation: cx-toast-in 180ms ease-out;
+}
+@keyframes cx-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ── Item popovers (§6) ──────────────────────────────────────────────────
+   Over the button that opened them, inside the card — not a new screen. */
+.cx-pop-scrim { position: absolute; inset: 0; z-index: 24; }
+.cx-pop {
+  position: absolute;
+  bottom: calc(max(22px, env(safe-area-inset-bottom)) + 74px);
+  width: min(232px, 68%);
+  max-height: 54%;
+  overflow-y: auto;
+  touch-action: pan-y;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(22, 24, 30, 0.95);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+  animation: cx-pop-in 160ms cubic-bezier(.2,1.4,.5,1);
+}
+.cx-pop-left  { left: 12px; }
+.cx-pop-right { right: 12px; }
+@keyframes cx-pop-in { from { opacity: 0; transform: translateY(10px) scale(0.94); } to { opacity: 1; transform: none; } }
+
+/* Trail: one tapered ribbon rebuilt each frame from the flight samples, rather
+   than a row of dots. A single <path> per layer, so the cost is the same string
+   write per frame no matter how many samples the curve is drawn through.
+   No viewBox — user units are arena px, the same space the physics writes in. */
+.cx-trail-layer {
   position: absolute;
   inset: 0;
+  width: 100%; height: 100%;
   pointer-events: none;
-}
-.cx-spin-dot {
-  position: absolute;
-  right: 2px;
-  top: 50%;
-  width: 10px; height: 10px;
-  margin-top: -5px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.55);
-  box-shadow: 0 0 0 2px rgba(0,0,0,0.25);
-  transition: background 0.12s, box-shadow 0.12s;
-}
-.cx-spin-dot.on {
-  background: #7FC6FF;
-  box-shadow: 0 0 10px #7FC6FF, 0 0 0 2px rgba(0,0,0,0.25);
-}
-.cx-ball.spinning { filter: drop-shadow(0 0 12px #7FC6FF); }
-
-/* How much spin is wound in — readable without any text. */
-.cx-power {
-  width: 78px;
-  height: 4px;
-  margin-top: 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.22);
-  overflow: hidden;
-}
-.cx-power-fill {
-  width: 0%;
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #7FC6FF, #FFD35C);
-  transition: width 0.08s linear;
-}
-
-/* Trail: a fixed pool of dots, positioned imperatively each frame. */
-.cx-trail {
-  position: absolute;
-  left: 0; top: 0;
-  width: 10px; height: 10px;
-  margin: -5px 0 0 -5px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.85);
-  opacity: 0;
-  pointer-events: none;
+  overflow: visible;
   z-index: 6;
-  will-change: transform, opacity;
 }
+/* Soft coloured spread under the streak. Blurred, so it needs no gradient of
+   its own to look like light rather than paint. */
+.cx-trail-glow {
+  fill: var(--cx-trail-tint, #FFFFFF);
+  opacity: 0.34;
+  filter: blur(5px);
+}
+.cx-trail-core { fill: rgba(255, 255, 255, 0.82); }
 
 .cx-aim-readout {
   position: absolute;
@@ -614,19 +859,18 @@ export const CATCH_CSS = `
   white-space: nowrap;
   z-index: 12;
 }
-.cx-hint.loud { color: #FFD35C; font-weight: 800; opacity: 1; }
+/* No running ball count on screen by request — the number is still enforced
+   (a throw spends one, and running out ends the encounter), just not printed.
+   It stays in the throw button's aria-label, where it costs no pixels. */
 
-.cx-count {
-  margin-top: 6px;
-  font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-}
-
+/* Only ever holds a transient reply now (never the standing how-to-play line),
+   so it is styled as one thing rather than a base plus a .loud variant. */
 .cx-hint {
   position: absolute;
   left: 50%; bottom: calc(max(22px, env(safe-area-inset-bottom)) + 118px);
   transform: translateX(-50%);
-  font-size: 12px; opacity: 0.85;
+  color: #FFD35C;
+  font-size: 12px; font-weight: 800;
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);
   white-space: nowrap;
   z-index: 12;
@@ -659,6 +903,9 @@ export const CATCH_CSS = `
   max-width: 460px;
   max-height: 70%;
   overflow-y: auto;
+  /* The card sets touch-action: none so a throw never scrolls anything. This
+     list is the one place inside it that must still scroll under a finger. */
+  touch-action: pan-y;
   padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
   border-radius: 22px 22px 0 0;
   background: rgba(24, 26, 32, 0.92);
@@ -733,20 +980,75 @@ export const CATCH_CSS = `
 .cx-debug-foot { margin-top: 8px; color: #8A93A6; font-size: 10px; }
 
 /* Reduce motion: the encounter still completes, it just stops moving (§9). */
-.cx-screen.cx-reduce *,
-.cx-screen.cx-reduce *::before,
-.cx-screen.cx-reduce *::after {
+.cx-card.cx-reduce,
+.cx-card.cx-reduce *,
+.cx-card.cx-reduce *::before,
+.cx-card.cx-reduce *::after {
   animation: none !important;
   transition: none !important;
 }
 /* Hidden rather than merely un-animated: these elements only exist as motion,
    and the rule above would freeze them on screen at their first frame (§10).
    The outcome still reaches this user through the banner and aria-live. */
-.cx-screen.cx-reduce .cx-capture { display: none; }
+.cx-card.cx-reduce .cx-capture { display: none; }
 
-@media (max-width: 400px) {
-  .cx-poke { width: 168px; height: 168px; left: -84px; top: -96px; }
-  .cx-ring { width: 250px; height: 250px; left: -125px; top: -125px; }
+/* Phones and any short window: the card *is* the screen. A floating window with
+   a backdrop would spend the little space there is on scenery nobody can play
+   in — and the height clause matters more than it looks, because 50.6vh on a
+   landscape phone yields a ~208px-wide sliver of a card that nothing fits in. */
+@media (max-width: 479px), (max-height: 560px) {
+  .cx-backdrop { display: none; }
+  .cx-card {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    aspect-ratio: auto;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* Container, not media: the card no longer tracks the viewport's width, so a
+   viewport query would shrink the sprite on a phone held sideways and leave it
+   oversized in a short desktop card, which is exactly backwards. */
+/* Every override below is on .cx-bob, never .cx-poke: the sprite is inset:0
+   inside the bob box now, so the box is the only thing with a size to change.
+   Each one keeps the same three relationships as the base — the bob's negative
+   bottom is the artwork's transparent margin scaled with it, the ring sits at
+   (sprite height / 2 + bottom) - (ring / 2), and the nameplate clears the
+   sprite's top by ~40px. */
+@container cxcard (max-width: 400px) {
+  .cx-bob { width: 168px; height: 168px; left: -84px; bottom: -11px; }
+  .cx-shadow { width: 84px; left: -42px; height: 18px; bottom: -9px; }
+  .cx-nameplate { bottom: 200px; }
   .cx-bottom { padding: 0 16px; }
+}
+/* Very short windows only. The ring deliberately stays at its 250px size from
+   the block above: the hit test judges in arena px against the same radius the
+   ring is drawn from, so resizing it again here would quietly change how
+   forgiving a throw is on one class of screen. Only its offset moves, to stay
+   centred on the smaller sprite. */
+@container cxcard (max-width: 330px) {
+  .cx-bob { width: 138px; height: 138px; left: -69px; bottom: -9px; }
+  .cx-shadow { width: 69px; left: -34.5px; height: 15px; bottom: -8px; }
+  .cx-nameplate { bottom: 170px; padding: 5px 12px; }
+  .cx-name { font-size: 13px; }
+}
+/* Short cards, whatever their width — a wide-but-short window is the case the
+   width tiers above cannot see. The composition stacks vertically (nameplate,
+   sprite, ground, dock), so height is what runs out first: on a landscape phone
+   the ground line lands at 56% of ~412px and a full-size nameplate would be
+   pushed off the top of the card into the close button.
+   Last in the sheet on purpose: same specificity as the width tiers, so source
+   order is what lets a short card override a wide one. */
+@container cxcard (max-height: 560px) {
+  .cx-bob { width: 138px; height: 138px; left: -69px; bottom: -9px; }
+  .cx-shadow { width: 69px; left: -34.5px; height: 15px; bottom: -8px; }
+  /* Tucked in to ~7px above the sprite rather than the usual ~42px: the space
+     it would otherwise claim is the space the header buttons are already in.
+     129px is where the sprite's head is (138 - 9), so this is the floor. */
+  .cx-nameplate { bottom: 136px; padding: 4px 11px; }
+  .cx-name { font-size: 13px; }
 }
 `;
