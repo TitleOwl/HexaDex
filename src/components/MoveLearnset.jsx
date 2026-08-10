@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Search, ChevronDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   VERSION_ORDER, VERSION_LABELS, CAT_CONFIG,
   TYPE_NAMES_TH, TYPE_NAMES_JA,
 } from "../data.js";
 import { pastelTypeColor as typeColor } from "./PokemonModal/palette.js";
+
+const t = (lang, en, th, ja) => (lang === "th" ? th : lang === "ja" ? ja : en);
 
 function CategoryBadge({ cat, lang }) {
   const c = CAT_CONFIG[cat] ?? CAT_CONFIG.status;
@@ -18,6 +21,83 @@ function CategoryBadge({ cat, lang }) {
   );
 }
 
+/**
+ * Game-version picker. A native <select> is the one control in this modal the
+ * browser draws itself, so it never matched anything around it — this is the
+ * same pill used for "All Types" on the Pokédex.
+ */
+function VersionPicker({ versions, version, onPick, lang }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="mv-ver" ref={wrapRef}>
+      <button
+        type="button"
+        className={`mv-ver-btn${open ? " open" : ""}`}
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span>{VERSION_LABELS[version] ?? version}</span>
+        <ChevronDown size={13} strokeWidth={2.6} />
+      </button>
+
+      {open && (
+        <ul className="mv-ver-list" role="listbox"
+          aria-label={t(lang, "Game version", "เวอร์ชันเกม", "ゲームバージョン")}>
+          {versions.map(v => (
+            <li key={v}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={v === version}
+                className={`mv-ver-opt${v === version ? " on" : ""}`}
+                onClick={() => { onPick(v); setOpen(false); }}
+              >
+                {VERSION_LABELS[v] ?? v}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A sortable column header. Module scope on purpose: declared inside the
+ * component it would be a brand-new component type on every render, so React
+ * would tear the cell down and rebuild it instead of updating it.
+ */
+function SortHead({ label, sortKey, cls, sort, onSort, lang }) {
+  const active = sort?.key === sortKey;
+  return (
+    <th className={cls}>
+      <button type="button" className={`mv-sort${active ? " on" : ""}`}
+        onClick={() => onSort(sortKey)}
+        aria-label={t(lang, `Sort by ${label}`, `เรียงตาม ${label}`, `${label}で並べ替え`)}>
+        {label}
+        {active && (sort.dir === -1
+          ? <ArrowDown size={11} strokeWidth={3} />
+          : <ArrowUp size={11} strokeWidth={3} />)}
+      </button>
+    </th>
+  );
+}
+
 export default function MoveLearnset({ pokemonId, lang, moveCache }) {
   const [listLoading, setListLoading] = useState(true);
   const [allMoves,    setAllMoves]    = useState([]);
@@ -26,16 +106,23 @@ export default function MoveLearnset({ pokemonId, lang, moveCache }) {
   const [version,     setVersion]     = useState(null);
   const [versions,    setVersions]    = useState([]);
   const [methodTab,   setMethodTab]   = useState("level-up");
+  const [query,       setQuery]       = useState("");
+  // One row open at a time: this is a reference table, and several open
+  // descriptions at once puts the reader back where they started.
+  const [openMove,    setOpenMove]    = useState(null);
+  // null means "the natural order for this tab" — by level, then name.
+  const [sort,        setSort]        = useState(null);
 
   const METHOD_LABEL = {
-    "level-up": lang==="th"?"เลเวลอัพ" : lang==="ja"?"レベルアップ" : "Level Up",
+    "level-up": t(lang, "Level Up", "เลเวลอัพ", "レベルアップ"),
     "machine":  "TM / HM / TR",
-    "other":    lang==="th"?"อื่นๆ" : lang==="ja"?"その他" : "Other",
+    "other":    t(lang, "Other", "อื่นๆ", "その他"),
   };
 
   useEffect(() => {
     setListLoading(true);
     setAllMoves([]); setDetails({}); setVersion(null); setVersions([]);
+    setQuery(""); setOpenMove(null); setSort(null);
     fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`)
       .then(r => r.json())
       .then(data => {
@@ -113,23 +200,70 @@ export default function MoveLearnset({ pokemonId, lang, moveCache }) {
 
   const formatName = (n) => n.replace(/-/g," ").replace(/\b\w/g,c=>c.toUpperCase());
 
+  const baseMoves = getMethodMoves(methodTab);
+
+  const currentMoves = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let rows = q
+      ? baseMoves.filter(m => formatName(m.name).toLowerCase().includes(q)
+                           || m.name.toLowerCase().includes(q))
+      : baseMoves;
+
+    if (sort) {
+      const val = (m) => sort.key === "level" ? m.level : m.detail?.[sort.key];
+      rows = [...rows].sort((a, b) => {
+        const av = val(a), bv = val(b);
+        // Missing values sink to the bottom whichever way the column is
+        // pointing — a column of dashes at the top is not a sort result.
+        if (av == null && bv == null) return a.name.localeCompare(b.name);
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return av === bv ? a.name.localeCompare(b.name) : (av - bv) * sort.dir;
+      });
+    }
+    return rows;
+  }, [baseMoves, query, sort]);
+
+  const toggleSort = (key) => {
+    setSort(s => {
+      // First press on a stat sorts high-to-low, which is the question people
+      // are actually asking of a Power column.
+      if (!s || s.key !== key) return { key, dir: -1 };
+      if (s.dir === -1) return { key, dir: 1 };
+      return null;                    // third press returns to natural order
+    });
+  };
+
   if (listLoading) return <div className="evo-loading">⏳ Loading move list…</div>;
   if (!version)    return <div className="evo-loading">No move data available</div>;
 
-  const currentMoves = getMethodMoves(methodTab);
+  // Every column, so the expanded description spans the whole row.
+  const colCount = methodTab === "machine" ? 6 : 7;
 
   return (
     <div className="moves-section">
       <div className="moves-version-row">
-        <select
-          className="moves-version-select"
-          value={version}
-          onChange={e => { setVersion(e.target.value); setDetails(Object.fromEntries([...moveCache.current])); }}
-        >
-          {versions.map(v => (
-            <option key={v} value={v}>{VERSION_LABELS[v] ?? v}</option>
-          ))}
-        </select>
+        <VersionPicker
+          versions={versions}
+          version={version}
+          lang={lang}
+          onPick={(v) => {
+            setVersion(v);
+            setOpenMove(null);
+            setDetails(Object.fromEntries([...moveCache.current]));
+          }}
+        />
+
+        <label className="mv-search">
+          <Search size={14} strokeWidth={2.4} />
+          <input
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpenMove(null); }}
+            placeholder={t(lang, "Search moves…", "ค้นหาท่า…", "わざを検索…")}
+            aria-label={t(lang, "Search moves", "ค้นหาท่า", "わざを検索")}
+          />
+        </label>
+
         {detLoading && <div className="moves-loading-dot" />}
       </div>
 
@@ -140,7 +274,7 @@ export default function MoveLearnset({ pokemonId, lang, moveCache }) {
             <button
               key={key}
               className={`moves-method-btn${methodTab===key?" active":""}`}
-              onClick={() => setMethodTab(key)}
+              onClick={() => { setMethodTab(key); setOpenMove(null); setSort(null); }}
             >
               {METHOD_LABEL[key]}
               <span className="moves-count">{count}</span>
@@ -150,20 +284,24 @@ export default function MoveLearnset({ pokemonId, lang, moveCache }) {
       </div>
 
       {currentMoves.length === 0 ? (
-        <div className="evo-loading">No moves in this category for this game</div>
+        <div className="evo-loading">
+          {query.trim()
+            ? t(lang, "No moves match that search", "ไม่พบท่าที่ค้นหา", "該当するわざがありません")
+            : "No moves in this category for this game"}
+        </div>
       ) : (
         <div className="moves-table-wrap">
           <table className="moves-table">
             <thead>
               <tr>
-                {methodTab === "level-up" && <th className="th-lv">Lv</th>}
+                {methodTab === "level-up" && <SortHead label="Lv" sortKey="level" cls="th-lv" sort={sort} onSort={toggleSort} lang={lang} />}
                 {methodTab === "other"    && <th className="th-method">Method</th>}
                 <th className="th-move">Move</th>
                 <th className="th-type">Type</th>
                 <th className="th-cat">Cat.</th>
-                <th className="th-num">Pow</th>
-                <th className="th-num">Acc</th>
-                <th className="th-num">PP</th>
+                <SortHead label="Pow" sortKey="power" sort={sort} onSort={toggleSort} lang={lang}    cls="th-num" />
+                <SortHead label="Acc" sortKey="accuracy" sort={sort} onSort={toggleSort} lang={lang} cls="th-num" />
+                <SortHead label="PP"  sortKey="pp"       cls="th-num" />
               </tr>
             </thead>
             <tbody>
@@ -173,14 +311,30 @@ export default function MoveLearnset({ pokemonId, lang, moveCache }) {
                 const typeLabel =
                   lang==="th" ? (TYPE_NAMES_TH[typeName]??typeName) :
                   lang==="ja" ? (TYPE_NAMES_JA[typeName]??typeName) : typeName;
-                return (
-                  <tr key={m.name} className="move-row">
+                const open = openMove === m.name;
+                const desc = getDesc(d);
+                const toggle = () => setOpenMove(o => (o === m.name ? null : m.name));
+
+                return [
+                  // The description used to live in every row, which made each
+                  // one ~78px tall — seven moves per screen for a Pokémon that
+                  // may know a hundred. It moves behind a press instead.
+                  <tr
+                    key={m.name}
+                    className={`move-row${open ? " open" : ""}`}
+                    onClick={toggle}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-expanded={open}
+                  >
                     {methodTab==="level-up" && <td className="move-lv">{m.level > 0 ? m.level : "—"}</td>}
                     {methodTab==="other" && <td className="move-method-label">{m.method.replace(/-/g," ")}</td>}
                     <td className="move-name-cell">
-                      <div className="move-name">{formatName(m.name)}</div>
-                      {d && <div className="move-desc">{getDesc(d)}</div>}
-                      {!d && <div className="move-desc move-loading-text">…</div>}
+                      <span className="move-name">{formatName(m.name)}</span>
+                      <ChevronDown size={13} strokeWidth={2.6} className="move-caret" aria-hidden />
                     </td>
                     <td className="move-type-cell">
                       {typeName
@@ -193,8 +347,19 @@ export default function MoveLearnset({ pokemonId, lang, moveCache }) {
                     <td className="move-num">{d ? (d.power ?? "—") : "…"}</td>
                     <td className="move-num">{d ? (d.accuracy ?? "—") : "…"}</td>
                     <td className="move-num">{d ? (d.pp ?? "—") : "…"}</td>
-                  </tr>
-                );
+                  </tr>,
+
+                  open && (
+                    <tr key={`${m.name}-desc`} className="move-desc-row">
+                      <td colSpan={colCount}>
+                        <div className="move-desc">
+                          {desc ?? t(lang, "No description available",
+                            "ไม่มีคำอธิบาย", "説明がありません")}
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                ];
               })}
             </tbody>
           </table>

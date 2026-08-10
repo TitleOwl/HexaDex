@@ -2117,4 +2117,102 @@ export const MODAL_CSS = `
   font-weight: 700;
   color: rgba(255, 255, 255, 0.7);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Moves tab — controls, sorting, accordion
+   ══════════════════════════════════════════════════════════════════════════ */
+.modal-overlay .detail-sheet .moves-version-row {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 12px;
+}
+
+/* Version picker: the same pill as "All Types", replacing the one control in
+   this modal the browser drew itself. */
+.modal-overlay .detail-sheet .mv-ver { position: relative; flex: 0 0 auto; }
+.modal-overlay .detail-sheet .mv-ver-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 13px;
+  border: 1px solid var(--border-mid); border-radius: 999px;
+  background: var(--bg-card); color: var(--text-primary);
+  font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.modal-overlay .detail-sheet .mv-ver-btn:hover,
+.modal-overlay .detail-sheet .mv-ver-btn.open { border-color: var(--blue); color: var(--blue); }
+.modal-overlay .detail-sheet .mv-ver-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.modal-overlay .detail-sheet .mv-ver-list {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+  min-width: 190px; max-height: 260px; overflow-y: auto;
+  margin: 0; padding: 5px; list-style: none;
+  border: 1px solid var(--border); border-radius: 13px;
+  background: var(--bg-card);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+}
+.modal-overlay .detail-sheet .mv-ver-opt {
+  display: block; width: 100%; text-align: left;
+  padding: 7px 11px; border: none; border-radius: 9px;
+  background: none; color: var(--text-primary);
+  font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.modal-overlay .detail-sheet .mv-ver-opt:hover { background: var(--bg-muted); }
+.modal-overlay .detail-sheet .mv-ver-opt.on { background: var(--bg-muted); color: var(--blue); font-weight: 800; }
+.modal-overlay .detail-sheet .mv-ver-opt:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+/* Move search: filters as you type, so there is no button to press. */
+.modal-overlay .detail-sheet .mv-search {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 13px; flex: 1 1 190px; min-width: 140px; max-width: 300px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--bg-muted); color: var(--text-muted);
+}
+.modal-overlay .detail-sheet .mv-search:focus-within { border-color: var(--blue); background: var(--bg-card); }
+.modal-overlay .detail-sheet .mv-search input {
+  flex: 1 1 auto; min-width: 0;
+  border: none; background: none; outline: none;
+  color: var(--text-primary); font-size: 12.5px; font-family: inherit;
+}
+.modal-overlay .detail-sheet .mv-search input::placeholder { color: var(--text-muted); }
+
+/* Sortable headers. The arrow only appears on the column doing the sorting —
+   three static arrows would say every column is active. */
+.modal-overlay .detail-sheet .mv-sort {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 0; border: none; background: none;
+  color: inherit; font: inherit; cursor: pointer;
+}
+.modal-overlay .detail-sheet .mv-sort:hover { color: var(--text-primary); }
+.modal-overlay .detail-sheet .mv-sort.on { color: var(--blue); font-weight: 800; }
+.modal-overlay .detail-sheet .mv-sort:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 4px; }
+
+/* ── Rows: one line each, description behind a press ──────────────────────
+   With the description inline every row was ~78px and seven moves filled the
+   screen, for a Pokemon that may know a hundred. */
+.modal-overlay .detail-sheet .move-row { cursor: pointer; }
+.modal-overlay .detail-sheet .move-row > * { padding: 11px 12px; }
+.modal-overlay .detail-sheet .move-name-cell {
+  display: flex; align-items: center; gap: 6px;
+}
+.modal-overlay .detail-sheet .move-caret {
+  color: var(--text-muted); flex: 0 0 auto;
+  transition: transform 0.16s ease;
+}
+.modal-overlay .detail-sheet .move-row.open .move-caret { transform: rotate(180deg); }
+.modal-overlay .detail-sheet .move-row.open { background: var(--bg-muted); }
+.modal-overlay .detail-sheet .move-row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+
+.modal-overlay .detail-sheet .move-desc-row > td {
+  padding: 0 12px 12px;
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border);
+}
+.modal-overlay .detail-sheet .move-desc-row .move-desc {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px; line-height: 1.6;
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay .detail-sheet .move-caret { transition: none; }
+}
 `;
