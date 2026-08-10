@@ -18,7 +18,6 @@ import StatsTab from "./tabs/StatsTab.jsx";
 import EvolutionsTab from "./tabs/EvolutionsTab.jsx";
 import SpritesTab from "./tabs/SpritesTab.jsx";
 import CatchFab from "./CatchFab.jsx";
-import CryStylePicker from "./CryStylePicker.jsx";
 
 import { PASTEL_TYPE_COLORS } from "./palette.js";
 
@@ -46,8 +45,16 @@ export default function PokemonModal({
   }, [pokemon.id]);
 
   const s        = STRINGS[lang];
-  const mainType = pokemon.types[0]?.type.name ?? "normal";
-  const color    = PASTEL_TYPE_COLORS[mainType] ?? typeColor(mainType);
+  // Normal's pastel is a desaturated grey-violet, and a whole hero panel in it
+  // reads as "this page is disabled" rather than as a colour choice. A Normal
+  // Pokémon with a second type borrows that one (Pidgey becomes Flying blue);
+  // a pure Normal gets a warm cream instead of the grey.
+  const firstType  = pokemon.types[0]?.type.name ?? "normal";
+  const secondType = pokemon.types[1]?.type.name ?? null;
+  const mainType   = (firstType === "normal" && secondType) ? secondType : firstType;
+  const color = mainType === "normal"
+    ? "#E8DCC4"
+    : (PASTEL_TYPE_COLORS[mainType] ?? typeColor(mainType));
   const img      = getArt(pokemon);
   const total    = pokemon.stats.reduce((a, st) => a + st.base_stat, 0);
   const localName = getLocalName(pokemon.id, lang, thaiArr, jpArr);
@@ -162,7 +169,6 @@ export default function PokemonModal({
             {pokemon.types.map(t => (
               <span key={t.type.name} className="hero-type-tag">{typeName(t.type.name)}</span>
             ))}
-            <CryStylePicker lang={lang} />
           </div>
 
           {view3d ? (

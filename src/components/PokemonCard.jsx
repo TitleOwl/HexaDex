@@ -59,6 +59,9 @@ const PokemonCard = memo(function PokemonCard({
       <div className="card-img-wrap"
         style={{ background:`linear-gradient(180deg, ${color}14 0%, ${color}05 55%, transparent 100%)` }}
       >
+        {/* Over the gradient rather than in the body: it saved a whole line of
+            card height, and a dex number is a label, not content. */}
+        <span className="card-num">{padId(pokemon.id)}</span>
         {!compareMode && (
           <button
             className={`fav-btn${isFav ? " fav-active-state" : ""}${favAnim ? " fav-active" : ""}`}
@@ -84,7 +87,6 @@ const PokemonCard = memo(function PokemonCard({
       </div>
 
       <div className="card-body">
-        <div className="card-num">{padId(pokemon.id)}</div>
         <div className="card-name">{displayName}</div>
         {lang !== "en" && localName && <div className="card-name-en">{pokemon.name}</div>}
         <div className="type-tags">
@@ -92,7 +94,13 @@ const PokemonCard = memo(function PokemonCard({
             const tn = t.type.name;
             const label = lang === "th" ? (TYPE_NAMES_TH[tn]??tn)
                         : lang === "ja" ? (TYPE_NAMES_JA[tn]??tn) : tn;
-            return <span key={tn} className="type-tag" style={{ background:typeColor(tn) }}>{label}</span>;
+            // A soft tint of the type instead of the full-strength fill: at
+            // solid saturation two pills out-shouted the Pokémon they belong to.
+            return (
+              <span key={tn} className="type-tag" style={{ "--tt": typeColor(tn) }}>
+                {label}
+              </span>
+            );
           })}
         </div>
       </div>

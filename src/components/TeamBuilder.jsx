@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  STRINGS, TYPE_NAMES_TH, TYPE_NAMES_JA, ALL_TYPES, TYPE_OFFENSE, TEAM_KEY,
+  STRINGS, TYPE_NAMES_TH, TYPE_NAMES_JA, ALL_TYPES, TYPE_OFFENSE, TEAM_KEY, GENERATIONS,
 } from "../data.js";
 import { typeColor, getArt, getLocalName, padId, useDebouncedValue, calcDefMatchups } from "../utils.js";
 import {
@@ -345,7 +345,7 @@ function PokemonPicker({ allWithMeta, thaiArr, jpArr, lang, onPick, onClose, tit
 }
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
-export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch }) {
+export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch, genFilter = 0, onClearGen }) {
   const s = STRINGS[lang];
 
   const [mode, setMode] = useState(() => {
@@ -448,10 +448,17 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
   const [pickingSlot, setPickingSlot] = useState(null);
   const [generating, setGenerating] = useState(false);
 
-  const allWithMeta = useMemo(() => allList.map(p => {
-    const id = parseInt(p.url.split("/").filter(Boolean).pop(), 10);
-    return { name: p.name, url: p.url, id };
-  }).filter(p => p.id && p.id <= 1025), [allList]);
+  // Arriving from a filtered Pokédex keeps that generation (generations spec
+  // §4.3): the pool itself is narrowed, so every picker, the random fill and
+  // the suggestions all obey it without each having to know about the filter.
+  const allWithMeta = useMemo(() => {
+    const g = GENERATIONS[genFilter];
+    return allList.map(p => {
+      const id = parseInt(p.url.split("/").filter(Boolean).pop(), 10);
+      return { name: p.name, url: p.url, id };
+    }).filter(p => p.id && p.id <= 1025
+      && (!g || genFilter === 0 || (p.id >= g.min && p.id <= g.max)));
+  }, [allList, genFilter]);
 
   const teamAnalysis = useMemo(() => team.length > 0 ? analyzeTeam(team) : null, [team]);
 
@@ -1749,6 +1756,31 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         .random-menu-desc { color: var(--text-muted) !important; }
         .random-menu-icon { color: var(--blue) !important; font-size: 0 !important; }
       `}</style>
+
+      {/* §4.3 — the same chip the Pokédex shows, so the constraint that
+          followed the player here is visible rather than a mystery about why
+          half the roster is missing. Clearing it widens the pool in place. */}
+      {genFilter > 0 && (
+        <div className="gen-filter-bar" style={{ marginBottom: 14 }}>
+          <span className="gen-chip">
+            {GENERATIONS[genFilter].sub[lang] ?? GENERATIONS[genFilter].sub.en}
+            {" · "}
+            {GENERATIONS[genFilter][lang] ?? GENERATIONS[genFilter].en}
+            <button
+              className="gen-chip-x"
+              onClick={onClearGen}
+              aria-label={lang === "th" ? "ล้างตัวกรองเจนเนอเรชั่น"
+                : lang === "ja" ? "世代フィルターを解除" : "Clear generation filter"}
+            >×</button>
+          </span>
+          <span className="gen-pool-note">
+            {lang === "th" ? `เลือกได้ ${allWithMeta.length} ตัวจากเจนนี้`
+              : lang === "ja" ? `この世代の${allWithMeta.length}匹から選択`
+              : `Choosing from ${allWithMeta.length} in this generation`}
+          </span>
+        </div>
+      )}
+
       <div className="team-hero">
         <div style={{ position: "absolute", top: 18, right: 26, opacity: 0.14,
                       animation: "tm-float 4s ease-in-out infinite", pointerEvents: "none" }}>

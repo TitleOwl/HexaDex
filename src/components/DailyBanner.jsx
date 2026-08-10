@@ -5,6 +5,9 @@ import {
 import {
   typeColor, getArt, getLocalName, getDailyPokemonId,
 } from "../utils.js";
+import { ChevronRight } from "lucide-react";
+
+const t = (lang, en, th, ja) => (lang === "th" ? th : lang === "ja" ? ja : en);
 
 export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch, onOpen }) {
   const s = STRINGS[lang];
@@ -12,18 +15,6 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
   const [pokemon, setPokemon] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const [streak] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("pkdx_streak") ?? "{}");
-      const today = new Date().toISOString().slice(0, 10);
-      const last  = saved.lastDate;
-      if (last === today) return saved.streak || 1;
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-      const newStreak = last === yesterday ? (saved.streak || 0) + 1 : 1;
-      localStorage.setItem("pkdx_streak", JSON.stringify({ lastDate: today, streak: newStreak }));
-      return newStreak;
-    } catch { return 1; }
-  });
 
   useEffect(() => {
     if (!allList.length) return;
@@ -37,11 +28,8 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
   if (loading || !pokemon) {
     return (
       <div className="daily-banner daily-banner-loading">
-        <div className="skeleton-pulse" style={{ width: 90, height: 90, borderRadius: "50%" }} />
-        <div className="daily-info">
-          <div className="skeleton-pulse skel-line w-40" style={{ marginBottom: 8 }} />
-          <div className="skeleton-pulse skel-line" style={{ height: 24, width: "60%" }} />
-        </div>
+        <div className="skeleton-pulse" style={{ width: 52, height: 52, borderRadius: "50%" }} />
+        <div className="skeleton-pulse skel-line" style={{ height: 16, width: 200 }} />
       </div>
     );
   }
@@ -50,55 +38,58 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
   const color    = typeColor(mainType);
   const img      = getArt(pokemon);
   const name     = getLocalName(pokemon.id, lang, thaiArr, jpArr) ?? pokemon.name;
-
-  // Streak milestone tier → flame colour + medal
-  const tier  = streak >= 100 ? "legend" : streak >= 30 ? "master" : streak >= 7 ? "week" : null;
-  const medal = tier === "legend" ? "👑" : tier === "master" ? "🏅" : tier === "week" ? "🔥" : null;
+  const dateStr  = new Date().toLocaleDateString(
+    lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-US",
+    { day: "numeric", month: "short" });
 
   return (
-    <div className="daily-banner"
-      onClick={() => onOpen(pokemon)}
-      style={{ background: `linear-gradient(110deg, ${color}f0 0%, ${color}b0 55%, ${color}66 100%)` }}>
-      <div className="daily-glow" />
-      <div className="daily-ball-wm" aria-hidden />
-      <div className="daily-img-wrap">
-        <div className="daily-aura" aria-hidden />
-        {img && <img src={img} alt={name} className="daily-img" />}
-        <div className="daily-img-ring" />
-        <div className="daily-sparkles" aria-hidden>
-          <span /><span /><span /><span />
-        </div>
-      </div>
-      <div className="daily-info">
-        <div className="daily-tag-row">
-          <span className="daily-tag">⭐ {s.dailyPokemon}</span>
-          <span className="daily-date">
-            {new Date().toLocaleDateString(
-              lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-US",
-              { day: "numeric", month: "short" }
-            )}
+    // One line, ~76px tall instead of ~230. The tint is the Pokémon's own type
+    // colour, mixed down to a wash so it belongs to the same colour system as
+    // the cards below rather than being one fixed green that matched nothing.
+    // Text is dark on that wash: white on a pale tint was the least readable
+    // thing on the page.
+    // The wash is built here with the same hex-alpha steps the cards use in
+    // card-img-wrap, rather than a colour-mix in the stylesheet: mixing 26% of
+    // the type into the card colour made Bug read as mustard while the Caterpie
+    // card beside it was pale green, from the very same token.
+    <button type="button" className="daily-strip" onClick={() => onOpen(pokemon)}
+      style={{
+        "--dtype": color,
+        // Stronger than the cards' wash on purpose: this is one banner meant to
+        // be noticed, not one of forty tiles meant to sit quietly in a grid.
+        background: `linear-gradient(100deg, ${color}66 0%, ${color}33 46%, ${color}12 100%)`,
+      }}>
+      {/* Pokéball watermark — a flat pair of gradients rather than an image, so
+          it costs no request and scales with the banner. */}
+      <span className="daily-strip-wm" aria-hidden />
+      {img && <img src={img} alt="" className="daily-strip-img" />}
+
+      <span className="daily-strip-text">
+        <span className="daily-strip-kicker">
+          {s.dailyPokemon} · {dateStr}
+        </span>
+        <span className="daily-strip-name">
+          {name}
+          <span className="daily-strip-num">#{String(pokemon.id).padStart(4, "0")}</span>
+        </span>
+      </span>
+
+      <span className="daily-strip-types">
+        {pokemon.types.map((t) => (
+          <span key={t.type.name} className="daily-strip-type"
+            style={{ "--tt": typeColor(t.type.name) }}>
+            {lang === "th" ? (TYPE_NAMES_TH[t.type.name] ?? t.type.name)
+              : lang === "ja" ? (TYPE_NAMES_JA[t.type.name] ?? t.type.name)
+              : t.type.name}
           </span>
-        </div>
-        <div className="daily-name">{name}</div>
-        <div className="daily-meta">
-          <span className="daily-num">#{String(pokemon.id).padStart(4, "0")}</span>
-          {pokemon.types.map((t) => (
-            <span key={t.type.name} className="type-tag daily-type"
-              style={{ background: "rgba(255,255,255,0.25)", color: "#fff",
-                       border: "1px solid rgba(255,255,255,0.4)" }}>
-              {lang === "th" ? (TYPE_NAMES_TH[t.type.name] ?? t.type.name)
-                : lang === "ja" ? (TYPE_NAMES_JA[t.type.name] ?? t.type.name)
-                : t.type.name}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className={`daily-streak${tier ? " tier-" + tier : ""}`}>
-        {medal && <span className="daily-medal" aria-hidden>{medal}</span>}
-        <span className="daily-flame" aria-hidden><span className="daily-flame-core" /></span>
-        <div className="daily-streak-num">{streak}</div>
-        <div className="daily-streak-label">{s.visitStreak}</div>
-      </div>
-    </div>
+        ))}
+      </span>
+
+      {/* A bare chevron said "there is more" without saying what. */}
+      <span className="daily-strip-cta">
+        {t(lang, `Meet ${name}`, `ดูรายละเอียด`, `くわしく見る`)}
+        <ChevronRight size={15} strokeWidth={2.6} aria-hidden />
+      </span>
+    </button>
   );
 }

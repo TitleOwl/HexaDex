@@ -137,14 +137,14 @@ export function setSoundEnabled(on) {
 }
 export function isSoundEnabled() { return _soundEnabled; }
 
-let _cryStyle = (() => {
-  try { return localStorage.getItem("pkdx_cry_style") ?? "anime"; } catch { return "anime"; }
-})();
-export function getCryStyle() { return _cryStyle; }
-export function setCryStyle(style) {
-  _cryStyle = style;
-  try { localStorage.setItem("pkdx_cry_style", style); } catch {}
-}
+// The cry style is fixed to "anime". The picker that chose between anime /
+// classic / game is gone, so the stored preference is no longer reachable —
+// keeping the switch would leave anyone who had once picked "classic" stuck
+// with it and no control to change it back.
+const CRY_STYLE = "anime";
+export function getCryStyle() { return CRY_STYLE; }
+/** Kept as a no-op so older callers do not throw; there is nothing to set. */
+export function setCryStyle() {}
 
 export function playCry(id, volume = 0.4, name = null) {
   if (!_soundEnabled) return;
@@ -159,18 +159,11 @@ export function playCry(id, volume = 0.4, name = null) {
     });
   };
 
-  let sources;
-  if (_cryStyle === "anime") {
-    sources = [CRY_URL.anime(id)];
-    if (name) sources.push(CRY_URL.showdown(name));
-    sources.push(CRY_URL.latest(id), CRY_URL.legacy(id));
-  } else if (_cryStyle === "classic") {
-    sources = [CRY_URL.legacy(id), CRY_URL.anime(id)];
-  } else {
-    // "game" — Showdown MP3 first (properly labeled, modern sound)
-    sources = name ? [CRY_URL.showdown(name)] : [];
-    sources.push(CRY_URL.latest(id), CRY_URL.anime(id), CRY_URL.legacy(id));
-  }
+  // Anime first, then the same fallback chain as before: not every species has
+  // an anime clip, and silence would read as a broken button.
+  const sources = [CRY_URL.anime(id)];
+  if (name) sources.push(CRY_URL.showdown(name));
+  sources.push(CRY_URL.latest(id), CRY_URL.legacy(id));
   tryPlay(...sources);
 }
 

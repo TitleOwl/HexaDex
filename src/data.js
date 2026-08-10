@@ -21,7 +21,11 @@ export const GLB_URL = {
   shiny:   (id) => `https://cdn.jsdelivr.net/gh/Pokemon-3D-api/assets@main/models/opt/shiny/${id}.glb`,
 };
 
-export const PAGE_SIZE       = 1350;
+// Comfortably above the full national dex, so the first page IS every Pokémon.
+// At 1350 against a list of 1351 the app loaded all but one and then offered a
+// "Load More" button to fetch that single straggler, while the heading read
+// 1,350 — a number that matched neither the total nor anything the user did.
+export const PAGE_SIZE       = 2000;
 export const SEARCH_DEBOUNCE = 1350;
 
 // ─── Generations / Regions ────────────────────────────────────────────────────
@@ -37,6 +41,7 @@ export const GENERATIONS = [
   { min: 810, max: 905,      en: "Galar",  th: "กาลาร์",   ja: "ガラル",   sub: { en: "Gen VIII",th: "เจน VIII",ja: "第八世代" } },
   { min: 906, max: 1025,     en: "Paldea", th: "พัลเดีย",  ja: "パルデア", sub: { en: "Gen IX",  th: "เจน IX",  ja: "第九世代" } },
 ];
+
 
 // ─── Type Data ────────────────────────────────────────────────────────────────
 export const TYPE_COLORS = {
@@ -220,7 +225,8 @@ export const STRINGS = {
     male:"♂ Male", female2:"♀ Female", genderless:"Genderless", steps:"steps",
     playCry:"Play cry", viewMode:"View", sizeView:"Size", sizeVs:"Size vs Human",
     avgHeight:"Avg. human",
-    pokedex:"Pokédex", whosThat:"Who's That?", whosThatTitle:"Who's That Pokémon?",
+    pokedex:"Pokédex", generations:"Generations",
+    whosThat:"Who's That?", whosThatTitle:"Who's That Pokémon?",
     whosThatSub:"Guess the silhouette!",
     score:"Score", streak:"Streak", reveal:"Reveal", nextPokemon:"Next",
     correct:"Correct!", wrong:"Wrong!", itWas:"It was",
@@ -269,7 +275,7 @@ export const STRINGS = {
     male:"♂ ตัวผู้", female2:"♀ ตัวเมีย", genderless:"ไม่มีเพศ", steps:"ก้าว",
     playCry:"ฟังเสียงร้อง", viewMode:"มุมมอง", sizeView:"ขนาด", sizeVs:"ขนาดเทียบกับคน",
     avgHeight:"คนเฉลี่ย",
-    pokedex:"โปเกเด็กซ์", whosThat:"นี่ใคร?", whosThatTitle:"โปเกมอนตัวนี้ใคร?",
+    pokedex:"โปเกเด็กซ์", generations:"เจนเนอเรชั่น", whosThat:"นี่ใคร?", whosThatTitle:"โปเกมอนตัวนี้ใคร?",
     whosThatSub:"ทายภาพเงา!",
     score:"คะแนน", streak:"สตรีค", reveal:"เฉลย", nextPokemon:"ตัวต่อไป",
     correct:"ถูกต้อง!", wrong:"ผิดครับ!", itWas:"คำตอบคือ",
@@ -318,7 +324,7 @@ export const STRINGS = {
     male:"♂ オス", female2:"♀ メス", genderless:"性別なし", steps:"歩",
     playCry:"鳴き声", viewMode:"表示", sizeView:"サイズ", sizeVs:"人間との比較",
     avgHeight:"平均身長",
-    pokedex:"ポケデックス", whosThat:"だれだ?", whosThatTitle:"このポケモンはだれだ?",
+    pokedex:"ポケデックス", generations:"世代", whosThat:"だれだ?", whosThatTitle:"このポケモンはだれだ?",
     whosThatSub:"シルエットを当てよう!",
     score:"スコア", streak:"連続正解", reveal:"答え", nextPokemon:"次へ",
     correct:"正解!", wrong:"はずれ!", itWas:"答えは",

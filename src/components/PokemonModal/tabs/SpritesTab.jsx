@@ -3,6 +3,13 @@ import SpriteTimeline from "../../SpriteTimeline.jsx";
 export default function SpritesTab({ pokemonId, sprites, lang, s }) {
   return (
     <div>
+      {/* Sprite evolution leads the tab: it is the one view here you cannot
+          get anywhere else, and it was sitting underneath six thumbnails of
+          the same Pokémon. The static set follows it. */}
+      <div className="sprite-timeline-lead">
+        <SpriteTimeline pokemonId={pokemonId} lang={lang} />
+      </div>
+
       <div className="modal-section-title">{s.sprites}</div>
       <div className="sprites-grid">
         {[
@@ -18,10 +25,6 @@ export default function SpritesTab({ pokemonId, sprites, lang, s }) {
             <span className="sprite-label">{sp.label}</span>
           </div>
         ))}
-      </div>
-      {/* ⭐ Sprite Evolution Timeline */}
-      <div style={{ marginTop: 28 }}>
-        <SpriteTimeline pokemonId={pokemonId} lang={lang} />
       </div>
     </div>
   );

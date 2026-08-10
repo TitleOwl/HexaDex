@@ -2,13 +2,19 @@ import { useState, useEffect, useRef } from "react";
 import { STRINGS, GENERATIONS, ALL_TYPES, TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import { setSoundEnabled } from "../utils.js";
 import { getPerfMode, setPerfMode } from "../perfMode.js";
+import { routeUrl } from "../router.js";
+import { readVisitStreak } from "../visitStreak.js";
+import { genById, genCount, STARTER_ORDER } from "../data/generations.js";
+import { artworkUrl } from "../utils.js";
+
+const t = (lang, en, th, ja) => (lang === "th" ? th : lang === "ja" ? ja : en);
 import { readPetSave, PET_EVENT } from "./PetCareGame.jsx";
 import HexaDexLogo from "./HexaDexLogo.jsx";
 import AuthWidget from "./AuthWidget.jsx";
 import {
   Gamepad2, Search, Settings, Sun, Moon, Sparkles, Heart, Swords,
   BarChart3, Cake, Globe, Volume2, VolumeX, Palette, Info, Newspaper, SunMedium, Gauge,
-  Filter, ChevronDown,
+  Filter, ChevronDown, Flame,
 } from "lucide-react";
 
 // tiny helper: inline icon aligned with text
@@ -86,15 +92,24 @@ export function ModeTabs({ view, setView, s, lang }) {
   return (
     <div className="mode-tabs">
       {tabs.map(t => (
-        <button key={t.id}
+        // Anchors, not buttons: every tab has a real address now, so a
+        // middle-click opens it in a tab like any other link. The handler
+        // takes only the plain left-click, which the SPA serves without a
+        // reload.
+        <a key={t.id}
+          href={routeUrl(t.id)}
           className={`mode-tab${view === t.id ? " active" : ""}`}
-          onClick={() => setView(t.id)}>
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            setView(t.id);
+          }}>
           <span className="mode-tab-icon">
             <t.Icon size={17} strokeWidth={2.2} />
             {t.id === "games" && petAlert && <span className="mode-tab-dot" />}
           </span>
           <span className="mode-tab-label">{t.label}</span>
-        </button>
+        </a>
       ))}
     </div>
   );
@@ -159,7 +174,6 @@ function MoreMenu({ onOpenBirthday, onOpenTier, lang }) {
 }
 
 function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
-  cryStyle, setCryStyle,
   theme, toggleTheme, autoMode, enableAuto, s, onOpenChangelog,
   currentVersion, latestDate }) {
   const [perf, setPerf] = useState(getPerfMode());
@@ -298,39 +312,143 @@ function SettingsDrawer({ open, onClose, lang, setLang, soundOn, setSoundOn,
 }
 
 function GenFilter({ genIdx, onSet, lang }) {
+  // Which chip is being pointed at, and where it sits on screen. Kept as a
+  // rect rather than a ref because the preview is positioned with `fixed`: the
+  // chip strip scrolls and clips its own overflow, so a popover rendered
+  // inside it would be cut off at the strip's edge.
+  const [peek, setPeek] = useState(null);
+  const leaveTimer = useRef(null);
+
+  // Declared before show(), which calls it. The 90ms grace stops the panel
+  // flickering off and back on while the pointer crosses between two chips.
+  const hide = () => {
+    clearTimeout(leaveTimer.current);
+    leaveTimer.current = setTimeout(() => setPeek(null), 90);
+  };
+
+  const show = (i, el) => {
+    // "All" has no single generation to preview — and it has to actively
+    // dismiss, not just decline: bare `return` left the previous chip's panel
+    // hanging under a chip it did not belong to.
+    if (i === 0) { hide(); return; }
+    clearTimeout(leaveTimer.current);
+    const r = el.getBoundingClientRect();
+    setPeek({ gen: i, x: r.left + r.width / 2, y: r.bottom });
+  };
+  useEffect(() => () => clearTimeout(leaveTimer.current), []);
+
   return (
-    <div className="gen-filter-wrap">
+    <div className="gen-filter-wrap" onMouseLeave={hide}>
       {GENERATIONS.map((g, i) => {
         const regionName = g[lang] ?? g.en;
         const subLabel = g.sub?.[lang] ?? "";
         return (
+          // One line, region only. The generation number rode along on a second
+          // line that made every chip two-storey and both lines small; it is on
+          // the tooltip and in the list heading instead, which is where someone
+          // actually reads it.
           <button key={i} className={`gen-btn${genIdx === i ? " active" : ""}`}
-            onClick={() => onSet(i)} title={subLabel ? `${regionName} · ${subLabel}` : regionName}>
+            onClick={() => onSet(i)} title={subLabel ? `${regionName} · ${subLabel}` : regionName}
+            // Focus as well as hover: a keyboard user gets the same preview
+            // rather than a feature that only exists for mice.
+            onMouseEnter={(e) => show(i, e.currentTarget)}
+            onFocus={(e) => show(i, e.currentTarget)}
+            onBlur={hide}>
             <span className="gen-btn-region">{regionName}</span>
-            {subLabel && <span className="gen-btn-sub">{subLabel}</span>}
           </button>
         );
       })}
+
+      {/* Keyed by generation so moving to another chip REMOUNTS the panel.
+          Without it React reuses the same element, and a CSS animation only
+          plays on mount — the panel slid into place once and then swapped its
+          contents silently for every chip after that. */}
+      {peek && <StarterPeek key={peek.gen} gen={peek.gen} x={peek.x} y={peek.y} lang={lang} />}
+    </div>
+  );
+}
+
+/** The three starters of one generation, floating under its chip. */
+function StarterPeek({ gen, x, y, lang }) {
+  const info = genById(gen);
+  const [pos, setPos] = useState({ left: x, top: y + 8 });
+  const boxRef = useRef(null);
+
+  // Nudge back inside the window once the real width is known, so a chip near
+  // either edge does not push the panel off screen.
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const w = el.offsetWidth;
+    const half = w / 2;
+    const left = Math.min(Math.max(x, half + 10), window.innerWidth - half - 10);
+    setPos({ left, top: y + 8 });
+  }, [x, y]);
+
+  return (
+    <div ref={boxRef} className="gen-peek" style={{ left: pos.left, top: pos.top }} aria-hidden>
+      <div className="gen-peek-starters">
+        {STARTER_ORDER.map((slot) => {
+          const st = info.starters.find((v) => v.slot === slot);
+          if (!st) return null;
+          return (
+            <img key={slot} className={`gen-peek-img ${slot}`} src={artworkUrl(st.id)}
+              alt="" loading="eager" fetchPriority="high" decoding="async" draggable={false} />
+          );
+        })}
+      </div>
+      <div className="gen-peek-label">
+        {lang === "th" ? `เจน ${info.roman} · ${genCount(info)} ตัว`
+          : lang === "ja" ? `第${info.roman}世代 · ${genCount(info)}匹`
+          : `Gen ${info.roman} · ${genCount(info)}`}
+      </div>
     </div>
   );
 }
 
 export default function Header({
   lang, setLang, soundOn, setSoundOn,
-  cryStyle = "anime", setCryStyle,
   theme, toggleTheme, autoMode, enableAuto,
   view, setView,
   search, setSearch, typeFilter, setTypeFilter,
   genIdx, setGenIdx,
-  filteredCount, totalCount,
   thaiLoading, jpLoading,
   onOpenBirthday, onOpenTier,
   onOpenChangelog, hasUpdate, currentVersion = "1.0.0", latestDate = "2026-06-04",
   voiceSearchEl, snapSearchEl,
   favCount = 0, showFavsOnly = false, onToggleFavs,
+  musicEl,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const searchInputRef = useRef(null);
+  // Read once per mount: the value only changes at midnight, and re-reading it
+  // would roll the counter forward again on every render.
+  const [streak] = useState(readVisitStreak);
+  // Drives the shadow under the sticky row: only once the page has actually
+  // moved, so a page that fits on screen never wears one.
+  const [scrolled, setScrolled] = useState(false);
+  // Whether the region strip has anything hidden past its right edge.
+  const genRowRef = useRef(null);
+  const [genMore, setGenMore] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const el = genRowRef.current;
+    if (!el) return;
+    // 2px of slack: sub-pixel widths make scrollWidth exceed clientWidth by a
+    // hair on rows that are not really scrollable.
+    const check = () => setGenMore(el.scrollWidth - el.clientWidth - el.scrollLeft > 2);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    el.addEventListener("scroll", check, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener("scroll", check); };
+  }, [view, lang]);
   const s = STRINGS[lang];
   const isLangLoading = (lang === "th" && thaiLoading) || (lang === "ja" && jpLoading);
 
@@ -373,76 +491,112 @@ export default function Header({
             50%      { transform: scale(1.25); opacity: 0.7; }
           }
         `}</style>
+        {/* ── Row 1 — where you are ───────────────────────────────────────
+            The main menu sits at the very top with the logo and your account:
+            these are the things that are true of the whole app, whatever page
+            is showing. */}
         <div className="header-row header-row-main">
           <div className="logo">
-            <HexaDexLogo
-              size="md"
-              mode="light"
-              tagline={s.subtitle}
-            />
+            <HexaDexLogo size="md" mode="light" />
           </div>
+
           <ModeTabs view={view} setView={setView} s={s} lang={lang} />
+
           <div className="header-actions">
+            {/* One capsule, because these are two readings of the same kind:
+                numbers about you. Five separate circles gave no clue which was
+                which. */}
+            <div className="nav-stats">
+              <button
+                className={`nav-stats-item${showFavsOnly ? " active" : ""}`}
+                onClick={onToggleFavs}
+                aria-pressed={showFavsOnly}
+                aria-label={t(lang,
+                  `Favourites, ${favCount}`, `รายการโปรด ${favCount} ตัว`, `お気に入り ${favCount}`)}
+                title={s.favFilter}
+              >
+                <Heart size={14} strokeWidth={2.3} fill={showFavsOnly ? "currentColor" : "none"} />
+                <span>{favCount}</span>
+              </button>
+              <span className="nav-stats-sep" aria-hidden />
+              <span className="nav-stats-item nav-stats-static"
+                aria-label={t(lang,
+                  `Visit streak, ${streak} days`, `เข้าต่อเนื่อง ${streak} วัน`, `連続 ${streak}日`)}
+                title={s.visitStreak}>
+                <Flame size={14} strokeWidth={2.3} />
+                <span>{streak}</span>
+              </span>
+            </div>
+
+            {musicEl}
             <div className="header-icon-group">
               <MoreMenu onOpenBirthday={onOpenBirthday} onOpenTier={onOpenTier} lang={lang} />
             </div>
-            <span className="header-actions-divider" />
             <AuthWidget lang={lang}
               theme={theme} toggleTheme={toggleTheme} autoMode={autoMode}
               onOpenSettings={() => setSettingsOpen(true)} settingsHasUpdate={hasUpdate} />
           </div>
         </div>
 
+        {/* ── Row 2 — everything that narrows the list, on one line ───────
+            Search and its filters at the left, regions at the right. The two
+            clusters counterweight each other, so the gap in the middle is the
+            result of the layout rather than a hole to be filled — and it costs
+            one row less height, which is one row sooner you see a Pokémon. */}
         {view === "pokedex" && (
-          <>
-            <div className="header-row header-row-filters">
-              <div className="search-wrap">
-                <div className="search-input-group">
-                  <input ref={searchInputRef} className="search-box" placeholder={s.searchPlaceholder}
-                    value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className={`header-row header-row-search${scrolled ? " stuck" : ""}`}>
+            {/* Search and the type filter are one control, not two: both narrow
+                the same list, and a gap between them made them look like
+                unrelated tools that happen to sit near each other. */}
+            <div className="nav-searchbar">
+              <span className="nav-search">
+                <Search size={16} strokeWidth={2.4} className="nav-search-icon" />
+                <input
+                  ref={searchInputRef}
+                  className="nav-search-input"
+                  placeholder={s.searchPlaceholder}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label={s.searchPlaceholder}
+                />
+                <span className="nav-search-tools">
                   {voiceSearchEl}
                   {snapSearchEl}
-                </div>
-                <button type="button" className="search-go-btn" title={s.searchPlaceholder}
-                  onClick={() => searchInputRef.current?.focus()}>
-                  <Search size={18} strokeWidth={2.6} />
-                </button>
-              </div>
-              {!showFavsOnly && (
-                <label className="filter-pill">
-                  <Filter size={14} strokeWidth={2.4} className="filter-pill-icon" />
-                  <select className="type-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                    <option value="all">{s.allTypes}</option>
-                    {ALL_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {lang === "th" ? `${TYPE_NAMES_TH[t] ?? t}`
-                          : lang === "ja" ? `${TYPE_NAMES_JA[t] ?? t}`
-                          : t.charAt(0).toUpperCase() + t.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} strokeWidth={2.6} className="filter-pill-chevron" />
-                </label>
-              )}
-              <button
-                className={`fav-filter-btn${showFavsOnly ? " active" : ""}${favCount === 0 && !showFavsOnly ? " empty" : ""}`}
-                onClick={onToggleFavs}
-                title={s.favFilter}
-              >
-                <span className="fav-filter-icon">
-                  <Heart size={17} strokeWidth={2.2} fill={showFavsOnly ? "currentColor" : "none"} />
                 </span>
-                {favCount > 0 && <span className="fav-filter-count">{favCount}</span>}
-              </button>
-              <div className="count-badge">
-                <span className="count-num">{filteredCount.toLocaleString()}</span>
-                <span className="count-label">{s.of} {totalCount.toLocaleString()}</span>
-              </div>
+              </span>
+
+              <span className="nav-searchbar-sep" aria-hidden />
+
+              <label className="nav-type">
+                <Filter size={13} strokeWidth={2.4} />
+                <select className="nav-pill-select" value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  aria-label={s.allTypes}>
+                  <option value="all">{s.allTypes}</option>
+                  {ALL_TYPES.map((ty) => (
+                    <option key={ty} value={ty}>
+                      {lang === "th" ? `${TYPE_NAMES_TH[ty] ?? ty}`
+                        : lang === "ja" ? `${TYPE_NAMES_JA[ty] ?? ty}`
+                        : ty.charAt(0).toUpperCase() + ty.slice(1)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={13} strokeWidth={2.6} />
+              </label>
             </div>
-            <div className="header-gen-row">
+
+            {/* Kept: the regions really are a different group. The divider that
+                used to stand between search and the type filter is gone with
+                the merge. */}
+            <span className="nav-group-sep" aria-hidden />
+
+            {/* `more` is set only while the strip actually overflows, so the
+                fade is a promise of more chips rather than a permanent smudge
+                over Paldea on a wide screen. */}
+            <div className={`header-gen-row${genMore ? " more" : ""}`} ref={genRowRef}>
               <GenFilter genIdx={genIdx} onSet={setGenIdx} lang={lang} />
             </div>
-          </>
+          </div>
         )}
 
         {isLangLoading && (
@@ -456,7 +610,6 @@ export default function Header({
 
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)}
         lang={lang} setLang={setLang} soundOn={soundOn} setSoundOn={setSoundOn}
-        cryStyle={cryStyle} setCryStyle={setCryStyle}
         theme={theme} toggleTheme={toggleTheme} autoMode={autoMode} enableAuto={enableAuto} s={s}
         onOpenChangelog={onOpenChangelog}
         currentVersion={currentVersion} latestDate={latestDate} />

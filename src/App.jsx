@@ -8,7 +8,7 @@ import {
 } from "./data.js";
 import {
   cache, compactPokemon, useDebouncedValue, useModelViewerScript,
-  getLocalName, isSoundEnabled, getCryStyle, setCryStyle,
+  getLocalName, isSoundEnabled,
 } from "./utils.js";
 import { useTheme } from "./useTheme.js";
 import { useAuth } from "./AuthContext.jsx";
@@ -34,6 +34,11 @@ const BirthdayPokemon = lazy(() => import("./components/BirthdayPokemon.jsx"));
 const MetaTierBrowser = lazy(() => import("./components/MetaTierBrowser.jsx"));
 const MultiplayerQuiz = lazy(() => import("./components/MultiplayerQuiz.jsx"));
 const Changelog       = lazy(() => import("./components/Changelog.jsx"));
+const GenerationBand  = lazy(() => import("./components/GenerationBand.jsx"));
+
+// Views that actually apply the ?gen= filter. Module scope so it is not a fresh
+// array on every render, which would put it in setView's dependency list.
+const GEN_AWARE_VIEWS = ["pokedex", "team"];
 
 // ─── Hubs (main tabs) ────────────────────────────────────────
 import BuddyCompanion     from "./components/BuddyCompanion.jsx";
@@ -41,14 +46,14 @@ import { trackView }       from "./components/petQuests.js";
 
 // ─── Overlays ────────────────────────────────────────────────
 import { hasUnseenVersion, fetchChangelog, getCurrentVersion, getLatestCommitDate } from "./data/changelog.js";
+import { readRoute, pushRoute, replaceRoute } from "./router.js";
+import MusicPlayer from "./components/MusicPlayer.jsx";
 
 // ─── Search add-ons (passed to Header) ───────────────────────
 import VoiceSearch        from "./components/VoiceSearch.jsx";
 import SnapSearch         from "./components/SnapSearch.jsx";
 
 // ─── 🎵 Music Player ─────────────────────────────────────────
-import MusicPlayer        from "./components/MusicPlayer.jsx";
-import WeatherStatus      from "./components/WeatherStatus.jsx";
 
 // Suspense fallbacks for the lazy tabs/overlays above — just a spinner,
 // shown only on the first open of each chunk (cached after that).
@@ -65,11 +70,6 @@ export default function App() {
     try { return localStorage.getItem("pkdx_lang") ?? "en"; } catch { return "en"; }
   });
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
-  const [cryStyle, setCryStyleState] = useState(() => getCryStyle());
-  const handleSetCryStyle = useCallback((style) => {
-    setCryStyle(style);
-    setCryStyleState(style);
-  }, []);
   const { theme, toggleTheme, autoMode, enableAuto } = useTheme();
 
   useEffect(() => { try { localStorage.setItem("pkdx_lang", lang); } catch {} }, [lang]);
@@ -90,7 +90,13 @@ export default function App() {
       if (modalStack > 0) {
         window.dispatchEvent(new CustomEvent("ui:back-pressed"));
         pushTrap();
+        return;
       }
+      // No modal is open, so this back press is a real navigation: put the view
+      // and the filter back to whatever the address now says. Announced as an
+      // event rather than handled here so this effect keeps its empty dep list
+      // and does not resubscribe on every render.
+      window.dispatchEvent(new CustomEvent("ui:route-changed"));
     };
     window.addEventListener("ui:modal:open",  onModalOpen);
     window.addEventListener("ui:modal:close", onModalClose);
@@ -110,11 +116,12 @@ export default function App() {
     document.title = title;
   }, [lang]);
 
-  // ─── View Router (4 main tabs) ─────────────────────────────
-  const [view, setView] = useState("pokedex");
+  // ─── View router — the URL is the source of truth (generations spec §2) ──
+  // Seeded from the address so a deep link works on first paint, and kept in
+  // step with it below. The tabs used to be state only, which meant nothing in
+  // the app could be linked to or bookmarked.
+  const [view, setViewState] = useState(() => readRoute().view);
 
-  // ─── 🎵 Music: current generation for BGM switching ────────
-  const [currentGen, setCurrentGen] = useState(null);
 
   // ─── Overlays ──────────────────────────────────────────────
   const [birthdayOpen, setBirthdayOpen]     = useState(false);
@@ -144,7 +151,31 @@ export default function App() {
   const [offset, setOffset]   = useState(0);
   const [search, setSearch]   = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [genIdx, setGenIdx]   = useState(0);
+  const [genIdx, setGenIdx]   = useState(() => readRoute().gen);
+  // Read by setView, which must not take genIdx as a dependency: it would be
+  // rebuilt on every filter change and re-render the whole header with it.
+  const genIdxRef = useRef(genIdx);
+  useEffect(() => { genIdxRef.current = genIdx; }, [genIdx]);
+
+  // Back / forward, and any other address change: the URL leads, state follows.
+  useEffect(() => {
+    const sync = () => {
+      const r = readRoute();
+      setViewState(r.view);
+      setGenIdx(r.gen);
+    };
+    window.addEventListener("ui:route-changed", sync);
+    return () => window.removeEventListener("ui:route-changed", sync);
+  }, []);
+
+  // First paint: normalise the address without adding a history entry, so "/"
+  // becomes "/pokedex" and a nonsense ?gen=99 stops being shown as if it meant
+  // something (§2). replace, not push — landing on a page is not a navigation.
+  useEffect(() => {
+    const r = readRoute();
+    replaceRoute(r.view, r.gen);
+  }, []);
+
   // Guests keep favorites in memory only (gone on refresh); logged-in users
   // get them from the server so likes survive across sessions/devices.
   const { user } = useAuth();
@@ -302,18 +333,30 @@ export default function App() {
     });
   }, [loaded, genIdx, typeFilter, debouncedSearch, localName, showFavsOnly, favorites]);
 
+  // Title plus a quieter sub-line. The dex range and species count used to be
+  // the reason the generations hub existed; with that page gone they live here,
+  // where they describe the list you are actually looking at.
   const sectionHeading = useMemo(() => {
-    const s = STRINGS[lang];
-    if (debouncedSearch) return s.resultsFor(debouncedSearch);
+    const st = STRINGS[lang];
+    const n = filtered.length.toLocaleString();
+    if (debouncedSearch) return { title: st.resultsFor(debouncedSearch), sub: `${n}` };
     if (typeFilter !== "all") {
       const tName = lang === "th" ? (TYPE_NAMES_TH[typeFilter] ?? typeFilter)
         : lang === "ja" ? (TYPE_NAMES_JA[typeFilter] ?? typeFilter)
         : typeFilter;
-      return s.typeHeading(tName, filtered.length);
+      return { title: tName, sub: `${n}` };
     }
     const gen = GENERATIONS[genIdx];
-    const regionName = gen[lang] ?? gen.en;
-    return `${regionName} · ${filtered.length} ${s.loaded}`;
+    if (genIdx === 0) {
+      return {
+        title: lang === "th" ? "โปเกม่อนทั้งหมด" : lang === "ja" ? "すべてのポケモン" : "All Pokémon",
+        sub: `${n}`,
+      };
+    }
+    const range = `#${String(gen.min).padStart(3, "0")}–${String(gen.max).padStart(3, "0")}`;
+    const total = gen.max - gen.min + 1;
+    const unit = lang === "th" ? "ตัว" : lang === "ja" ? "匹" : "Pokémon";
+    return { title: gen[lang] ?? gen.en, sub: `${range} · ${total} ${unit}` };
   }, [lang, debouncedSearch, typeFilter, genIdx, filtered.length]);
 
   // ─── Helpers ───────────────────────────────────────────────
@@ -373,7 +416,23 @@ export default function App() {
   // ─── 🎵 Gen change handler (for music + filter) ───────────
   const handleGenChange = useCallback((idx) => {
     setGenIdx(idx);
-    setCurrentGen(idx === 0 ? null : idx);
+    // The filter lives in the address, so changing it from the header chips is
+    // a navigation like any other and the back button can undo it (§2).
+    pushRoute("pokedex", idx);
+  }, []);
+
+  /** Switch tab and write the address. The gen filter rides along to the two
+   *  views that actually apply it (§4.3) — ?gen= on the games tab would be a
+   *  filter nothing acts on, which is worse than no param at all. */
+  const setView = useCallback((next) => {
+    setViewState(next);
+    pushRoute(next, GEN_AWARE_VIEWS.includes(next) ? genIdxRef.current : 0);
+  }, []);
+
+  /** §4.2 — clearing the chip drops the param and shows everything. */
+  const clearGenFilter = useCallback(() => {
+    setGenIdx(0);
+    pushRoute("pokedex", 0);
   }, []);
 
   const s = STRINGS[lang];
@@ -403,15 +462,13 @@ export default function App() {
       <Header
         lang={lang} setLang={setLang}
         soundOn={soundOn} setSoundOn={setSoundOn}
-        cryStyle={cryStyle} setCryStyle={handleSetCryStyle}
         theme={theme} toggleTheme={toggleTheme}
         autoMode={autoMode} enableAuto={enableAuto}
         view={view} setView={setView}
         search={search} setSearch={setSearch}
         typeFilter={typeFilter} setTypeFilter={setTypeFilter}
         genIdx={genIdx} setGenIdx={handleGenChange}
-        filteredCount={filtered.length}
-        totalCount={allList.length}
+        musicEl={<MusicPlayer lang={lang} inline />}
         thaiLoading={thaiLoading} jpLoading={jpLoading}
         onOpenBirthday={() => setBirthdayOpen(true)}
         onOpenTier={() => setTierOpen(true)}
@@ -454,7 +511,28 @@ export default function App() {
             </div>
           ) : (
             <>
-              <div className="section-heading">{sectionHeading}</div>
+              {/* A chosen region gets the band; "All" keeps the plain heading,
+                  because there is no single generation to describe. */}
+              {genIdx > 0 && !debouncedSearch && typeFilter === "all" && !showFavsOnly ? (
+                <Suspense fallback={null}>
+                  <GenerationBand
+                    gen={genIdx} lang={lang} pool={loaded}
+                    thaiArr={thaiArr} jpArr={jpArr}
+                    onOpenTeam={(g) => { setGenIdx(g); setViewState("team"); pushRoute("team", g); }}
+                    onOpenQuiz={(g) => { setGenIdx(g); setViewState("games"); pushRoute("games", g); }}
+                  />
+                </Suspense>
+              ) : (
+                <div className="section-heading">
+                  <span className="section-title">{sectionHeading.title}</span>
+                  {/* Back beside the title: it is the result of a filter, not a
+                      control, and standing between the pills and the region
+                      chips it read as one more thing to press. */}
+                  <span className="section-sub" role="status" aria-live="polite">
+                    {sectionHeading.sub}
+                  </span>
+                </div>
+              )}
               <div className="grid">
                 {filtered.map((p) => (
                   <PokemonCard
@@ -485,6 +563,7 @@ export default function App() {
           <TeamBuilder
             allList={allList} thaiArr={thaiArr} jpArr={jpArr}
             lang={lang} cachedFetch={cachedFetch}
+            genFilter={genIdx} onClearGen={clearGenFilter}
             onClose={() => setView("pokedex")}
           />
         </Suspense>
@@ -593,8 +672,6 @@ export default function App() {
       {/* ── 🎵 Music Player + Weather ── */}
       <ScrollToTop />
       <PerfWatcher lang={lang} />
-      <MusicPlayer currentGen={currentGen} lang={lang} />
-      <WeatherStatus lang={lang} />
       <Footer lang={lang} />
     </>
   );

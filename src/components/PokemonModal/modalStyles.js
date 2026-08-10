@@ -1886,4 +1886,235 @@ export const MODAL_CSS = `
     .modal-overlay .detail-sheet .evo-node-card.wide { gap: 12px; padding: 12px 10px; }
     .modal-overlay .detail-sheet .evo-weak-who { flex-basis: 100%; }
   }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Moves & Sprites tabs
+   Both arrived carrying their own palette. Scoped under .detail-sheet so they
+   inherit the modal's surfaces and hairlines, and so nothing here leaks out
+   into the list view.
+   ══════════════════════════════════════════════════════════════════════════ */
+.modal-overlay .detail-sheet .moves-method-tabs {
+  display: flex; gap: 4px; padding: 4px; margin-bottom: 14px;
+  border-radius: 999px; background: var(--bg-muted);
+  border: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
+}
+.modal-overlay .detail-sheet .moves-method-tabs::-webkit-scrollbar { display: none; }
+.modal-overlay .detail-sheet .moves-method-btn {
+  flex: 1 1 auto; padding: 7px 15px;
+  border: none; border-radius: 999px; background: none;
+  color: var(--text-secondary);
+  font-size: 12.5px; font-weight: 700; white-space: nowrap; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.modal-overlay .detail-sheet .moves-method-btn:hover { color: var(--text-primary); }
+.modal-overlay .detail-sheet .moves-method-btn.active {
+  background: var(--bg-card); color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.09);
+}
+.modal-overlay .detail-sheet .moves-method-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.modal-overlay .detail-sheet .moves-count {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px;
+}
+
+.modal-overlay .detail-sheet .moves-table-wrap {
+  border: 1px solid var(--border); border-radius: 14px;
+  overflow: hidden; background: var(--bg-card);
+}
+.modal-overlay .detail-sheet .moves-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.modal-overlay .detail-sheet .move-row {
+  border-bottom: 1px solid var(--border); transition: background 0.13s ease;
+}
+.modal-overlay .detail-sheet .move-row:last-child { border-bottom: none; }
+.modal-overlay .detail-sheet .move-row:hover { background: var(--bg-muted); }
+.modal-overlay .detail-sheet .move-row > * { padding: 10px 12px; vertical-align: middle; }
+
+/* The level is the column people scan down, so it gets a fixed lane and
+   tabular figures — proportional digits make a column of numbers wobble. */
+.modal-overlay .detail-sheet .move-lv {
+  width: 46px; text-align: center; font-weight: 800;
+  font-variant-numeric: tabular-nums; color: var(--text-primary);
+}
+.modal-overlay .detail-sheet .move-num {
+  font-variant-numeric: tabular-nums; color: var(--text-secondary); font-weight: 600;
+}
+.modal-overlay .detail-sheet .move-name {
+  font-weight: 700; color: var(--text-primary); text-transform: capitalize;
+}
+.modal-overlay .detail-sheet .move-desc {
+  color: var(--text-secondary); font-size: 12px; line-height: 1.55;
+}
+.modal-overlay .detail-sheet .move-method-label {
+  font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+}
+.modal-overlay .detail-sheet .move-type-cell,
+.modal-overlay .detail-sheet .move-cat-cell { width: 1%; white-space: nowrap; }
+.modal-overlay .detail-sheet .move-category {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  background: var(--bg-muted); color: var(--text-secondary);
+  font-size: 11px; font-weight: 700; text-transform: capitalize;
+}
+
+/* Loading dims the row it belongs to instead of showing a spinner, so the
+   table does not jump when the descriptions land. */
+.modal-overlay .detail-sheet .move-loading-text { opacity: 0.55; font-style: italic; }
+.modal-overlay .detail-sheet .moves-loading-dot {
+  display: inline-block; width: 6px; height: 6px; margin-left: 6px;
+  border-radius: 50%; background: var(--text-muted);
+  animation: mv-dot 1s ease-in-out infinite;
+}
+@keyframes mv-dot { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+.modal-overlay .detail-sheet .sprites-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px;
+}
+/* A soft checker behind each sprite: these are transparent PNGs, and a white
+   Pokémon on a white card is invisible. */
+.modal-overlay .detail-sheet .sprite-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 8px 9px; border-radius: 14px;
+  background:
+    linear-gradient(45deg, var(--bg-muted) 25%, transparent 25%) 0 0/16px 16px,
+    linear-gradient(-45deg, var(--bg-muted) 25%, transparent 25%) 0 8px/16px 16px,
+    linear-gradient(45deg, transparent 75%, var(--bg-muted) 75%) 8px -8px/16px 16px,
+    linear-gradient(-45deg, transparent 75%, var(--bg-muted) 75%) -8px 0/16px 16px,
+    var(--bg-card);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s ease, transform 0.13s ease-out;
+}
+.modal-overlay .detail-sheet .sprite-cell:hover { border-color: var(--border-mid); transform: translateY(-2px); }
+.modal-overlay .detail-sheet .sprite-img {
+  width: 72px; height: 72px; object-fit: contain; image-rendering: pixelated;
+}
+.modal-overlay .detail-sheet .sprite-label {
+  font-size: 11px; font-weight: 700; color: var(--text-secondary); text-align: center;
+}
+
+@media (max-width: 560px) {
+  .modal-overlay .detail-sheet .move-desc,
+  .modal-overlay .detail-sheet .move-num { display: none; }
+  .modal-overlay .detail-sheet .sprites-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+  .modal-overlay .detail-sheet .sprite-img { width: 58px; height: 58px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay .detail-sheet .sprite-cell,
+  .modal-overlay .detail-sheet .moves-method-btn,
+  .modal-overlay .detail-sheet .move-row { transition: none; }
+  .modal-overlay .detail-sheet .sprite-cell:hover { transform: none; }
+  .modal-overlay .detail-sheet .moves-loading-dot { animation: none; }
+}
+
+/* ── Detail modal: names in Title Case ──────────────────────────────────────
+   The API returns them lowercase; the grid cards already capitalise, and the
+   two views disagreeing on the same Pokémon looked like a data fault. */
+.modal-overlay .modal-hero h1,
+.modal-overlay .modal-name,
+.modal-overlay .detail-sheet .modal-name-row h1,
+.modal-overlay .detail-sheet .evo-node-name,
+.modal-overlay .detail-sheet .move-name { text-transform: capitalize; }
+
+/* The dex number keeps the name company rather than competing with it. */
+.modal-overlay .modal-hero .modal-dex,
+.modal-overlay .modal-hero .modal-num { color: rgba(255,255,255,0.72); }
+
+/* ── Move category: the soft pill used everywhere else ─────────────────────
+   Was solid red with thin white text, which measured worst-in-app for
+   contrast. Same tinted-ground / deep-ink formula as the type pills. */
+.modal-overlay .detail-sheet .move-category {
+  background: #eeece5;
+  color: #6f6a5e;
+  border: none;
+  text-shadow: none;
+  box-shadow: none;
+  font-weight: 700;
+}
+.modal-overlay .detail-sheet .move-category[data-cat="physical"] { background: #fbe0cf; color: #a8541f; }
+.modal-overlay .detail-sheet .move-category[data-cat="special"]  { background: #dfe8fb; color: #3f5c9e; }
+.modal-overlay .detail-sheet .move-category[data-cat="status"]   { background: #eeece5; color: #6f6a5e; }
+[data-theme="dark"] .modal-overlay .detail-sheet .move-category[data-cat="physical"] { background: rgba(168,84,31,0.26); color: #f0a878; }
+[data-theme="dark"] .modal-overlay .detail-sheet .move-category[data-cat="special"]  { background: rgba(63,92,158,0.30); color: #a8c0f0; }
+[data-theme="dark"] .modal-overlay .detail-sheet .move-category[data-cat="status"]   { background: rgba(238,236,229,0.14); color: #cfc9bd; }
+
+/* ── Move type: the same soft chip as the grid cards ───────────────────────
+   It was plain text beside a coloured category chip, so two facts of equal
+   rank were drawn at different volumes. */
+.modal-overlay .detail-sheet .move-type-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0;
+  text-shadow: none;
+  box-shadow: none;
+  border: none;
+  background: color-mix(in srgb, var(--tt) 16%, #ffffff);
+  color: color-mix(in srgb, var(--tt) 42%, #17151a);
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .move-type-tag {
+  background: color-mix(in srgb, var(--tt) 26%, transparent);
+  color: color-mix(in srgb, var(--tt) 50%, #ffffff);
+}
+
+/* The count rides every sub-tab, including Level Up, so the row reads as one
+   set of comparable numbers rather than two labelled and one not. */
+.modal-overlay .detail-sheet .moves-count {
+  display: inline-block;
+  min-width: 18px;
+  margin: 0 0 0 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.modal-overlay .detail-sheet .moves-method-btn.active .moves-count {
+  background: color-mix(in srgb, var(--blue) 14%, transparent);
+  color: var(--blue);
+}
+
+/* ── Section rule: one brand colour, not two ───────────────────────────────
+   The heading underline was red and the tab indicator purple. */
+.modal-overlay .detail-sheet .modal-section-title::after,
+.modal-overlay .detail-sheet .detail-tab.active::after {
+  background: #8f2f2a !important;
+}
+.modal-overlay .detail-sheet .detail-tab.active { color: #8f2f2a !important; }
+
+/* Sprite labels: Title Case, matching every other label in the modal. */
+.modal-overlay .detail-sheet .sprite-label {
+  text-transform: capitalize;
+  letter-spacing: 0;
+}
+
+/* ── Hero Pokéball: a texture, not a competing object ──────────────────────
+   It sat half off the right edge and overlapped the sprite. Centred behind
+   the artwork and dropped to a whisper, it does what a watermark is for. */
+.modal-overlay .modal-hero .hero-ball,
+.modal-overlay .modal-hero .modal-ball-wm,
+.modal-overlay .modal-hero .hero-pokeball {
+  left: 50% !important;
+  right: auto !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  opacity: 0.1 !important;
+}
+
+/* Sprite evolution leads the tab now, so it gets the room to be read. */
+.modal-overlay .detail-sheet .sprite-timeline-lead { margin-bottom: 26px; }
+.modal-overlay .detail-sheet .sprite-timeline-lead img { image-rendering: pixelated; }
+
+/* The dex number sits with the name instead of shouting over it: close in
+   size, well back in weight and opacity. */
+.modal-overlay .modal-hero .modal-dex,
+.modal-overlay .modal-hero .modal-num,
+.modal-overlay .modal-hero .hero-dex {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+}
 `;

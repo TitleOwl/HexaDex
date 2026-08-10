@@ -8,9 +8,12 @@ import { pastelTypeColor as typeColor } from "./PokemonModal/palette.js";
 function CategoryBadge({ cat, lang }) {
   const c = CAT_CONFIG[cat] ?? CAT_CONFIG.status;
   const label = lang==="th"?c.th : lang==="ja"?c.ja : c.en;
+  // The colour moves to CSS keyed on data-cat: the inline background was a
+  // solid saturated fill that no text colour could sit on legibly, and inline
+  // styles cannot be overridden by the stylesheet that fixes it.
   return (
-    <span className="move-category" style={{ background:c.color }}>
-      {c.icon} {label}
+    <span className="move-category" data-cat={cat}>
+      {label}
     </span>
   );
 }
@@ -181,7 +184,7 @@ export default function MoveLearnset({ pokemonId, lang, moveCache }) {
                     </td>
                     <td className="move-type-cell">
                       {typeName
-                        ? <span className="type-tag move-type-tag" style={{ background:typeColor(typeName) }}>{typeLabel}</span>
+                        ? <span className="move-type-tag" style={{ "--tt": typeColor(typeName) }}>{typeLabel}</span>
                         : <span className="move-loading-text">…</span>}
                     </td>
                     <td className="move-cat-cell">

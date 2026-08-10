@@ -123,7 +123,7 @@ function pickRandom(pool, excludeUrl, failedUrls = new Set()) {
   return pool[0];
 }
 
-export default function MusicPlayer({ currentGen, lang = "en" }) {
+export default function MusicPlayer({ currentGen, lang = "en", inline = false }) {
   const audioRef = useRef(null);
   const userInteractedRef = useRef(false);
   const wasPlayingBeforeCatchRef = useRef(false);
@@ -305,6 +305,43 @@ export default function MusicPlayer({ currentGen, lang = "en" }) {
   const regionLabel = currentGen && REGION_NAMES[currentGen]
     ? REGION_NAMES[currentGen][lang] ?? REGION_NAMES[currentGen].en
     : (lang === "th" ? "สุ่ม" : lang === "ja" ? "ランダム" : "Random");
+
+  // `inline` renders the player as a single navbar control instead of the
+  // floating corner card. Same audio element and same state — only the shell
+  // differs, so playback survives and there is one player, not two.
+  if (inline) {
+    const label = currentTrack?.name
+      ? `${currentTrack.name} · ${regionLabel}`
+      : regionLabel;
+    return (
+      <>
+        <audio
+          ref={audioRef}
+          src={currentTrack?.url}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onEnded={handleEnded}
+          onError={handleError}
+          preload="auto"
+        />
+        <button
+          type="button"
+          className={`nav-music${playing ? " playing" : ""}`}
+          onClick={togglePlay}
+          // The track name on hover, so the control says what it will play
+          // rather than leaving the user to press it and find out.
+          title={playing
+            ? `${lang === "th" ? "หยุดเพลง" : lang === "ja" ? "音楽を停止" : "Pause music"} — ${label}`
+            : `${lang === "th" ? "เล่นเพลง" : lang === "ja" ? "音楽を再生" : "Play music"} — ${label}`}
+          aria-label={playing ? "Pause music" : "Play music"}
+          aria-pressed={playing}
+        >
+          <Music2 size={15} strokeWidth={2.3} />
+          {playing && <span className="nav-music-dot" aria-hidden />}
+        </button>
+      </>
+    );
+  }
 
   return (
     <>
