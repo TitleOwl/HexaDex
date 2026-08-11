@@ -43,6 +43,16 @@ function fmtCountdown(ms) {
   return `${m}m ${sec}s`;
 }
 
+/** Same value without seconds, for anything more than an hour away. */
+function fmtCoarse(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
 const WEEKLY_HOURS = [
   { key: "spotlight", Icon: Sparkles, day: 2, hour: 18, color: "#eab308", label: { en: "Spotlight Hour", th: "Spotlight Hour", ja: "スポットライト" } },
   { key: "raidhour",  Icon: Swords,   day: 3, hour: 18, color: "#dc2626", label: { en: "Raid Hour",      th: "Raid Hour",      ja: "レイドアワー" } },
@@ -79,8 +89,10 @@ function HubHeader({ lang }) {
   const [now, setNow] = useState(() => new Date());
   const [refreshedAt] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(id);
+    const id = setInterval(() => setNow(new Date()), 1000);
+    const wake = () => { if (!document.hidden) setNow(new Date()); };
+    document.addEventListener("visibilitychange", wake);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", wake); };
   }, []);
 
   const mins = Math.max(0, Math.round((now.getTime() - refreshedAt) / 60000));
@@ -141,14 +153,25 @@ function HubHeader({ lang }) {
 // of timezones. Here the live event is the page, and the rest is a queue.
 
 function NowNext({ lang }) {
-  // A minute, not a second. Nothing here is decided by seconds, and a
-  // per-second interval means a re-render every second plus a screen reader
-  // reading the countdown aloud on every tick.
+  // Every value below is recomputed from Date.now() against a fixed target,
+  // never by subtracting a second from the last value — that drifts as soon
+  // as the tab is throttled or slept.
   const [, tick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => tick(n => n + 1), 60000);
-    return () => clearInterval(id);
+    const bump = () => tick(n => n + 1);
+    const id = setInterval(bump, 1000);
+    // A backgrounded tab stops getting timers; recompute the moment it
+    // returns rather than showing whatever was on screen when it left.
+    const wake = () => { if (!document.hidden) bump(); };
+    document.addEventListener("visibilitychange", wake);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", wake); };
   }, []);
+
+  // Announced once a minute. A polite region that changes every second is
+  // read aloud continuously and makes the page unusable with a screen reader.
+  // Updated during render rather than in an effect: the announced value has
+  // to change with the minute, not one paint after it.
+  const [spoken, setSpoken] = useState("");
 
   const lbl = (o) => o[lang] ?? o.en;
 
@@ -160,6 +183,9 @@ function NowNext({ lang }) {
   const lead = events[0];
   const queue = events.slice(1, 4);
   const liveCount = events.filter(e => e.st.live).length;
+
+  const leadCoarse = fmtCoarse(lead.st.ms);
+  if (spoken !== leadCoarse) setSpoken(leadCoarse);
 
   const when = (ev) => {
     const d = new Date();
@@ -199,8 +225,9 @@ function NowNext({ lang }) {
                 ? (lang === "th" ? "เหลือเวลา" : lang === "ja" ? "残り" : "Time left")
                 : (lang === "th" ? "เริ่มในอีก" : lang === "ja" ? "開始まで" : "Starts in")}
             </span>
-            {/* Announced when it changes, but only once a minute. */}
-            <b className="gh-now-count" aria-live="polite">{fmtCountdown(lead.st.ms)}</b>
+            <b className="gh-now-count">{fmtCountdown(lead.st.ms)}</b>
+            {/* The seconds are for the eye; only the minute is announced. */}
+            <span className="sr-only" aria-live="polite">{spoken}</span>
           </div>
           {pct != null && (
             <div className="gh-now-bar">
@@ -225,7 +252,9 @@ function NowNext({ lang }) {
                 <span className="gh-next-name">{lbl(ev.label)}</span>
                 <span className="gh-next-when">{when(ev)}</span>
               </span>
-              <span className="gh-next-left">{fmtCountdown(ev.st.ms)}</span>
+              {/* Days away: seconds would be noise, and re-rendering them
+                  every second would be noise the browser pays for. */}
+              <span className="gh-next-left">{fmtCoarse(ev.st.ms)}</span>
             </li>
           ))}
         </ul>
@@ -293,10 +322,16 @@ function ContextBar({ lang }) {
 }
 
 
-function SumBlock({ label, children }) {
+function SumBlock({ label, onGo, children }) {
   return (
     <div className="gh-sum-block">
-      <div className="gh-sum-lbl">{label}</div>
+      {onGo ? (
+        <button type="button" className="gh-sum-lbl go" onClick={onGo}>
+          {label}<span aria-hidden>&rsaquo;</span>
+        </button>
+      ) : (
+        <div className="gh-sum-lbl">{label}</div>
+      )}
       {children}
     </div>
   );
@@ -309,24 +344,37 @@ function SumBlock({ label, children }) {
 // stay level whether or not their slice arrived, skeletons rather than pop-in,
 // and silence rather than an empty rail when a fetch fails.
 
-function Sprite({ id, name, tint, badge }) {
-  return (
-    <span className="gh-pv-cell" style={tint ? { "--pv": tint } : undefined}>
+function Sprite({ id, name, tint, badge, onGo, big }) {
+  const inner = (
+    <>
       {id
         ? <img src={spriteUrl(id)} alt="" loading="lazy" decoding="async" className="gh-pv-img" />
         : <span className="gh-pv-txt">{(name ?? "?").slice(0, 3)}</span>}
       {badge && <span className="gh-pv-badge">{badge}</span>}
-    </span>
+    </>
+  );
+  const cls = `gh-pv-cell${big ? " big" : ""}${onGo ? " go" : ""}`;
+  const style = tint ? { "--pv": tint } : undefined;
+
+  // A sprite alone does not say which Pokemon it is to someone who does not
+  // already know, so the name is always reachable on hover.
+  if (!onGo) return <span className={cls} style={style} title={name}>{inner}</span>;
+  return (
+    <button type="button" className={cls} style={style} title={name}
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onGo(); }}
+      aria-label={name}>
+      {inner}
+    </button>
   );
 }
 
-function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0 }) {
+function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0, go, big }) {
   // Grey boxes the size of the real sprites: a card that grows when its data
   // lands is worse than one that never had a preview.
   if (status === "loading" && kind !== "weather") {
     return (
-      <div className="gh-pv" aria-hidden>
-        {[0, 1, 2, 3].map(i => <span key={i} className="gh-pv-cell gh-pv-skel" />)}
+      <div className={`gh-pv${big ? " big" : ""}`} aria-hidden>
+        {[0, 1, 2, 3].map(i => <span key={i} className={`gh-pv-cell${big ? " big" : ""} gh-pv-skel`} />)}
       </div>
     );
   }
@@ -337,25 +385,27 @@ function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0 }) {
     const list = raidBosses(data, kind === "raids" ? 5 : 3);
     if (list?.length) {
       cells = list.map((b, i) => (
-        <Sprite key={i} id={b.id} name={b.name}
+        <Sprite key={i} id={b.id} name={b.name} big={big}
+          onGo={go ? () => go("raid", { boss: b.name }) : undefined}
           badge={typeof b.tier === "number" ? `${b.tier}\u2605` : b.tier === "mega" ? "M" : null} />
       ));
       const total = raidCount(data);
       if (kind === "raids" && total && total > list.length) extra = `+${total - list.length}`;
     }
   } else if (kind === "rocket") {
-    cells = ROCKET_LEADERS.map(l => <Sprite key={l.who} id={l.id} name={l.who} />);
+    cells = ROCKET_LEADERS.map(l => <Sprite key={l.who} id={l.id} name={l.who} big={big} onGo={go ? () => go("rocket") : undefined} />);
   } else if (kind === "events") {
     const evs = liveEvents(data, 2);
     if (evs?.length) {
       return (
-        <div className="gh-pv gh-pv-text">
-          {evs.map((e, i) => (
-            <span key={i} className="gh-pv-ev">
-              <b>{e.name}</b>
-              <em>{fmtCountdown(Math.max(0, e.end - now))}</em>
-            </span>
-          ))}
+        <div className={`gh-pv gh-pv-text${big ? " big" : ""}`}>
+          {evs.map((e, i) => {
+            const body = (<><b>{e.name}</b><em>{fmtCountdown(Math.max(0, e.end - now))}</em></>);
+            return go
+              ? <button key={i} type="button" className="gh-pv-ev go" title={e.name}
+                  onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); go("events"); }}>{body}</button>
+              : <span key={i} className="gh-pv-ev">{body}</span>;
+          })}
         </div>
       );
     }
@@ -363,16 +413,34 @@ function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0 }) {
     const groups = eggHighlights(data, 1);
     if (groups?.length) {
       cells = groups.map(g => (
-        <Sprite key={g.km} id={g.mons[0]?.id} name={g.mons[0]?.name} badge={g.km.replace(" km", "k")} />
+        <Sprite key={g.km} id={g.mons[0]?.id} name={g.mons[0]?.name} big={big}
+          onGo={go ? () => go("eggs", { km: g.km }) : undefined}
+          badge={g.km.replace(" km", "k")} />
       ));
     }
   } else if (kind === "research") {
     const mons = researchRewards(data, 4);
-    if (mons?.length) cells = mons.map((m, i) => <Sprite key={i} id={m.id} name={m.name} />);
+    if (mons?.length) cells = mons.map((m, i) => <Sprite key={i} id={m.id} name={m.name} big={big} onGo={go ? () => go("research") : undefined} />);
   } else if (kind === "weather") {
+    if (!weatherTypes?.length) {
+      return (
+        <div className={`gh-pv gh-pv-text${big ? " big" : ""}`}>
+          <span className="gh-pv-hint">
+            {lang === "th" ? "เปิดตำแหน่งเพื่อดูธาตุที่ได้โบนัส"
+              : lang === "ja" ? "位置情報を許可するとブーストが表示されます"
+              : "Turn on location to see boosted types"}
+            <button type="button" className="gh-ctx-btn"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation();
+                navigator.geolocation?.getCurrentPosition(() => window.location.reload(), () => {}); }}>
+              {lang === "th" ? "เปิดใช้ตำแหน่ง" : lang === "ja" ? "許可する" : "Enable location"}
+            </button>
+          </span>
+        </div>
+      );
+    }
     if (weatherTypes?.length) {
       return (
-        <div className="gh-pv gh-pv-text">
+        <div className={`gh-pv gh-pv-text${big ? " big" : ""}`}>
           {weatherTypes.map(t => (
             <span key={t} className="tp" data-type={t}>
               {lang === "th" ? (TYPE_NAMES_TH[t] ?? t) : lang === "ja" ? (TYPE_NAMES_JA[t] ?? t) : t}
@@ -385,12 +453,15 @@ function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0 }) {
 
   // No data: the card keeps its icon and description, and the rail reserves
   // its height so the grid stays even.
-  if (!cells?.length) return <div className="gh-pv gh-pv-empty" aria-hidden />;
+  if (!cells?.length) return <div className={`gh-pv gh-pv-empty${big ? " big" : ""}`} aria-hidden />;
 
   return (
-    <div className="gh-pv" aria-hidden>
+    <div className={`gh-pv${big ? " big" : ""}`}>
       {cells}
-      {extra && <span className="gh-pv-more">{extra}</span>}
+      {extra && (go
+        ? <button type="button" className="gh-pv-more go"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); go("raidguide"); }}>{extra}</button>
+        : <span className="gh-pv-more">{extra}</span>)}
     </div>
   );
 }
@@ -405,12 +476,12 @@ const TOOL_CATEGORIES = [
     tools: [
       { id:"summary", hoisted: true, Icon:BarChart3, color:"#900603", live: true,
         titleEn:"Live Activity Summary", titleTh:"สรุปกิจกรรมแบบสด", titleJa:"ライブアクティビティ概要",
-        descEn:"All-in-one PoGO dashboard · save as image",
+        descEn:"Everything today, saveable as an image",
         descTh:"Dashboard รวมทุกอย่าง · เซฟเป็นรูปได้",
         descJa:"オールインワン · 画像保存可" },
       { id:"raidguide", preview:"raids", Icon:Swords, color:"#dc2626", live: true,
         titleEn:"Raid Battle Guide", titleTh:"คู่มือ Raid Boss", titleJa:"レイドガイド",
-        descEn:"All active raid bosses · TH Raid Hour · Community",
+        descEn:"Every active boss, by tier",
         descTh:"Raid Boss ทั้งหมด · Raid Hour ไทย · ชุมชน",
         descJa:"全レイドボス · タイレイドアワー · コミュニティ" },
       { id:"raid", preview:"counters", Icon:Shield, color:"#f97316",
@@ -420,7 +491,7 @@ const TOOL_CATEGORIES = [
         descJa:"レイドボスへの最適な対策" },
       { id:"rocket", preview:"rocket", Icon:Rocket, color:"#1e293b", live: true,
         titleEn:"Team GO Rocket", titleTh:"Team GO Rocket", titleJa:"GOロケット団",
-        descEn:"Giovanni / Sierra / Arlo / Cliff / Grunts lineups",
+        descEn:"Leader and grunt lineups",
         descTh:"ทีมของ Giovanni / Sierra / Arlo / Cliff / ลูกน้อง",
         descJa:"サカキ / シエラ / アロエ / クリフ / したっぱ" },
     ],
@@ -434,22 +505,22 @@ const TOOL_CATEGORIES = [
     tools: [
       { id:"events", preview:"events", Icon:CalendarDays, color:"#b5302d", live: true,
         titleEn:"Live Events", titleTh:"อีเวนต์ปัจจุบัน", titleJa:"ライブイベント",
-        descEn:"Current & upcoming PoGO events with realtime countdown",
+        descEn:"What is running, with countdowns",
         descTh:"Event ตอนนี้และที่จะมา · มี countdown realtime",
         descJa:"現在/予定 · リアルタイムカウントダウン" },
-      { id:"eggs", Icon:Egg, color:"#f59e0b", live: true,
+      { id:"eggs", preview:"eggs", Icon:Egg, color:"#f59e0b", live: true,
         titleEn:"Egg Hatch Planner", titleTh:"วางแผนฟักไข่", titleJa:"タマゴ孵化プランナー",
-        descEn:"Hatch distance planner + live egg pool (2–12 km)",
+        descEn:"What hatches from each distance",
         descTh:"คำนวณระยะฟักไข่ + พูลไข่สด (2–12 กม.)",
         descJa:"孵化距離プランナー + ライブ孵化リスト" },
       { id:"research", preview:"research", Icon:ClipboardList, color:"#a31a16", live: true,
         titleEn:"Field Research", titleTh:"งานพิเศษ", titleJa:"フィールドリサーチ",
-        descEn:"Current Field Research tasks & their rewards",
+        descEn:"This month's tasks and rewards",
         descTh:"งานพิเศษและรางวัลที่ได้",
         descJa:"現在のフィールドリサーチタスクと報酬" },
       { id:"weather", preview:"weather", Icon:CloudSun, color:"#0891b2",
         titleEn:"Weather Boost", titleTh:"Boost ตามอากาศ", titleJa:"天気ブースト",
-        descEn:"Type boost calculator based on weather conditions",
+        descEn:"Which types the weather boosts",
         descTh:"คำนวณ Boost ของธาตุตามสภาพอากาศ",
         descJa:"天候による属性ブースト計算" },
     ],
@@ -486,6 +557,10 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
     }
     return base;
   };
+
+  // Where a click inside a preview goes. The extra argument is the context
+  // the destination should open with (a boss, an egg distance).
+  const goTo = (toolId) => setActive(toolId);
 
   // The summary card is lifted out of the tool list into its own section.
   const summaryTool = TOOL_CATEGORIES.flatMap(c => c.tools).find(t => t.hoisted);
@@ -818,18 +893,22 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
           </div>
 
           <div className="gh-sum-body">
-            <SumBlock label={lang === "th" ? "บอสเรดวันนี้" : lang === "ja" ? "本日のレイド" : "Raid bosses"}>
-              <PreviewStrip kind="raids" data={go.data} status={go.status} lang={lang} />
+            <SumBlock onGo={() => setActive("raidguide")}
+              label={lang === "th" ? "บอสเรดวันนี้" : lang === "ja" ? "本日のレイド" : "Raid bosses"}>
+              <PreviewStrip kind="raids" data={go.data} status={go.status} lang={lang} big go={goTo} />
             </SumBlock>
-            <SumBlock label={lang === "th" ? "อีเวนต์ที่กำลังจัด" : lang === "ja" ? "開催中" : "Running now"}>
-              <PreviewStrip kind="events" data={go.data} status={go.status} lang={lang} now={nowMs} />
+            <SumBlock onGo={() => setActive("events")}
+              label={lang === "th" ? "อีเวนต์ที่กำลังจัด" : lang === "ja" ? "開催中" : "Running now"}>
+              <PreviewStrip kind="events" data={go.data} status={go.status} lang={lang} now={nowMs} big go={goTo} />
             </SumBlock>
-            <SumBlock label={lang === "th" ? "ไข่ที่ฟักได้" : lang === "ja" ? "タマゴ" : "Hatching now"}>
-              <PreviewStrip kind="eggs" data={go.data} status={go.status} lang={lang} />
+            <SumBlock onGo={() => setActive("eggs")}
+              label={lang === "th" ? "ไข่ที่ฟักได้" : lang === "ja" ? "タマゴ" : "Hatching now"}>
+              <PreviewStrip kind="eggs" data={go.data} status={go.status} lang={lang} big go={goTo} />
             </SumBlock>
-            <SumBlock label={lang === "th" ? "ธาตุที่ได้โบนัส" : lang === "ja" ? "天候ブースト" : "Weather boost"}>
+            <SumBlock onGo={() => setActive("weather")}
+              label={lang === "th" ? "ธาตุที่ได้โบนัส" : lang === "ja" ? "天候ブースト" : "Weather boost"}>
               <PreviewStrip kind="weather" data={go.data} status={go.status}
-                lang={lang} weatherTypes={boostTypes} now={nowMs} />
+                lang={lang} weatherTypes={boostTypes} now={nowMs} big />
             </SumBlock>
           </div>
         </section>
@@ -839,7 +918,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
         <div key={cat.id} data-cat={cat.id} className="go-category">
           <div className="go-category-header">
             <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 9 }}>
-              <cat.Icon size={16} strokeWidth={2.3} className="go-category-icon" />
+              <span className="gh-cat-bar" style={{ background: cat.id === "battle" ? "#8f2f2a" : "#3a6294" }} aria-hidden />
               <span>{catTitle(cat)}</span>
               <span className="go-category-count">{cat.tools.filter(t => !t.hoisted).length}</span>
             </div>

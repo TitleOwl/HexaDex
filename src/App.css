@@ -18034,3 +18034,56 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
 .gh-pv-text { flex-wrap: nowrap !important; overflow: hidden; }
 .gh-row .gh-pv, .gh-row .gh-pv-text { max-height: 48px; }
 .gh-sum .gh-pv-text { flex-wrap: wrap !important; max-height: none; }
+
+/* ── Bigger, clickable summary ──
+   34px sprites with 8px badges were legible only if you already knew what
+   you were looking at. */
+.gh-sum .gh-pv.big { min-height: 76px; gap: 8px; }
+.gh-pv-cell.big { width: 72px; height: 72px; border-radius: 12px; }
+.gh-pv-cell.big .gh-pv-img { width: 60px; height: 60px; }
+.gh-pv-cell.big .gh-pv-badge { font-size: 11px; padding: 1px 6px; right: -3px; bottom: -4px; }
+.gh-pv-cell.big .gh-pv-txt { font-size: 12px; }
+.gh-sum .gh-pv-empty.big { min-height: 76px; }
+
+/* Anything that navigates says so. */
+.gh-pv-cell.go, .gh-pv-more.go, .gh-pv-ev.go {
+  border: 0; cursor: pointer; font-family: inherit; padding: 0;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+.gh-pv-cell.go:hover, .gh-pv-more.go:hover, .gh-pv-ev.go:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.14);
+}
+.gh-pv-cell.go:focus-visible, .gh-pv-more.go:focus-visible,
+.gh-pv-ev.go:focus-visible, .gh-sum-lbl.go:focus-visible {
+  outline: 2px solid #8f2f2a; outline-offset: 2px;
+}
+.gh-pv-ev.go { display: flex; flex-direction: column; align-items: flex-start; padding: 7px 12px; }
+.gh-sum .gh-pv-ev { padding: 9px 13px; }
+.gh-sum .gh-pv-ev b { font-size: 12.5px; max-width: 220px; }
+.gh-sum .gh-pv-ev em { font-size: 11.5px; }
+
+.gh-sum-lbl.go {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 0; background: none; padding: 0;
+  font: inherit; font-size: 11px; font-weight: 700; color: #6b6560;
+  cursor: pointer;
+}
+.gh-sum-lbl.go:hover { color: #8f2f2a; }
+.gh-sum-lbl.go span { font-size: 14px; line-height: 1; }
+
+.gh-pv-hint {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+  font-size: 11.5px; color: #6b6560; font-weight: 600; line-height: 1.4;
+}
+[data-theme="dark"] .gh-pv-hint { color: #b0a9a2; }
+
+/* Section headings: a colour bar, like the analysis panel on Team. */
+.gh-cat-bar { width: 3px; height: 14px; border-radius: 2px; flex: 0 0 auto; }
+
+/* Screen-reader-only live region for the countdown. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
