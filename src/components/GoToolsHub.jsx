@@ -1,4 +1,8 @@
 import { useState, useEffect } from "react";
+import {
+  useGoHubData, spriteUrl, raidBosses, raidCount, liveEvents,
+  eggHighlights, researchRewards, ROCKET_LEADERS,
+} from "../goHubData.js";
 import { useWeather } from "../useWeather.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import RaidCounterFinder from "./RaidCounterFinder.jsx";
@@ -13,6 +17,7 @@ import { findPokemonInList } from "../perfUtils.js";
 import {
   Swords, Globe, BarChart3, Shield, Rocket, CalendarDays, Egg, ClipboardList,
   CloudSun, Zap, ArrowRight, Sparkles, Sun, Cloud, CloudRain, CloudSnow, CloudFog, MapPin, RefreshCw,
+  Camera,
 } from "lucide-react";
 
 // ─── Live Thailand clock (ICT · UTC+7, ticks every second) ───
@@ -287,6 +292,109 @@ function ContextBar({ lang }) {
   );
 }
 
+
+function SumBlock({ label, children }) {
+  return (
+    <div className="gh-sum-block">
+      <div className="gh-sum-lbl">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Preview strip ───────────────────────────────────────────────────────────
+//
+// What turns this page from a menu into a dashboard: each card shows a little
+// of what is behind it. Three rules make that safe — a fixed height so cards
+// stay level whether or not their slice arrived, skeletons rather than pop-in,
+// and silence rather than an empty rail when a fetch fails.
+
+function Sprite({ id, name, tint, badge }) {
+  return (
+    <span className="gh-pv-cell" style={tint ? { "--pv": tint } : undefined}>
+      {id
+        ? <img src={spriteUrl(id)} alt="" loading="lazy" decoding="async" className="gh-pv-img" />
+        : <span className="gh-pv-txt">{(name ?? "?").slice(0, 3)}</span>}
+      {badge && <span className="gh-pv-badge">{badge}</span>}
+    </span>
+  );
+}
+
+function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0 }) {
+  // Grey boxes the size of the real sprites: a card that grows when its data
+  // lands is worse than one that never had a preview.
+  if (status === "loading" && kind !== "weather") {
+    return (
+      <div className="gh-pv" aria-hidden>
+        {[0, 1, 2, 3].map(i => <span key={i} className="gh-pv-cell gh-pv-skel" />)}
+      </div>
+    );
+  }
+
+  let cells = null, extra = null;
+
+  if (kind === "raids" || kind === "counters") {
+    const list = raidBosses(data, kind === "raids" ? 5 : 3);
+    if (list?.length) {
+      cells = list.map((b, i) => (
+        <Sprite key={i} id={b.id} name={b.name}
+          badge={typeof b.tier === "number" ? `${b.tier}\u2605` : b.tier === "mega" ? "M" : null} />
+      ));
+      const total = raidCount(data);
+      if (kind === "raids" && total && total > list.length) extra = `+${total - list.length}`;
+    }
+  } else if (kind === "rocket") {
+    cells = ROCKET_LEADERS.map(l => <Sprite key={l.who} id={l.id} name={l.who} />);
+  } else if (kind === "events") {
+    const evs = liveEvents(data, 2);
+    if (evs?.length) {
+      return (
+        <div className="gh-pv gh-pv-text">
+          {evs.map((e, i) => (
+            <span key={i} className="gh-pv-ev">
+              <b>{e.name}</b>
+              <em>{fmtCountdown(Math.max(0, e.end - now))}</em>
+            </span>
+          ))}
+        </div>
+      );
+    }
+  } else if (kind === "eggs") {
+    const groups = eggHighlights(data, 1);
+    if (groups?.length) {
+      cells = groups.map(g => (
+        <Sprite key={g.km} id={g.mons[0]?.id} name={g.mons[0]?.name} badge={g.km.replace(" km", "k")} />
+      ));
+    }
+  } else if (kind === "research") {
+    const mons = researchRewards(data, 4);
+    if (mons?.length) cells = mons.map((m, i) => <Sprite key={i} id={m.id} name={m.name} />);
+  } else if (kind === "weather") {
+    if (weatherTypes?.length) {
+      return (
+        <div className="gh-pv gh-pv-text">
+          {weatherTypes.map(t => (
+            <span key={t} className="tp" data-type={t}>
+              {lang === "th" ? (TYPE_NAMES_TH[t] ?? t) : lang === "ja" ? (TYPE_NAMES_JA[t] ?? t) : t}
+            </span>
+          ))}
+        </div>
+      );
+    }
+  }
+
+  // No data: the card keeps its icon and description, and the rail reserves
+  // its height so the grid stays even.
+  if (!cells?.length) return <div className="gh-pv gh-pv-empty" aria-hidden />;
+
+  return (
+    <div className="gh-pv" aria-hidden>
+      {cells}
+      {extra && <span className="gh-pv-more">{extra}</span>}
+    </div>
+  );
+}
+
 const TOOL_CATEGORIES = [
   {
     id: "battle",
@@ -295,22 +403,22 @@ const TOOL_CATEGORIES = [
     titleTh: "เตรียมสู้และข้อมูล",
     titleJa: "バトル準備 & 統計",
     tools: [
-      { id:"summary", Icon:BarChart3, color:"#900603", live: true,
+      { id:"summary", hoisted: true, Icon:BarChart3, color:"#900603", live: true,
         titleEn:"Live Activity Summary", titleTh:"สรุปกิจกรรมแบบสด", titleJa:"ライブアクティビティ概要",
         descEn:"All-in-one PoGO dashboard · save as image",
         descTh:"Dashboard รวมทุกอย่าง · เซฟเป็นรูปได้",
         descJa:"オールインワン · 画像保存可" },
-      { id:"raidguide", Icon:Swords, color:"#dc2626", live: true,
+      { id:"raidguide", preview:"raids", Icon:Swords, color:"#dc2626", live: true,
         titleEn:"Raid Battle Guide", titleTh:"คู่มือ Raid Boss", titleJa:"レイドガイド",
         descEn:"All active raid bosses · TH Raid Hour · Community",
         descTh:"Raid Boss ทั้งหมด · Raid Hour ไทย · ชุมชน",
         descJa:"全レイドボス · タイレイドアワー · コミュニティ" },
-      { id:"raid", Icon:Shield, color:"#f97316",
+      { id:"raid", preview:"counters", Icon:Shield, color:"#f97316",
         titleEn:"Counter Battle Guide", titleTh:"คู่มือการสู้ Raid", titleJa:"対策ガイド",
         descEn:"Find best counters for any raid boss",
         descTh:"หาตัวสู้ Raid Boss ที่ดีที่สุด",
         descJa:"レイドボスへの最適な対策" },
-      { id:"rocket", Icon:Rocket, color:"#1e293b", live: true,
+      { id:"rocket", preview:"rocket", Icon:Rocket, color:"#1e293b", live: true,
         titleEn:"Team GO Rocket", titleTh:"Team GO Rocket", titleJa:"GOロケット団",
         descEn:"Giovanni / Sierra / Arlo / Cliff / Grunts lineups",
         descTh:"ทีมของ Giovanni / Sierra / Arlo / Cliff / ลูกน้อง",
@@ -324,7 +432,7 @@ const TOOL_CATEGORIES = [
     titleTh: "ข้อมูลสดและสภาพแวดล้อม",
     titleJa: "ライブ & 環境",
     tools: [
-      { id:"events", Icon:CalendarDays, color:"#b5302d", live: true,
+      { id:"events", preview:"events", Icon:CalendarDays, color:"#b5302d", live: true,
         titleEn:"Live Events", titleTh:"อีเวนต์ปัจจุบัน", titleJa:"ライブイベント",
         descEn:"Current & upcoming PoGO events with realtime countdown",
         descTh:"Event ตอนนี้และที่จะมา · มี countdown realtime",
@@ -334,12 +442,12 @@ const TOOL_CATEGORIES = [
         descEn:"Hatch distance planner + live egg pool (2–12 km)",
         descTh:"คำนวณระยะฟักไข่ + พูลไข่สด (2–12 กม.)",
         descJa:"孵化距離プランナー + ライブ孵化リスト" },
-      { id:"research", Icon:ClipboardList, color:"#a31a16", live: true,
+      { id:"research", preview:"research", Icon:ClipboardList, color:"#a31a16", live: true,
         titleEn:"Field Research", titleTh:"งานพิเศษ", titleJa:"フィールドリサーチ",
         descEn:"Current Field Research tasks & their rewards",
         descTh:"งานพิเศษและรางวัลที่ได้",
         descJa:"現在のフィールドリサーチタスクと報酬" },
-      { id:"weather", Icon:CloudSun, color:"#0891b2",
+      { id:"weather", preview:"weather", Icon:CloudSun, color:"#0891b2",
         titleEn:"Weather Boost", titleTh:"Boost ตามอากาศ", titleJa:"天気ブースト",
         descEn:"Type boost calculator based on weather conditions",
         descTh:"คำนวณ Boost ของธาตุตามสภาพอากาศ",
@@ -353,6 +461,34 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
   const catTitle = (c) => lang === "th" ? c.titleTh : lang === "ja" ? c.titleJa : c.titleEn;
   const title    = (t) => lang === "th" ? t.titleTh : lang === "ja" ? t.titleJa : t.titleEn;
   const desc     = (t) => lang === "th" ? t.descTh  : lang === "ja" ? t.descJa  : t.descEn;
+
+  // The whole page's data, fetched once (see goHubData.js).
+  const go = useGoHubData();
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+  const { weather } = useWeather();
+  const boostTypes = weather ? CONDITION_BOOST[weather.condition]?.types : null;
+
+  // The sprites in a preview are decoration with alt=""; the count they stand
+  // for has to reach a screen reader some other way.
+  const ariaFor = (t) => {
+    const base = title(t);
+    if (t.preview === "raids") {
+      const n = raidCount(go.data);
+      return n ? `${base} \u2014 ${n} raid bosses active` : base;
+    }
+    if (t.preview === "events") {
+      const n = liveEvents(go.data, 9)?.length;
+      return n ? `${base} \u2014 ${n} events running now` : base;
+    }
+    return base;
+  };
+
+  // The summary card is lifted out of the tool list into its own section.
+  const summaryTool = TOOL_CATEGORIES.flatMap(c => c.tools).find(t => t.hoisted);
 
   // Match raid boss name to our Pokemon list (uses shared robust matcher)
   const matchPokemon = (boss) => findPokemonInList(boss, allList);
@@ -661,43 +797,94 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
       <ContextBar lang={lang} />
 
 
+      {/* ─── TODAY, IN ONE PLACE ───
+          It was a tile in the same grid as the tools it summarises. Being the
+          sum of the others is exactly why it does not belong among them. */}
+      {summaryTool && (
+        <section className="gh-sum">
+          <div className="gh-sum-head">
+            <h3 className="gh-sum-title">
+              {lang === "th" ? "สรุปกิจกรรมวันนี้" : lang === "ja" ? "今日のまとめ" : "Today at a glance"}
+            </h3>
+            <span className="go-hub-live gh-sum-live">
+              <span className="go-hub-live-dot" aria-hidden />LIVE
+            </span>
+            {/* The reason this feature exists is the export, so it is the
+                button, not a control hidden inside the overlay. */}
+            <button type="button" className="gh-sum-save" onClick={() => setActive("summary")}>
+              <Camera size={15} strokeWidth={2.4} />
+              {lang === "th" ? "บันทึกเป็นรูป" : lang === "ja" ? "画像で保存" : "Save as image"}
+            </button>
+          </div>
+
+          <div className="gh-sum-body">
+            <SumBlock label={lang === "th" ? "บอสเรดวันนี้" : lang === "ja" ? "本日のレイド" : "Raid bosses"}>
+              <PreviewStrip kind="raids" data={go.data} status={go.status} lang={lang} />
+            </SumBlock>
+            <SumBlock label={lang === "th" ? "อีเวนต์ที่กำลังจัด" : lang === "ja" ? "開催中" : "Running now"}>
+              <PreviewStrip kind="events" data={go.data} status={go.status} lang={lang} now={nowMs} />
+            </SumBlock>
+            <SumBlock label={lang === "th" ? "ไข่ที่ฟักได้" : lang === "ja" ? "タマゴ" : "Hatching now"}>
+              <PreviewStrip kind="eggs" data={go.data} status={go.status} lang={lang} />
+            </SumBlock>
+            <SumBlock label={lang === "th" ? "ธาตุที่ได้โบนัส" : lang === "ja" ? "天候ブースト" : "Weather boost"}>
+              <PreviewStrip kind="weather" data={go.data} status={go.status}
+                lang={lang} weatherTypes={boostTypes} now={nowMs} />
+            </SumBlock>
+          </div>
+        </section>
+      )}
+
       {TOOL_CATEGORIES.map((cat, catIdx) => (
         <div key={cat.id} data-cat={cat.id} className="go-category">
           <div className="go-category-header">
             <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 9 }}>
               <cat.Icon size={16} strokeWidth={2.3} className="go-category-icon" />
               <span>{catTitle(cat)}</span>
-              <span className="go-category-count">{cat.tools.length}</span>
+              <span className="go-category-count">{cat.tools.filter(t => !t.hoisted).length}</span>
             </div>
           </div>
-          <div className="go-hub-grid">
-            {cat.tools.map((t, i) => (
-              <button key={t.id}
-                className="go-hub-card"
-                onClick={() => setActive(t.id)}
+          <div className="go-hub-grid gh-rows">
+            {cat.tools.filter(t => !t.hoisted).map((t, i) => (
+              <a key={t.id}
+                href={`#${t.id}`}
+                className="go-hub-card gh-row"
+                aria-label={ariaFor(t)}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault(); setActive(t.id);
+                }}
                 style={{
                   "--tool-color": t.color,
                   animationDelay: `${(catIdx * 0.1 + i * 0.05)}s`,
                 }}>
-                <div className="go-hub-icon"
-                  style={{ color: t.color,
-                           background: `color-mix(in srgb, ${t.color} 14%, transparent)` }}>
-                  <t.Icon size={24} strokeWidth={2.2} />
-                </div>
-                <div className="go-hub-info">
-                  <div className="go-hub-title">
-                    <span>{title(t)}</span>
-                    {t.live && (
-                      <span className="go-hub-live">
-                        <span className="go-hub-live-dot" />
-                        LIVE
-                      </span>
-                    )}
-                  </div>
-                  <div className="go-hub-desc">{desc(t)}</div>
-                </div>
-                <span className="go-hub-arrow"><ArrowRight size={18} strokeWidth={2.2} /></span>
-              </button>
+                <span className="gh-row-top">
+                  <span className="go-hub-icon"
+                    style={{ color: t.color,
+                             background: `color-mix(in srgb, ${t.color} 14%, transparent)` }}>
+                    <t.Icon size={19} strokeWidth={2.3} />
+                  </span>
+                  <span className="go-hub-info">
+                    {/* LIVE always sits after the title on the same line, so
+                        no row is a line taller than its neighbour. */}
+                    <span className="go-hub-title">
+                      <span className="gh-row-name">{title(t)}</span>
+                      {t.live && (
+                        <span className="go-hub-live">
+                          <span className="go-hub-live-dot" aria-hidden />
+                          LIVE
+                        </span>
+                      )}
+                    </span>
+                    <span className="go-hub-desc">{desc(t)}</span>
+                  </span>
+                  <span className="go-hub-arrow"><ArrowRight size={17} strokeWidth={2.2} /></span>
+                </span>
+                {t.preview && (
+                  <PreviewStrip kind={t.preview} data={go.data} status={go.status}
+                    lang={lang} weatherTypes={boostTypes} now={nowMs} />
+                )}
+              </a>
             ))}
           </div>
         </div>
