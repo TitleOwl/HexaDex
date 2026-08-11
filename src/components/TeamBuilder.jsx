@@ -4,9 +4,9 @@ import {
 } from "../data.js";
 import { typeColor, getArt, getLocalName, padId, useDebouncedValue, calcDefMatchups } from "../utils.js";
 import {
-  Swords, ClipboardList, Gamepad2, Plus, Trash2, Users, Zap, TrendingUp,
+  Plus, Trash2, TrendingUp,
   X, RefreshCw, Dices, Shield, Crown, Sparkles, BarChart3,
-  Scale, Flame, Gauge, Loader2, Settings2, AlertTriangle, CheckCircle2, Trophy,
+  Scale, Flame, Gauge, Loader2, Settings2, CheckCircle2, Trophy,
 } from "lucide-react";
 
 // ─── localStorage keys ──────────────────────────────────────────────────────
@@ -260,7 +260,7 @@ function RandomMenu({ onGenerate, generating, lang }) {
 
   return (
     <div className="random-dropdown" ref={ref}>
-      <button className="tb-action-btn primary random-btn-main"
+      <button className="tb-btn tb-btn-outline random-btn-main"
         onClick={() => !generating && setOpen(o => !o)} disabled={generating}>
         {generating
           ? <><Loader2 size={15} strokeWidth={2.4} style={{ animation: "tm-spin 1s linear infinite" }} /> {lang==="th"?"กำลังสุ่ม...":"Generating..."}</>
@@ -300,44 +300,219 @@ function analyzeTeam(team) {
 }
 
 // ─── Pokemon Picker Modal ───────────────────────────────────────────────────
-function PokemonPicker({ allWithMeta, thaiArr, jpArr, lang, onPick, onClose, title, excludeIds = [] }) {
+function PokemonPicker({
+  allWithMeta, thaiArr, jpArr, lang, onPick, onClose, title,
+  excludeIds = [], typeFilter = null, cachedFetch,
+}) {
   const s = STRINGS[lang];
   const [search, setSearch] = useState("");
   const debSearch = useDebouncedValue(search, 200);
+  const [types, setTypes] = useState(typeFilter ? [typeFilter] : []);
+  const [gen, setGen] = useState(0);
+  const [sort, setSort] = useState("dex");
+
+  // A suggestion chip decides the type for you; arriving from a different
+  // chip has to re-seed the filter.
+  const [lastFilter, setLastFilter] = useState(typeFilter);
+  if (lastFilter !== typeFilter) { setLastFilter(typeFilter); setTypes(typeFilter ? [typeFilter] : []); }
+
+  // ── Type rosters ────────────────────────────────────────────────────────
+  // The list handed to this picker carries only name/url/id, so membership of
+  // a type comes from the API's own roster — one request per type, kept for
+  // the life of the modal, rather than 1,025 detail fetches.
+  const [rosters, setRosters] = useState({});
+  useEffect(() => {
+    const missing = types.filter(t => !(t in rosters));
+    if (!missing.length) return;
+    let live = true;
+    Promise.all(missing.map(t =>
+      fetch(`https://pokeapi.co/api/v2/type/${t}`)
+        .then(r => r.json())
+        .then(d => [t, new Set(d.pokemon.map(x =>
+          parseInt(x.pokemon.url.split("/").filter(Boolean).pop(), 10)))])
+        .catch(() => [t, new Set()])
+    )).then(pairs => {
+      if (live) setRosters(prev => ({ ...prev, ...Object.fromEntries(pairs) }));
+    });
+    return () => { live = false; };
+  }, [types, rosters]);
+
+  const rostersReady = types.every(t => t in rosters);
+
+  // ── Filtering, on data that needs no fetch ──────────────────────────────
+  const filtered = useMemo(() => {
+    const q = debSearch.toLowerCase().trim();
+    const g = GENERATIONS[gen];
+    let pool = allWithMeta;
+    if (gen > 0 && g) pool = pool.filter(p => p.id >= g.min && p.id <= g.max);
+    if (types.length) {
+      if (!rostersReady) return null;            // null means "still loading"
+      pool = pool.filter(p => types.some(t => rosters[t]?.has(p.id)));
+    }
+    if (q) {
+      pool = pool.filter(p => {
+        const th = (getLocalName(p.id, "th", thaiArr, jpArr) ?? "").toLowerCase();
+        const ja = (getLocalName(p.id, "ja", thaiArr, jpArr) ?? "").toLowerCase();
+        return p.name.toLowerCase().includes(q) || th.includes(q)
+          || ja.includes(q) || String(p.id).includes(q);
+      });
+    }
+    if (sort === "name") pool = [...pool].sort((a, b) => a.name.localeCompare(b.name));
+    else if (sort === "dex") pool = [...pool].sort((a, b) => a.id - b.id);
+    return pool;
+  }, [debSearch, allWithMeta, thaiArr, jpArr, types, rosters, rostersReady, gen, sort]);
+
+  // ── Details for what is on screen ───────────────────────────────────────
+  // Type pills, base totals and a strongest-first sort all need stats, which
+  // the light list does not carry. Only the visible window is fetched.
+  const WINDOW = 120;
+  const shown = useMemo(() => (filtered ?? []).slice(0, WINDOW), [filtered]);
+  const [details, setDetails] = useState({});
+
+  useEffect(() => {
+    if (!cachedFetch || !shown.length) return;
+    const need = shown.filter(p => !details[p.id]);
+    if (!need.length) return;
+    let live = true;
+    (async () => {
+      // In small batches: the app already saturates the connection pool on
+      // boot, and 120 parallel requests is how that turns into failures.
+      for (let i = 0; i < need.length && live; i += 12) {
+        const slice = need.slice(i, i + 12);
+        const got = await Promise.allSettled(slice.map(p => cachedFetch(p.url)));
+        if (!live) return;
+        const add = {};
+        got.forEach((r, k) => { if (r.status === "fulfilled" && r.value) add[slice[k].id] = r.value; });
+        if (Object.keys(add).length) setDetails(prev => ({ ...prev, ...add }));
+      }
+    })();
+    return () => { live = false; };
+  }, [shown, cachedFetch, details]);
+
+  const bstOf = (d) => d?.stats?.reduce((a, st) => a + st.base_stat, 0) ?? null;
 
   const results = useMemo(() => {
-    const q = debSearch.toLowerCase().trim();
-    if (!q) return allWithMeta.slice(0, 60);
-    return allWithMeta.filter(p => {
-      const th = (getLocalName(p.id, "th", thaiArr, jpArr) ?? "").toLowerCase();
-      const ja = (getLocalName(p.id, "ja", thaiArr, jpArr) ?? "").toLowerCase();
-      return p.name.toLowerCase().includes(q) || th.includes(q) || ja.includes(q) || String(p.id).includes(q);
-    }).slice(0, 60);
-  }, [debSearch, allWithMeta, thaiArr, jpArr]);
+    if (sort !== "total") return shown;
+    return [...shown].sort((a, b) => (bstOf(details[b.id]) ?? -1) - (bstOf(details[a.id]) ?? -1));
+  }, [shown, sort, details]);
+
+  const clearAll = () => { setSearch(""); setTypes([]); setGen(0); setSort("dex"); };
+  const hasFilters = !!(search || types.length || gen > 0);
+
+  const typeLabel = (t) => lang === "th" ? (TYPE_NAMES_TH[t] ?? t)
+    : lang === "ja" ? (TYPE_NAMES_JA[t] ?? t) : t;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal compare-picker" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}><X size={16} strokeWidth={2.4} /></button>
-        <div className="modal-body">
-          <h2 style={{ fontFamily:"var(--font-display)", color:"var(--blue-deep)", marginTop:0 }}>{title}</h2>
-          <input className="team-add-search" placeholder={s.searchPlaceholder}
-            value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
-          <div className="team-add-grid">
+      <div className="modal compare-picker tb-picker" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close tb-picker-x" onClick={onClose}
+          aria-label={lang === "th" ? "ปิด" : lang === "ja" ? "閉じる" : "Close"}>
+          <X size={16} strokeWidth={2.6} />
+        </button>
+
+        <div className="modal-body tb-picker-body">
+          <h2 className="tb-picker-title">{title}</h2>
+
+          <div className="tb-picker-tools">
+            <input className="team-add-search" placeholder={s.searchPlaceholder}
+              value={search} onChange={(e) => setSearch(e.target.value)} autoFocus />
+            <select className="tb-picker-sort" value={sort} onChange={(e) => setSort(e.target.value)}
+              aria-label={lang === "th" ? "เรียงตาม" : lang === "ja" ? "並び替え" : "Sort by"}>
+              <option value="dex">{lang === "th" ? "เลข Dex" : lang === "ja" ? "図鑑番号" : "Dex number"}</option>
+              <option value="name">{lang === "th" ? "ชื่อ" : lang === "ja" ? "名前" : "Name"}</option>
+              <option value="total">{lang === "th" ? "ค่าพลังรวม (มากไปน้อย)" : lang === "ja" ? "種族値合計（高い順）" : "Base total (high first)"}</option>
+            </select>
+          </div>
+
+          {/* Multi-select, so "Fire or Water" is one question, not two trips. */}
+          <div className="tb-picker-types">
+            {ALL_TYPES.map(t => (
+              <button key={t} type="button"
+                className={`tp tb-picker-type${types.includes(t) ? " on" : ""}`}
+                data-type={t} aria-pressed={types.includes(t)}
+                onClick={() => setTypes(v => v.includes(t) ? v.filter(x => x !== t) : [...v, t])}>
+                {typeLabel(t)}
+              </button>
+            ))}
+          </div>
+
+          <div className="tb-picker-gens">
+            {GENERATIONS.map((g, i) => (
+              <button key={g.en} type="button"
+                className={`tb-picker-gen${gen === i ? " on" : ""}`}
+                aria-pressed={gen === i} onClick={() => setGen(i)}>
+                {lang === "th" ? g.th : lang === "ja" ? g.ja : g.en}
+              </button>
+            ))}
+          </div>
+
+          <div className="tb-picker-meta">
+            <span>
+              {filtered === null
+                ? (lang === "th" ? "กำลังโหลด…" : lang === "ja" ? "読み込み中…" : "Loading…")
+                : (lang === "th" ? `พบ ${filtered.length} ตัว`
+                  : lang === "ja" ? `${filtered.length}匹` : `${filtered.length} found`)}
+              {filtered && filtered.length > WINDOW && (
+                <em className="tb-picker-note">
+                  {lang === "th" ? ` · แสดง ${WINDOW} ตัวแรก กรองให้แคบลงเพื่อเรียงทั้งหมด`
+                    : lang === "ja" ? ` · 先頭${WINDOW}件を表示`
+                    : ` · showing the first ${WINDOW} — narrow the filters to sort them all`}
+                </em>
+              )}
+            </span>
+            {hasFilters && (
+              <button type="button" className="tb-picker-clear" onClick={clearAll}>
+                {lang === "th" ? "ล้างตัวกรอง" : lang === "ja" ? "条件をクリア" : "Clear filters"}
+              </button>
+            )}
+          </div>
+
+          <div className="team-add-grid tb-picker-grid">
             {results.map(p => {
               const name = getLocalName(p.id, lang, thaiArr, jpArr) ?? p.name;
               const img = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
-              const isExcluded = excludeIds.includes(p.id);
+              const inTeam = excludeIds.includes(p.id);
+              const d = details[p.id];
+              const bst = bstOf(d);
               return (
-                <button key={p.id} className={`team-add-card${isExcluded ? " in-team" : ""}`}
-                  disabled={isExcluded} onClick={() => !isExcluded && onPick(p)}>
+                <button key={p.id} className={`team-add-card${inTeam ? " in-team" : ""}`}
+                  disabled={inTeam} onClick={() => !inTeam && onPick(p)}
+                  title={inTeam
+                    ? (lang === "th" ? "อยู่ในทีมแล้ว" : lang === "ja" ? "既にチームにいます" : "Already on the team")
+                    : name}>
                   <img src={img} alt={name} className="team-add-img" loading="lazy" />
-                  <span className="team-add-num">#{String(p.id).padStart(4,"0")}</span>
+                  <span className="team-add-num">{padId(p.id)}</span>
                   <span className="team-add-name">{name}</span>
+                  {d?.types && (
+                    <span className="tb-pick-types">
+                      {d.types.map(t => (
+                        <span key={t.type.name} className="tp" data-type={t.type.name}>
+                          {typeLabel(t.type.name)}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  {bst != null && <span className="tb-pick-bst">{bst}</span>}
+                  {inTeam && (
+                    <span className="tb-pick-badge">
+                      {lang === "th" ? "อยู่ในทีมแล้ว" : lang === "ja" ? "編成済み" : "On the team"}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+
+          {filtered && filtered.length === 0 && (
+            <div className="tb-picker-empty">
+              <p>{lang === "th" ? "ไม่พบโปเกมอนที่ตรงกับเงื่อนไข"
+                : lang === "ja" ? "条件に合うポケモンが見つかりません"
+                : "No Pokémon match these filters"}</p>
+              <button type="button" className="tb-btn tb-btn-outline" onClick={clearAll}>
+                {lang === "th" ? "ล้างตัวกรอง" : lang === "ja" ? "条件をクリア" : "Clear filters"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -445,6 +620,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
 
   // UI state
   const [picking, setPicking] = useState(false);
+  const [suggestType, setSuggestType] = useState(null);
   const [pickingSlot, setPickingSlot] = useState(null);
   const [generating, setGenerating] = useState(false);
 
@@ -461,6 +637,120 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
   }, [allList, genFilter]);
 
   const teamAnalysis = useMemo(() => team.length > 0 ? analyzeTeam(team) : null, [team]);
+
+  // A grade, and the reason for it. The panel could only state facts before —
+  // here is what the team is weak to — without ever saying what to do about
+  // it, which is the whole point of a team tool.
+  const teamBalance = useMemo(() => {
+    if (!team.length || !teamAnalysis) return null;
+
+    // 1. Type diversity: distinct types across the team, against the most it
+    //    could reasonably have (two per member, capped at 18 real types).
+    const types = new Set();
+    team.forEach(p => p.types.forEach(t => types.add(t.type.name)));
+    const diversity = Math.min(1, types.size / Math.min(team.length * 2, 18));
+
+    // 2. Shared weaknesses: a type three members fold to costs more than three
+    //    types one member each folds to, so the penalty grows with the stack.
+    const stacked = Object.values(teamAnalysis.weak).filter(c => c >= 2);
+    const weakPenalty = Math.min(1, stacked.reduce((a, c) => a + (c - 1), 0) / (team.length * 1.5));
+
+    // 3. Stat spread: one 600 and five 300s is not a team.
+    const totals = team.map(p => p.stats.reduce((a, st) => a + st.base_stat, 0));
+    const mean = totals.reduce((a, b) => a + b, 0) / totals.length;
+    const sd = Math.sqrt(totals.reduce((a, v) => a + (v - mean) ** 2, 0) / totals.length);
+    const evenness = Math.max(0, 1 - sd / 120);
+
+    const score = Math.round((diversity * 45 + (1 - weakPenalty) * 40 + evenness * 15));
+    const grade =
+      score >= 90 ? "A+" : score >= 82 ? "A" : score >= 74 ? "B+" :
+      score >= 66 ? "B"  : score >= 58 ? "C+" : score >= 48 ? "C" :
+      score >= 38 ? "D"  : "E";
+
+    // The two worst offenders, by name, so the headline is a diagnosis
+    // rather than a letter the reader has to interpret.
+    const worst = Object.entries(teamAnalysis.weak)
+      .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 2);
+
+    return { score, grade, types: types.size, stacked: stacked.length, worst };
+  }, [team, teamAnalysis]);
+
+  // id -> the attacking types that member takes super-effective damage from,
+  // and the inverse. The inverse is what lets hovering a chip light up the
+  // members responsible for it.
+  const weakByType = useMemo(() => {
+    const map = {};
+    team.forEach(p => {
+      calcDefMatchups(p.types).forEach(({ type, mult }) => {
+        if (mult >= 2) (map[type] ??= []).push(p.id);
+      });
+    });
+    return map;
+  }, [team]);
+
+  const [hoverType, setHoverType] = useState(null);
+  const [showAllWeak, setShowAllWeak] = useState(false);
+  const [showResists, setShowResists] = useState(false);
+
+  const typeName = (tn) =>
+    lang==="th" ? (TYPE_NAMES_TH[tn]??tn) : lang==="ja" ? (TYPE_NAMES_JA[tn]??tn) : tn;
+
+  // The headline, as a sentence. "C · 6 repeated weaknesses" told the reader
+  // a grade and a count and left them to work out what to do; this names the
+  // types and how many members fold to each.
+  const balanceVerdict = useMemo(() => {
+    if (!teamBalance) return "";
+    const w = teamBalance.worst;
+    if (!w.length) {
+      return lang === "th" ? "ทีมนี้ไม่มีจุดอ่อนที่ซ้ำกันเลย ถือว่าครอบคลุมดีมาก"
+        : lang === "ja" ? "共通の弱点がなく、バランスの取れた構成です"
+        : "No type beats more than one member — this team covers itself well.";
+    }
+    const names = w.map(([t]) => typeName(t));
+    const counts = w.map(([, c]) => c);
+    const same = counts.every(c => c === counts[0]);
+    if (w.length === 1 || !same) {
+      const parts = w.map(([t, c]) => lang === "th" ? `${typeName(t)} ${c} ตัว`
+        : lang === "ja" ? `${typeName(t)}に${c}匹` : `${c} to ${typeName(t)}`);
+      return lang === "th" ? `จุดอ่อนหลักของทีมนี้คือ แพ้${parts.join(" และ ")}`
+        : lang === "ja" ? `主な弱点：${parts.join("、")}`
+        : `This team's main problem: it loses ${parts.join(" and ")}.`;
+    }
+    return lang === "th" ? `จุดอ่อนซ้ำเยอะ — ทีมนี้แพ้${names.join("และ")}อย่างละ ${counts[0]} ตัว`
+      : lang === "ja" ? `弱点が重複：${names.join("と")}にそれぞれ${counts[0]}匹`
+      : `Repeated weaknesses — ${counts[0]} members each fall to ${names.join(" and ")}.`;
+  }, [teamBalance, lang, typeName]);
+
+  // Types whose defensive profile resists what this team keeps losing to.
+  // Ranked by how many of those shared weaknesses each one answers.
+  const teamSuggestions = useMemo(() => {
+    if (!teamAnalysis) return [];
+    const holes = Object.entries(teamAnalysis.weak)
+      .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).map(([t]) => t);
+    if (!holes.length) return [];
+    const owned = new Set();
+    team.forEach(p => p.types.forEach(t => owned.add(t.type.name)));
+
+    return ALL_TYPES
+      .filter(cand => !owned.has(cand))
+      .map(cand => {
+        const mu = calcDefMatchups([{ type: { name: cand } }]);
+        const covers = holes.filter(h => (mu.find(m => m.type === h)?.mult ?? 1) <= 0.5).length;
+        return { type: cand, covers };
+      })
+      .filter(x => x.covers > 0)
+      .sort((a, b) => b.covers - a.covers)
+      .slice(0, 5);
+  }, [teamAnalysis, team]);
+
+  // Normal mode's headline number. GO has Total/Avg CP; without this the bar
+  // would go blank on the mode this page opens in.
+  const teamAvgTotal = useMemo(() => {
+    if (!team.length) return 0;
+    const sum = team.reduce(
+      (a, p) => a + p.stats.reduce((b, st) => b + st.base_stat, 0), 0);
+    return Math.round(sum / team.length);
+  }, [team]);
 
   const teamCPOverview = useMemo(() => {
     if (mode !== "go" || team.length === 0) return null;
@@ -582,8 +872,6 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
     setGenerating(false);
   };
 
-  const typeName = (tn) =>
-    lang==="th" ? (TYPE_NAMES_TH[tn]??tn) : lang==="ja" ? (TYPE_NAMES_JA[tn]??tn) : tn;
 
   return (
     <main className="grid-wrap team-builder-wrap team-page" data-tb-mode={mode} style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 20px" }}>
@@ -1755,6 +2043,241 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         [data-theme="dark"] .random-menu-name { color: var(--text-primary) !important; }
         .random-menu-desc { color: var(--text-muted) !important; }
         .random-menu-icon { color: var(--blue) !important; font-size: 0 !important; }
+
+        /* ═══ Shipped with the component ══════════════════════════════════
+           These rules live here rather than in App.css because they must
+           arrive with the markup that uses them. A stale stylesheet next to
+           fresh JSX is what turned the pills into bare API text. */
+
+        /* ── One pill, three places ── */
+        .team-page .tp {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 4px !important;
+          padding: 3px 9px !important;
+          border-radius: 999px !important;
+          background: var(--tp-bg, #e9e6df) !important;
+          color: var(--tp-fg, #5f5952) !important;
+          font-size: 11.5px !important;
+          font-weight: 700 !important;
+          line-height: 1.35 !important;
+          text-transform: capitalize !important;
+          letter-spacing: 0 !important;
+          white-space: nowrap !important;
+        }
+        .team-page .tp-count i {
+          font-style: normal !important;
+          font-size: 10px !important;
+          font-weight: 800 !important;
+          opacity: 0.62 !important;
+        }
+        .team-page .tp[data-type=grass]    { --tp-bg: #e3f0d6; --tp-fg: #4d7a2e; }
+        .team-page .tp[data-type=fire]     { --tp-bg: #fbe0cf; --tp-fg: #a8541f; }
+        .team-page .tp[data-type=water]    { --tp-bg: #d9e7f5; --tp-fg: #3a6294; }
+        .team-page .tp[data-type=poison]   { --tp-bg: #eadff0; --tp-fg: #7a4d8f; }
+        .team-page .tp[data-type=ground]   { --tp-bg: #eee2cf; --tp-fg: #8a6524; }
+        .team-page .tp[data-type=bug]      { --tp-bg: #e8eecd; --tp-fg: #6b7a2e; }
+        .team-page .tp[data-type=dragon]   { --tp-bg: #e4dcf3; --tp-fg: #5a4a8f; }
+        .team-page .tp[data-type=fighting] { --tp-bg: #f7dcd6; --tp-fg: #9e4432; }
+        .team-page .tp[data-type=flying]   { --tp-bg: #e6e2f5; --tp-fg: #4f4a8a; }
+        .team-page .tp[data-type=ice]      { --tp-bg: #dcedf2; --tp-fg: #3d7285; }
+        .team-page .tp[data-type=electric] { --tp-bg: #f7eecb; --tp-fg: #8a7020; }
+        .team-page .tp[data-type=ghost]    { --tp-bg: #e4e0ec; --tp-fg: #5c5280; }
+        .team-page .tp[data-type=fairy]    { --tp-bg: #f7dfe9; --tp-fg: #9e4370; }
+        .team-page .tp[data-type=steel]    { --tp-bg: #e4e6ea; --tp-fg: #5c646e; }
+        .team-page .tp[data-type=rock]     { --tp-bg: #e8e2d6; --tp-fg: #7a6a4a; }
+        .team-page .tp[data-type=normal]   { --tp-bg: #eae7e0; --tp-fg: #6b6560; }
+        .team-page .tp[data-type=psychic]  { --tp-bg: #f7dde4; --tp-fg: #a2445c; }
+        .team-page .tp[data-type=dark]     { --tp-bg: #e2ddd8; --tp-fg: #5f544c; }
+        .team-page .go-card-types { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; }
+        .team-page .go-analysis-types { display: flex !important; flex-wrap: wrap !important; gap: 6px !important; }
+
+        /* ── Header: three independent zones ──────────────────────────────
+           The switch used to sit at the end of the figures, so GO's four
+           numbers pushed it right and Normal's two pulled it left — the
+           control you just pressed moved out from under the pointer. Left
+           flexes, centre and right do not. */
+        .team-page .tb-bar {
+          display: flex !important;
+          align-items: center !important;
+          flex-wrap: nowrap !important;
+          gap: 16px !important;
+        }
+        .team-page .tb-bar-left {
+          display: flex !important;
+          align-items: center !important;
+          gap: 16px !important;
+          flex: 1 1 0 !important;
+          min-width: 0 !important;
+          overflow: hidden !important;
+        }
+        .team-page .tb-seg { flex: 0 0 auto !important; margin: 0 !important; }
+        .team-page .tb-bar-actions { flex: 0 0 auto !important; margin: 0 !important; }
+        .team-page .tb-bar-stats { display: flex !important; align-items: baseline !important; gap: 16px !important; min-width: 0 !important; }
+
+        /* ── Balance score ── */
+        .team-page .tb-an-scorerow {
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+          margin: 4px 0 10px !important;
+        }
+        .team-page .tb-an-grade {
+          font-size: 32px !important;
+          font-weight: 900 !important;
+          line-height: 1 !important;
+          flex: 0 0 auto !important;
+        }
+        .team-page .tb-an-why { font-size: 11.5px !important; font-weight: 600 !important; line-height: 1.35 !important; }
+
+        /* ── Disabled Add, and the total on a Normal card ── */
+        .team-page .tb-btn-primary:disabled {
+          opacity: 1 !important;
+          background: #ebe7e0 !important;
+          border-color: #ebe7e0 !important;
+          color: #9a938b !important;
+          cursor: not-allowed !important;
+        }
+        .team-page .tb-btn-wrap { display: inline-flex !important; }
+        .team-page .tb-card-total {
+          display: flex !important;
+          align-items: baseline !important;
+          justify-content: space-between !important;
+          margin-top: 10px !important;
+          padding-top: 9px !important;
+          border-top: 1px solid var(--border) !important;
+        }
+        .team-page .tb-card-total span { font-size: 11px !important; color: #6b6560 !important; font-weight: 600 !important; }
+        .team-page .tb-card-total b { font-size: 12.5px !important; font-weight: 800 !important; color: var(--text-primary) !important; }
+
+        /* ── Empty slot ── */
+        .team-page .go-card.empty-slot {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 8px !important;
+          min-height: 170px !important;
+          border: 1.5px dashed #ddd8cf !important;
+          background: #faf8f4 !important;
+          box-shadow: none !important;
+          cursor: pointer !important;
+        }
+        .team-page .go-card.empty-slot:hover { border-color: #8f2f2a !important; }
+        .team-page .tb-slot-plus {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          width: 30px !important; height: 30px !important;
+          border-radius: 50% !important;
+          background: #f0ede6 !important;
+          color: #a09d95 !important;
+        }
+        .team-page .tb-slot-lbl { font-size: 11.5px !important; color: #a09d95 !important; font-weight: 600 !important; }
+
+        /* ── Severity, and the link between a chip and the members ─────────
+           Ranked by how many members fold to it, and shaded to match, so the
+           order of attention is visible before any number is read. */
+        .team-page .tp-sev { cursor: help; position: relative; }
+        .team-page .tp-sev[data-sev="2"] { filter: saturate(0.72); }
+        .team-page .tp-sev[data-sev="3"] { filter: saturate(1.05); }
+        .team-page .tp-sev[data-sev="4"] { filter: saturate(1.35) brightness(0.95); }
+        .team-page .tp-sev:hover, .team-page .tp-sev:focus-visible {
+          outline: 2px solid #b3564f !important;
+          outline-offset: 1px !important;
+        }
+
+        /* Hovering a weakness answers "which of these is that?" in place,
+           without a tooltip, a modal, or any extra panel space. */
+        .team-page .go-team-grid.tb-linking .go-card {
+          opacity: 0.34 !important;
+          filter: saturate(0.4) !important;
+          transition: opacity 0.16s ease, filter 0.16s ease, box-shadow 0.16s ease !important;
+        }
+        .team-page .go-team-grid.tb-linking .go-card.tb-culprit {
+          opacity: 1 !important;
+          filter: none !important;
+          box-shadow: 0 0 0 2px #b3564f, 0 8px 22px rgba(179,86,79,0.22) !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .team-page .go-team-grid.tb-linking .go-card { transition: none !important; }
+        }
+
+        /* ── Balance card, led by the diagnosis ── */
+        .team-page .tb-an-verdict {
+          margin: 6px 0 10px !important;
+          font-size: 13px !important;
+          font-weight: 700 !important;
+          line-height: 1.45 !important;
+          color: var(--text-primary) !important;
+        }
+        .team-page .tb-an-scorerow { align-items: baseline !important; gap: 10px !important; margin: 0 0 10px !important; }
+        .team-page .tb-an-grade { font-size: 24px !important; }
+        .team-page .tb-an-scale { font-size: 11px !important; color: #6b6560 !important; font-weight: 600 !important; }
+
+        /* ── Resists: good news, folded away ── */
+        .team-page .tb-fold {
+          display: flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          padding: 0 !important;
+          border: 0 !important;
+          background: none !important;
+          color: #6b6560 !important;
+          font-size: 11.5px !important;
+          font-weight: 600 !important;
+          font-family: inherit !important;
+          cursor: pointer !important;
+        }
+        .team-page .tb-fold:hover { color: #8f2f2a !important; }
+        .team-page .tb-fold-caret { font-size: 9px !important; opacity: 0.7 !important; }
+
+        /* ── Base total, pinned to the foot ───────────────────────────────
+           One type pill or two changed where this line sat, so the number
+           landed at a different height on every card and could not be
+           compared by eye. The panel is a column and this is its last row. */
+        .team-page .go-card-normal .pgo-info-panel {
+          display: flex !important;
+          flex-direction: column !important;
+          flex: 1 1 auto !important;
+        }
+        .team-page .go-card-normal .go-card-types { margin-bottom: auto !important; }
+        .team-page .tb-card-total {
+          display: block !important;
+          margin-top: 10px !important;
+          padding-top: 9px !important;
+          border-top: 1px solid var(--border) !important;
+        }
+        .team-page .tb-card-total-row {
+          display: flex !important;
+          align-items: baseline !important;
+          justify-content: space-between !important;
+          margin-bottom: 5px !important;
+        }
+        /* A bar against the 720 ceiling: 600 and 304 stop looking alike. */
+        .team-page .tb-card-total-track {
+          display: block !important;
+          height: 4px !important;
+          border-radius: 999px !important;
+          background: #eeeae2 !important;
+          overflow: hidden !important;
+        }
+        .team-page .tb-card-total-fill {
+          display: block !important;
+          height: 100% !important;
+          border-radius: 999px !important;
+          background: #8f2f2a !important;
+        }
+        .team-page .go-card-normal { display: flex !important; flex-direction: column !important; }
+
+        /* The picker says what it is filtered to, so an unexpectedly short
+           list reads as a filter rather than as missing data. */
+        .team-page .tb-pick-filter,
+        .tb-pick-filter {
+          display: flex; align-items: center; gap: 8px;
+          margin: 0 0 10px;
+          font-size: 12px; color: #6b6560; font-weight: 600;
+        }
       `}</style>
 
       {/* §4.3 — the same chip the Pokédex shows, so the constraint that
@@ -1781,93 +2304,76 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         </div>
       )}
 
-      <div className="team-hero">
-        <div style={{ position: "absolute", top: 18, right: 26, opacity: 0.14,
-                      animation: "tm-float 4s ease-in-out infinite", pointerEvents: "none" }}>
-          <Swords size={46} strokeWidth={1.6} />
-        </div>
-        <h1 style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-          <Swords size={24} strokeWidth={2.2} /> {lang==="th"?"สร้างทีมโปเกม่อน":lang==="ja"?"チーム作成":"Build Your Team"}
+      <div className="tb-bar">
+        <div className="tb-bar-left">
+        <h1 className="tb-bar-title">
+          {lang === "th" ? "สร้างทีมของคุณ" : lang === "ja" ? "チームを作る" : "Build your team"}
         </h1>
-        <p>
-          {mode === "go"
-            ? (lang==="th" ? "Pokémon GO Mode · กำหนด CP/IV · ระบบ Appraise"
-              : lang==="ja" ? "Pokémon GO モード · CP/IV · 評価機能"
-              : "Pokémon GO Mode · CP/IV · Appraise")
-            : (lang==="th" ? "Normal Mode · Stats พื้นฐาน"
-              : lang==="ja" ? "通常モード · 基本ステータス"
-              : "Normal Mode · Base Stats")}
-        </p>
-      </div>
 
-      {/* MODE TOGGLE */}
-      <div className="tb-mode-toggle">
-        <button className={`tb-mode-btn tb-mode-normal${mode === "normal" ? " active" : ""}`}
-          onClick={() => setMode("normal")}>
-          <span className="tb-mode-icon"><ClipboardList size={20} strokeWidth={2.2} /></span>
-          <span className="tb-mode-text">
-            <span className="tb-mode-title-text">{lang==="th"?"โหมดปกติ":"Normal Mode"}</span>
-            <span className="tb-mode-desc">{lang==="th"?"Stats พื้นฐาน":"Base stats"}</span>
+        {/* Inline figures rather than boxed tiles: four bordered cells gave
+            each number the weight of a section when they are one sentence. */}
+        <div className="tb-bar-stats">
+          <span className="tb-stat">
+            <i>{lang === "th" ? "สมาชิก" : lang === "ja" ? "メンバー" : "Members"}</i>
+            <b>{team.length}/{maxTeamSize}</b>
           </span>
-        </button>
-        <button className={`tb-mode-btn tb-mode-go${mode === "go" ? " active" : ""}`}
-          onClick={() => setMode("go")}>
-          <span className="tb-mode-icon"><Gamepad2 size={20} strokeWidth={2.2} /></span>
-          <span className="tb-mode-text">
-            <span className="tb-mode-title-text">{lang==="th"?"โหมด Pokémon GO":"Pokémon GO Mode"}</span>
-            <span className="tb-mode-desc">CP · IV · Appraise</span>
-          </span>
-        </button>
-      </div>
-
-      {/* ACTIONS BAR */}
-      <div className="tb-actions-bar">
-        <button className="tb-action-btn primary"
-          onClick={() => { setPicking(true); setPickingSlot(null); }}
-          disabled={team.length >= maxTeamSize}>
-          <Plus size={16} strokeWidth={2.4} /> {lang==="th"?"เพิ่ม Pokémon":"Add Pokémon"} ({team.length}/{maxTeamSize})
-        </button>
-        <RandomMenu onGenerate={generateRandomTeam} generating={generating} lang={lang} />
-        {team.length > 0 && (
-          <button className="tb-action-btn ghost" onClick={clearTeam}>
-            <Trash2 size={15} strokeWidth={2.2} /> {lang==="th"?"ล้างทีม":"Clear"}
-          </button>
-        )}
-      </div>
-
-      {/* CP OVERVIEW — GO MODE ONLY */}
-      {mode === "go" && team.length > 0 && teamCPOverview && (
-        <div className="go-team-overview go-team-overview-modern">
-          <div className="go-overview-item team-count">
-            <span className="go-overview-icon"><Users size={18} strokeWidth={2.2} /></span>
-            <span className="go-overview-copy">
-              <span className="go-overview-label">{lang==="th"?"ทีม":"Team"}</span>
-              <span className="go-overview-val">{team.length}/{maxTeamSize}</span>
+          {mode === "go" ? (
+            <>
+              <span className="tb-stat">
+                <i>{lang === "th" ? "CP รวม" : lang === "ja" ? "合計CP" : "Total CP"}</i>
+                <b>{(teamCPOverview?.total ?? 0).toLocaleString()}</b>
+              </span>
+              <span className="tb-stat">
+                <i>{lang === "th" ? "CP เฉลี่ย" : lang === "ja" ? "平均CP" : "Avg CP"}</i>
+                <b>{(teamCPOverview?.avg ?? 0).toLocaleString()}</b>
+              </span>
+            </>
+          ) : (
+            <span className="tb-stat">
+              <i>{lang === "th" ? "เฉลี่ย" : lang === "ja" ? "平均" : "Average"}</i>
+              <b>{teamAvgTotal}</b>
             </span>
-          </div>
-          <div className="go-overview-item total-cp">
-            <span className="go-overview-icon"><Zap size={18} strokeWidth={2.2} /></span>
-            <span className="go-overview-copy">
-              <span className="go-overview-label">Total CP</span>
-              <span className="go-overview-val">{teamCPOverview.total.toLocaleString()}</span>
-            </span>
-          </div>
-          <div className="go-overview-item avg-cp">
-            <span className="go-overview-icon"><TrendingUp size={18} strokeWidth={2.2} /></span>
-            <span className="go-overview-copy">
-              <span className="go-overview-label">Avg CP</span>
-              <span className="go-overview-val">{teamCPOverview.avg.toLocaleString()}</span>
-            </span>
-          </div>
-          <div className="go-overview-item league" style={{ "--league-color": teamCPOverview.league.color }}>
-            <span className="go-overview-icon"><Trophy size={18} strokeWidth={2.2} /></span>
-            <span className="go-overview-copy">
-              <span className="go-overview-label">League</span>
-              <span className="go-overview-val">{teamCPOverview.league.name}</span>
-            </span>
-          </div>
+          )}
         </div>
-      )}
+        </div>
+
+        <div className="tb-seg" role="group"
+          aria-label={lang === "th" ? "โหมด" : lang === "ja" ? "モード" : "Mode"}>
+          <button type="button" className={`tb-seg-btn${mode === "normal" ? " on" : ""}`}
+            aria-pressed={mode === "normal"} onClick={() => setMode("normal")}>
+            {lang === "th" ? "ปกติ" : lang === "ja" ? "通常" : "Normal"}
+          </button>
+          <button type="button" className={`tb-seg-btn${mode === "go" ? " on" : ""}`}
+            aria-pressed={mode === "go"} onClick={() => setMode("go")}>
+            Pokémon GO
+          </button>
+        </div>
+
+        {/* Adding a Pokemon is what this page is for, so it is the filled
+            button; the random shortcut steps back to an outline. */}
+        <div className="tb-bar-actions">
+          <span className="tb-btn-wrap"
+            title={team.length >= maxTeamSize
+              ? (lang === "th" ? `ทีมเต็มแล้ว (${maxTeamSize} ตัว)`
+                : lang === "ja" ? `チームは満員です（${maxTeamSize}匹）`
+                : `Team is full (${maxTeamSize})`)
+              : (lang === "th" ? "เพิ่มโปเกมอนเข้าทีม" : lang === "ja" ? "ポケモンを追加" : "Add a Pokémon")}>
+            <button className="tb-btn tb-btn-primary"
+              onClick={() => { setPicking(true); setPickingSlot(null); }}
+              disabled={team.length >= maxTeamSize}>
+              <Plus size={15} strokeWidth={2.6} />
+              {lang === "th" ? "เพิ่ม" : lang === "ja" ? "追加" : "Add"}
+            </button>
+          </span>
+          <RandomMenu onGenerate={generateRandomTeam} generating={generating} lang={lang} />
+          {team.length > 0 && (
+            <button className="tb-btn tb-btn-ghost" onClick={clearTeam}>
+              <Trash2 size={14} strokeWidth={2.2} />
+              {lang === "th" ? "ล้าง" : lang === "ja" ? "クリア" : "Clear"}
+            </button>
+          )}
+        </div>
+      </div>
 
       {teamCPOverview?.allHundo && (
         <div className="go-team-hundo-banner">
@@ -1875,20 +2381,14 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
         </div>
       )}
 
-      {/* EMPTY STATE */}
-      {team.length === 0 ? (
-        <div className="empty-state">
-          <span className="empty-icon"><Swords size={48} strokeWidth={1.6} /></span>
-          <div className="empty-title">{lang==="th"?"ทีมว่าง":"Empty team"}</div>
-          <div className="empty-sub">
-            {lang==="th"?"กดเพิ่ม Pokémon หรือสุ่มทีมเพื่อเริ่มต้น":"Add Pokémon or generate a random team"}
-          </div>
-        </div>
-      ) : (
-        <>
+      <div className="tb-layout">
+      <div className="tb-main">
           {/* TEAM GRID */}
-          <div className={`go-team-grid${mode === "go" ? " mode-go" : " mode-normal"}`}>
+          <div className={`go-team-grid${mode === "go" ? " mode-go" : " mode-normal"}${hoverType ? " tb-linking" : ""}`}>
             {team.slice(0, maxTeamSize).map((p, i) => {
+              // Set by the panel: this member is one of the reasons the
+              // hovered weakness chip exists.
+              const culprit = hoverType ? (weakByType[hoverType] ?? []).includes(p.id) : false;
               const color = typeColor(p.types[0]?.type.name);
               const name = getLocalName(p.id, lang, thaiArr, jpArr) ?? p.name;
 
@@ -1900,7 +2400,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                 const t1Color = typeColor(p.types[0]?.type.name);
 
                 return (
-                  <div key={p.id} className="go-card pgo-card" style={{ "--pgo-type": t1Color }}>
+                  <div key={p.id} className={`go-card pgo-card${culprit ? " tb-culprit" : ""}`} style={{ "--pgo-type": t1Color }}>
                     {/* ─── soft pastel panel holding the Pokémon ─── */}
                     <div className="pgo-stage">
                       <button className="go-card-remove" onClick={() => removeMember(p.id)}><X size={14} strokeWidth={2.6} /></button>
@@ -1913,13 +2413,11 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                     <div className="pgo-info-panel">
                       <div className="pgo-head">
                         <div className="go-card-name">{name}</div>
-                        <div className="go-card-id">#{padId(p.id)}</div>
+                        <div className="go-card-id">{padId(p.id)}</div>
                       </div>
                       <div className="go-card-types">
                         {p.types.map(t => (
-                          <span key={t.type.name} className="type-tag-mini"
-                            style={{ color: typeColor(t.type.name),
-                                     background: `color-mix(in srgb, ${typeColor(t.type.name)} 16%, transparent)` }}>
+                          <span key={t.type.name} className="tp" data-type={t.type.name}>
                             {typeName(t.type.name)}
                           </span>
                         ))}
@@ -1929,9 +2427,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                         <div className="pgo-cp-top">
                           <span className="pgo-cp-top-label">CP</span>
                           <span className="pgo-cp-top-value">{data.cp}</span>
-                          <span className="pgo-cp-league-pill"
-                            style={{ color: league.color,
-                                     background: `color-mix(in srgb, ${league.color} 15%, transparent)` }}>
+                          <span className="pgo-cp-league-pill">
                             <Trophy size={10} strokeWidth={2.6} style={{ verticalAlign: "-1px" }} /> {league.name}
                           </span>
                         </div>
@@ -1941,8 +2437,8 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                             onChange={(e) => updateData(p.id, { cp: parseInt(e.target.value) })}
                             className="pgo-cp-slider"
                             style={{
-                              background: `linear-gradient(to right, ${league.color} 0%, ${league.color} ${(data.cp / 4000) * 100}%, var(--border-mid) ${(data.cp / 4000) * 100}%, var(--border-mid) 100%)`,
-                              "--league-color": league.color,
+                              background: `linear-gradient(to right, #8f2f2a 0%, #8f2f2a ${(data.cp / 4000) * 100}%, #eeeae2 ${(data.cp / 4000) * 100}%, #eeeae2 100%)`,
+                              "--league-color": "#8f2f2a",
                             }}
                           />
                         </div>
@@ -1959,7 +2455,7 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
 
               // NORMAL MODE CARD — clean minimal (pokemon + name + types)
               return (
-                <div key={p.id} className="go-card go-card-normal pgo-card" style={{ "--pgo-type": color }}>
+                <div key={p.id} className={`go-card go-card-normal pgo-card${culprit ? " tb-culprit" : ""}`} style={{ "--pgo-type": color }}>
                   <div className="pgo-stage">
                     <button className="go-card-remove" onClick={() => removeMember(p.id)}><X size={14} strokeWidth={2.6} /></button>
                     <button className="go-card-swap"
@@ -1970,74 +2466,168 @@ export default function TeamBuilder({ allList, thaiArr, jpArr, lang, cachedFetch
                   <div className="pgo-info-panel">
                     <div className="pgo-head">
                       <div className="go-card-name">{name}</div>
-                      <div className="go-card-id">#{padId(p.id)}</div>
+                      <div className="go-card-id">{padId(p.id)}</div>
                     </div>
                     <div className="go-card-types">
                       {p.types.map(t => (
-                        <span key={t.type.name} className="type-tag-mini"
-                          style={{ color: typeColor(t.type.name),
-                                   background: `color-mix(in srgb, ${typeColor(t.type.name)} 16%, transparent)` }}>
+                        <span key={t.type.name} className="tp" data-type={t.type.name}>
                           {typeName(t.type.name)}
                         </span>
                       ))}
+                    </div>
+                    <div className="tb-card-total">
+                      <div className="tb-card-total-row">
+                        <span>{lang === "th" ? "ค่าพลังรวม" : lang === "ja" ? "種族値合計" : "Base total"}</span>
+                        <b>{p.stats.reduce((a, st) => a + st.base_stat, 0)}</b>
+                      </div>
+                      {/* 720 is the highest total in the game, so the bar is a
+                          share of the real ceiling rather than of the team. */}
+                      <span className="tb-card-total-track">
+                        <span className="tb-card-total-fill" style={{
+                          width: `${Math.min(100, Math.round(p.stats.reduce((a, st) => a + st.base_stat, 0) / 720 * 100))}%` }} />
+                      </span>
                     </div>
                   </div>
                 </div>
               );
             })}
 
-            {team.length < maxTeamSize && (
-              <div className="go-card empty-slot"
-                onClick={() => { setPicking(true); setPickingSlot(null); }}>
-                <span style={{ opacity: 0.35, display: "inline-flex" }}><Plus size={40} strokeWidth={1.8} /></span>
-                <span style={{ fontWeight: 800, fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-                  Slot {team.length + 1}
+            {Array.from({ length: Math.max(0, maxTeamSize - team.length) }).map((_, i) => (
+              <div key={`slot-${i}`} className="go-card empty-slot"
+                role="button" tabIndex={0}
+                onClick={() => { setPicking(true); setPickingSlot(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPicking(true); setPickingSlot(null); } }}
+                title={lang === "th" ? "กดเพื่อเลือกโปเกมอน" : lang === "ja" ? "タップして選択" : "Click to pick a Pokémon"}>
+                <span className="tb-slot-plus"><Plus size={17} strokeWidth={2.6} /></span>
+                <span className="tb-slot-lbl">
+                  {lang === "th" ? "ช่องว่าง" : lang === "ja" ? "空き" : "Empty slot"}
                 </span>
               </div>
-            )}
+            ))}
           </div>
+      </div>
 
+      <aside className="tb-side">
           {/* TEAM ANALYSIS */}
           {teamAnalysis && (
             <div className="go-analysis">
+              {teamBalance && (
+                <div className="go-analysis-block tb-an-score">
+                  <div className="tb-an-label">
+                    {lang==="th"?"คะแนนสมดุลของทีม":lang==="ja"?"チームバランス":"Team balance"}
+                  </div>
+                  <p className="tb-an-verdict">{balanceVerdict}</p>
+                  <div className="tb-an-scorerow">
+                    <span className="tb-an-grade">{teamBalance.grade}</span>
+                    {/* The letter needed something to be measured against. */}
+                    <span className="tb-an-scale">
+                      {lang==="th"?"ทีมทั่วไปได้ราว C+":lang==="ja"?"平均的なチームはC+程度":"A typical team scores about C+"}
+                    </span>
+                  </div>
+                  <div className="tb-an-track">
+                    <span className="tb-an-fill" style={{ width: `${teamBalance.score}%` }} />
+                  </div>
+                </div>
+              )}
+
               <div className="go-analysis-block">
-                <div className="go-analysis-title" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} strokeWidth={2.2} /> {lang==="th"?"จุดอ่อนร่วม":"Shared Weaknesses"}</div>
+                <div className="go-analysis-title tb-an-title" data-tone="weak">{lang==="th"?"จุดอ่อนร่วม":"Shared Weaknesses"}</div>
                 <div className="go-analysis-types">
                   {Object.entries(teamAnalysis.weak)
-                    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, maxTeamSize)
+                    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1])
+                    .slice(0, showAllWeak ? maxTeamSize * 3 : 3)
                     .map(([type, count]) => (
-                      <span key={type} className="go-analysis-pill"
-                        style={{ background: typeColor(type) }}>
-                        {typeName(type)} ×{count}
+                      <span key={type} className="tp tp-count tp-sev" data-type={type}
+                        data-sev={Math.min(4, count)}
+                        onMouseEnter={() => setHoverType(type)}
+                        onMouseLeave={() => setHoverType(null)}
+                        onFocus={() => setHoverType(type)}
+                        onBlur={() => setHoverType(null)}
+                        tabIndex={0}
+                        title={lang==="th"?`${count} ตัวในทีมแพ้ธาตุนี้`
+                          :lang==="ja"?`${count}匹がこのタイプに弱い`
+                          :`${count} members are weak to this`}>
+                        {typeName(type)}<i>×{count}</i>
                       </span>
                     ))}
                   {Object.entries(teamAnalysis.weak).filter(([, c]) => c >= 2).length === 0 && (
                     <span className="go-analysis-good" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><CheckCircle2 size={14} strokeWidth={2.2} /> {lang==="th"?"ไม่มีจุดอ่อนร่วม!":"No shared weaknesses!"}</span>
                   )}
                 </div>
+                {Object.entries(teamAnalysis.weak).filter(([, c]) => c >= 2).length > 3 && (
+                  <button type="button" className="tb-fold" onClick={() => setShowAllWeak(v => !v)}>
+                    {showAllWeak
+                      ? (lang==="th"?"ย่อ":lang==="ja"?"閉じる":"Show less")
+                      : (lang==="th"?`ดูเพิ่ม ${Object.entries(teamAnalysis.weak).filter(([, c]) => c >= 2).length - 3} อัน`
+                        :lang==="ja"?`他${Object.entries(teamAnalysis.weak).filter(([, c]) => c >= 2).length - 3}件`
+                        :`Show ${Object.entries(teamAnalysis.weak).filter(([, c]) => c >= 2).length - 3} more`)}
+                    <span className="tb-fold-caret">{showAllWeak ? "\u25B2" : "\u25BC"}</span>
+                  </button>
+                )}
               </div>
               <div className="go-analysis-block">
-                <div className="go-analysis-title" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Shield size={14} strokeWidth={2.2} /> {lang==="th"?"ต้านธาตุ":"Team Resists"}</div>
-                <div className="go-analysis-types">
+                <div className="go-analysis-title tb-an-title" data-tone="resist">{lang==="th"?"ต้านทาน":"Team Resists"}</div>
+                {(() => {
+                  const n = Object.entries(teamAnalysis.resist).filter(([, c]) => c >= 2).length;
+                  return n > 0 ? (
+                    <button type="button" className="tb-fold" onClick={() => setShowResists(v => !v)}>
+                      {lang==="th"?`ต้านทานได้ดี ${n} ธาตุ`:lang==="ja"?`${n}タイプに耐性`:`Resists ${n} types well`}
+                      <span className="tb-fold-caret">{showResists ? "\u25B2" : "\u25BC"}</span>
+                    </button>
+                  ) : null;
+                })()}
+                <div className="go-analysis-types" hidden={!showResists}>
                   {Object.entries(teamAnalysis.resist)
                     .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, maxTeamSize)
                     .map(([type, count]) => (
-                      <span key={type} className="go-analysis-pill"
-                        style={{ background: typeColor(type) }}>
-                        {typeName(type)} ×{count}
+                      <span key={type} className="tp tp-count" data-type={type}>
+                        {typeName(type)}<i>×{count}</i>
                       </span>
                     ))}
+                  {Object.entries(teamAnalysis.resist).filter(([, c]) => c >= 2).length === 0 && (
+                    <span className="tb-an-none">
+                      {lang==="th"?"ยังไม่มีธาตุที่ทีมนี้ต้านร่วมกัน"
+                        :lang==="ja"?"共通の耐性はまだありません"
+                        :"No type this team resists together yet"}
+                    </span>
+                  )}
                 </div>
               </div>
+
+              {teamSuggestions.length > 0 && (
+                <div className="go-analysis-block">
+                  <div className="go-analysis-title tb-an-title" data-tone="add">
+                    {lang==="th"?"แนะนำให้เพิ่ม":lang==="ja"?"追加のおすすめ":"Consider adding"}
+                  </div>
+                  <p className="tb-an-hint">
+                    {lang==="th"?"ธาตุที่ช่วยกลบจุดอ่อนของทีมนี้"
+                      :lang==="ja"?"このチームの弱点を補うタイプ"
+                      :"Types that cover this team's weak spots"}
+                  </p>
+                  <div className="go-analysis-types">
+                    {teamSuggestions.map(({ type, covers }) => (
+                      <button key={type} type="button" className="tp tp-count tb-an-suggest"
+                        data-type={type}
+                        onClick={() => { setSuggestType(type); setPicking(true); setPickingSlot(null); }}
+                        title={lang==="th"?`กลบจุดอ่อนได้ ${covers} ธาตุ — กดเพื่อเลือกโปเกมอนธาตุนี้`
+                          :lang==="ja"?`弱点${covers}件をカバー — タップで選択`
+                          :`Covers ${covers} of them — pick one of these`}>
+                        {typeName(type)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </>
-      )}
+      </aside>
+      </div>
 
       {/* MODALS */}
       {picking && (
         <PokemonPicker allWithMeta={allWithMeta} thaiArr={thaiArr} jpArr={jpArr} lang={lang}
-          onPick={addToTeam} onClose={() => { setPicking(false); setPickingSlot(null); }}
+          onPick={addToTeam} onClose={() => { setPicking(false); setPickingSlot(null); setSuggestType(null); }}
+          typeFilter={suggestType} cachedFetch={cachedFetch}
           excludeIds={pickingSlot === null ? team.map(p => p.id) : []}
           title={lang==="th"?"เลือก Pokémon":"Select Pokémon"} />
       )}

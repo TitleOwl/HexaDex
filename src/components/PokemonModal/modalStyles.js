@@ -228,19 +228,6 @@ export const MODAL_CSS = `
     gap: 12px !important;
     margin-top: 6px;
   }
-  .modal-overlay .sprite-cell {
-    background: white !important;
-    border: 2px solid #e5e0d5 !important;
-    border-radius: 14px !important;
-    padding: 14px 8px 10px !important;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    transition: all 0.2s;
-  }
-  .modal-overlay .sprite-cell:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  }
   .modal-overlay .sprite-label {
     display: block;
     margin-top: 6px;
@@ -255,11 +242,6 @@ export const MODAL_CSS = `
   [data-theme="dark"] .modal-overlay .ability-chip,
   [data-theme="dark"] .modal-overlay .evo-node,
   [data-theme="dark"] .modal-overlay .info-card,
-  [data-theme="dark"] .modal-overlay .sprite-cell {
-    background: #1f1d20 !important;
-    border-color: #2c2926 !important;
-    color: #efece4 !important;
-  }
   [data-theme="dark"] .modal-overlay .modal-section-title {
     color: #efece4 !important;
   }
@@ -1965,43 +1947,15 @@ export const MODAL_CSS = `
 }
 @keyframes mv-dot { 0%,100% { opacity: 0.25; } 50% { opacity: 1; } }
 
-.modal-overlay .detail-sheet .sprites-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px;
-}
-/* A soft checker behind each sprite: these are transparent PNGs, and a white
-   Pokémon on a white card is invisible. */
-.modal-overlay .detail-sheet .sprite-cell {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 12px 8px 9px; border-radius: 14px;
-  background:
-    linear-gradient(45deg, var(--bg-muted) 25%, transparent 25%) 0 0/16px 16px,
-    linear-gradient(-45deg, var(--bg-muted) 25%, transparent 25%) 0 8px/16px 16px,
-    linear-gradient(45deg, transparent 75%, var(--bg-muted) 75%) 8px -8px/16px 16px,
-    linear-gradient(-45deg, transparent 75%, var(--bg-muted) 75%) -8px 0/16px 16px,
-    var(--bg-card);
-  border: 1px solid var(--border);
-  transition: border-color 0.15s ease, transform 0.13s ease-out;
-}
-.modal-overlay .detail-sheet .sprite-cell:hover { border-color: var(--border-mid); transform: translateY(-2px); }
-.modal-overlay .detail-sheet .sprite-img {
-  width: 72px; height: 72px; object-fit: contain; image-rendering: pixelated;
-}
-.modal-overlay .detail-sheet .sprite-label {
-  font-size: 11px; font-weight: 700; color: var(--text-secondary); text-align: center;
-}
 
 @media (max-width: 560px) {
   .modal-overlay .detail-sheet .move-desc,
   .modal-overlay .detail-sheet .move-num { display: none; }
-  .modal-overlay .detail-sheet .sprites-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
-  .modal-overlay .detail-sheet .sprite-img { width: 58px; height: 58px; }
-}
+    }
 @media (prefers-reduced-motion: reduce) {
-  .modal-overlay .detail-sheet .sprite-cell,
   .modal-overlay .detail-sheet .moves-method-btn,
   .modal-overlay .detail-sheet .move-row { transition: none; }
-  .modal-overlay .detail-sheet .sprite-cell:hover { transform: none; }
-  .modal-overlay .detail-sheet .moves-loading-dot { animation: none; }
+    .modal-overlay .detail-sheet .moves-loading-dot { animation: none; }
 }
 
 /* ── Detail modal: names in Title Case ──────────────────────────────────────
@@ -2085,10 +2039,6 @@ export const MODAL_CSS = `
 .modal-overlay .detail-sheet .detail-tab.active { color: #8f2f2a !important; }
 
 /* Sprite labels: Title Case, matching every other label in the modal. */
-.modal-overlay .detail-sheet .sprite-label {
-  text-transform: capitalize;
-  letter-spacing: 0;
-}
 
 /* ── Hero Pokéball: a texture, not a competing object ──────────────────────
    It sat half off the right edge and overlapped the sprite. Centred behind
@@ -2105,8 +2055,6 @@ export const MODAL_CSS = `
 }
 
 /* Sprite evolution leads the tab now, so it gets the room to be read. */
-.modal-overlay .detail-sheet .sprite-timeline-lead { margin-bottom: 26px; }
-.modal-overlay .detail-sheet .sprite-timeline-lead img { image-rendering: pixelated; }
 
 /* The dex number sits with the name instead of shouting over it: close in
    size, well back in weight and opacity. */
@@ -2214,5 +2162,235 @@ export const MODAL_CSS = `
 }
 @media (prefers-reduced-motion: reduce) {
   .modal-overlay .detail-sheet .move-caret { transition: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Sprites tab + hero navigation
+   ══════════════════════════════════════════════════════════════════════════ */
+
+
+
+
+
+@media (prefers-reduced-motion: reduce) {
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Sprite Evolution — a time axis, not a strip of thumbnails
+   Every column is a fixed width, so the game names cannot collide however
+   long they are; the dots sit on one continuous line, which is what says
+   "this is chronological" without a caption.
+   ══════════════════════════════════════════════════════════════════════════ */
+.modal-overlay .detail-sheet .st { margin-bottom: 4px; }
+
+.modal-overlay .detail-sheet .st-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.modal-overlay .detail-sheet .st-title {
+  display: inline-flex; align-items: center; gap: 7px; margin: 0;
+}
+.modal-overlay .detail-sheet .st-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Segmented controls, replacing the play button. Auto-advance added nothing
+   once every era is on screen at once — pressing the era you want is faster
+   than waiting for it to come round. */
+.modal-overlay .detail-sheet .st-seg {
+  display: inline-flex; gap: 2px; padding: 2px;
+  border-radius: 999px; background: #f4f2ee;
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-seg { background: rgba(255,255,255,0.07); }
+.modal-overlay .detail-sheet .st-seg-btn {
+  padding: 5px 12px; border: none; border-radius: 999px;
+  background: none; color: var(--text-secondary);
+  font-size: 11.5px; font-weight: 700; cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.modal-overlay .detail-sheet .st-seg-btn:hover { color: var(--text-primary); }
+.modal-overlay .detail-sheet .st-seg-btn.on {
+  background: #fff; color: #2a2521; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-seg-btn.on { background: rgba(255,255,255,0.16); color: #f2f0ea; }
+.modal-overlay .detail-sheet .st-seg-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ── The rail ──────────────────────────────────────────────────────────── */
+.modal-overlay .detail-sheet .st-rail-wrap { position: relative; }
+.modal-overlay .detail-sheet .st-rail {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding: 2px 30px;
+  overflow-x: auto;
+  /* The browser's own scrollbar was the only raw chrome left in this panel. */
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+.modal-overlay .detail-sheet .st-rail::-webkit-scrollbar { display: none; }
+/* Edge fades say there is more either way, which is what the scrollbar used
+   to do badly. */
+.modal-overlay .detail-sheet .st-rail-wrap::before,
+.modal-overlay .detail-sheet .st-rail-wrap::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 34px;
+  pointer-events: none; z-index: 2;
+}
+.modal-overlay .detail-sheet .st-rail-wrap::before {
+  left: 0; background: linear-gradient(90deg, var(--bg-card), transparent);
+}
+.modal-overlay .detail-sheet .st-rail-wrap::after {
+  right: 0; background: linear-gradient(270deg, var(--bg-card), transparent);
+}
+
+/* One line behind every dot. Drawn once rather than as a border per cell, so
+   it stays continuous across the gaps. */
+.modal-overlay .detail-sheet .st-axis {
+  position: absolute;
+  left: 30px; right: 30px;
+  top: 88px;
+  height: 2px;
+  background: #eae6de;
+  z-index: 0;
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-axis { background: rgba(255,255,255,0.1); }
+
+/* Fixed width: the only thing that keeps "FireRed" from colliding with
+   "HeartGold" whatever their lengths. */
+.modal-overlay .detail-sheet .st-cell {
+  position: relative; z-index: 1;
+  flex: 0 0 auto;
+  width: 68px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 0 2px 4px;
+  border: none; background: none; cursor: pointer;
+}
+.modal-overlay .detail-sheet .st-cell:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 10px; }
+
+.modal-overlay .detail-sheet .st-gen {
+  height: 13px; line-height: 13px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+  color: #a8442f; white-space: nowrap;
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-gen { color: #e0876f; }
+
+.modal-overlay .detail-sheet .st-box {
+  width: 52px; height: 52px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  background: #f6f4f0;
+  border: 2px solid transparent;
+  transition: transform 0.16s cubic-bezier(.22,1,.36,1), background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-box { background: rgba(255,255,255,0.06); }
+.modal-overlay .detail-sheet .st-cell:hover .st-box { background: #efece6; }
+.modal-overlay .detail-sheet .st-cell.on .st-box {
+  transform: scale(1.18);
+  background: #fff;
+  border-color: #8f2f2a;
+  box-shadow: 0 4px 12px rgba(143, 47, 42, 0.2);
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-cell.on .st-box { background: #1c1b1f; }
+.modal-overlay .detail-sheet .st-img {
+  width: 46px; height: 46px; object-fit: contain; image-rendering: pixelated;
+}
+.modal-overlay .detail-sheet .st-none {
+  font-size: 8.5px; font-weight: 600; line-height: 1.2;
+  color: var(--text-muted); text-align: center; padding: 0 3px;
+}
+
+.modal-overlay .detail-sheet .st-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #d8d3ca;
+  margin-top: 5px;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-dot { background: rgba(255,255,255,0.22); }
+.modal-overlay .detail-sheet .st-cell.on .st-dot { background: #8f2f2a; transform: scale(1.2); }
+
+.modal-overlay .detail-sheet .st-year {
+  font-size: 11px; color: #a09d95; font-variant-numeric: tabular-nums;
+}
+.modal-overlay .detail-sheet .st-game {
+  max-width: 100%;
+  font-size: 11.5px; font-weight: 600; color: #5a5550;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-year { color: rgba(241,239,233,0.45); }
+[data-theme="dark"] .modal-overlay .detail-sheet .st-game { color: rgba(241,239,233,0.72); }
+.modal-overlay .detail-sheet .st-cell.on .st-game { color: #8f2f2a; font-weight: 800; }
+[data-theme="dark"] .modal-overlay .detail-sheet .st-cell.on .st-game { color: #e0876f; }
+
+/* Rail arrows sit over the fades. */
+.modal-overlay .detail-sheet .st-arrow {
+  position: absolute; top: 74px; z-index: 3;
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border: 1px solid var(--border); border-radius: 50%;
+  background: var(--bg-card); color: var(--text-secondary);
+  cursor: pointer;
+}
+.modal-overlay .detail-sheet .st-arrow.left  { left: 0; }
+.modal-overlay .detail-sheet .st-arrow.right { right: 0; }
+.modal-overlay .detail-sheet .st-arrow:hover:not(:disabled) { color: var(--text-primary); border-color: var(--border-mid); }
+.modal-overlay .detail-sheet .st-arrow:disabled { opacity: 0.35; cursor: default; }
+.modal-overlay .detail-sheet .st-arrow:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ── Summary row ───────────────────────────────────────────────────────── */
+.modal-overlay .detail-sheet .st-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 10px; padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+.modal-overlay .detail-sheet .st-now {
+  display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  font-size: 12.5px; color: var(--text-secondary);
+}
+.modal-overlay .detail-sheet .st-now b { color: var(--text-primary); font-weight: 800; }
+.modal-overlay .detail-sheet .st-now-lbl { color: var(--text-muted); }
+.modal-overlay .detail-sheet .st-now-sep { color: #d6d2ca; }
+.modal-overlay .detail-sheet .st-foot-nav { display: inline-flex; gap: 7px; flex: 0 0 auto; }
+.modal-overlay .detail-sheet .st-round {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border: none; border-radius: 50%;
+  background: #f6f4f0; color: var(--text-secondary);
+  cursor: pointer;
+}
+[data-theme="dark"] .modal-overlay .detail-sheet .st-round { background: rgba(255,255,255,0.08); }
+.modal-overlay .detail-sheet .st-round:hover:not(:disabled) { color: var(--text-primary); }
+.modal-overlay .detail-sheet .st-round:disabled { opacity: 0.35; cursor: default; }
+.modal-overlay .detail-sheet .st-round:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ── Zoom ──────────────────────────────────────────────────────────────── */
+.modal-overlay .st-zoom {
+  position: fixed; inset: 0; z-index: 4000;
+  display: grid; place-items: center; padding: 24px;
+  background: rgba(16, 15, 18, 0.72);
+}
+.modal-overlay .st-zoom-box {
+  position: relative; padding: 22px 22px 15px;
+  border-radius: 20px; background: var(--bg-card);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35); text-align: center;
+}
+.modal-overlay .st-zoom-img {
+  width: min(280px, 60vw); height: auto; display: block;
+  image-rendering: pixelated;
+}
+.modal-overlay .st-zoom-cap {
+  margin-top: 8px; font-size: 12.5px; font-weight: 700; color: var(--text-primary);
+}
+.modal-overlay .st-zoom-close {
+  position: absolute; top: 8px; right: 8px;
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border: none; border-radius: 50%;
+  background: var(--bg-muted); color: var(--text-secondary); cursor: pointer;
+}
+.modal-overlay .st-zoom-close:hover { background: var(--border); color: var(--text-primary); }
+.modal-overlay .st-zoom-close:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay .detail-sheet .st-rail { scroll-behavior: auto; }
+  .modal-overlay .detail-sheet .st-box,
+  .modal-overlay .detail-sheet .st-dot,
+  .modal-overlay .detail-sheet .st-seg-btn { transition: none; }
 }
 `;

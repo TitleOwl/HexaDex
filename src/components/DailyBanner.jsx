@@ -14,6 +14,10 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
   const dailyId = useMemo(() => getDailyPokemonId(), []);
   const [pokemon, setPokemon] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Genus ("Seed Pokemon") reads better than the raw measurements, but it is a
+  // second request that can fail; height and weight already arrived with the
+  // Pokemon, so they are the floor rather than a blank line.
+  const [genus, setGenus] = useState(null);
 
 
   useEffect(() => {
@@ -23,7 +27,17 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
     cachedFetch(entry.url)
       .then(p => { setPokemon(p); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [dailyId, allList, cachedFetch]);
+    // Plain fetch, not cachedFetch: that helper compacts every response into a
+    // Pokemon record and stores it in the detail cache under its id, so putting
+    // a species through it would overwrite the real entry for this id.
+    fetch(`https://pokeapi.co/api/v2/pokemon-species/${dailyId}`)
+      .then(r => r.json())
+      .then(sp => {
+        const g = sp.genera?.find(x => x.language.name === (lang === "ja" ? "ja" : "en"));
+        if (g) setGenus(g.genus);
+      })
+      .catch(() => {});
+  }, [dailyId, allList, cachedFetch, lang]);
 
   if (loading || !pokemon) {
     return (
@@ -72,8 +86,16 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
           {name}
           <span className="daily-strip-num">#{String(pokemon.id).padStart(4, "0")}</span>
         </span>
+        <span className="daily-strip-meta">
+          {genus && <span className="daily-strip-genus">{genus}</span>}
+          {genus && <span className="daily-strip-mdot" aria-hidden>·</span>}
+          <span>{(pokemon.height / 10).toFixed(1)} m</span>
+          <span className="daily-strip-mdot" aria-hidden>·</span>
+          <span>{(pokemon.weight / 10).toFixed(1)} kg</span>
+        </span>
       </span>
 
+      <span className="daily-strip-right">
       <span className="daily-strip-types">
         {pokemon.types.map((t) => (
           <span key={t.type.name} className="daily-strip-type"
@@ -89,6 +111,7 @@ export default function DailyBanner({ allList, thaiArr, jpArr, lang, cachedFetch
       <span className="daily-strip-cta">
         {t(lang, `Meet ${name}`, `ดูรายละเอียด`, `くわしく見る`)}
         <ChevronRight size={15} strokeWidth={2.6} aria-hidden />
+      </span>
       </span>
     </button>
   );

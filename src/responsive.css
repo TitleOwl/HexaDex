@@ -448,7 +448,6 @@
   .evo-arrow { font-size: 13px !important; flex-shrink: 0 !important; }
 
   /* Sprites grid */
-  .sprites-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
 
   /* Catch FAB */
   .catch-fab { bottom: 14px !important; right: 14px !important; }
@@ -669,4 +668,412 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Responsive pass — measured, not assumed
+   Audited at 360 / 390 / 768 / 1024 / 1440. No page-level
+   horizontal overflow at any width; what needed fixing was
+   column count on phones and how much chrome sits above the
+   first Pokémon.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Three columns held until 380px, which on a 390px phone gave ~118px cards —
+   narrower than the 116px artwork box inside them. Two columns up to 520px
+   keeps the card at its designed proportions. */
+@media (max-width: 520px) {
+  main.grid-wrap > .grid,
+  .grid-wrap > .grid,
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+/* Between phone and tablet the auto-fill measure does a better job than a
+   fixed count: it fits 3 at 560px and 4 by 900px without a jump. */
+@media (min-width: 521px) and (max-width: 1023px) {
+  main.grid-wrap > .grid,
+  .grid-wrap > .grid,
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
+    gap: 12px !important;
+  }
+}
+
+/* ── Chrome height above the fold ────────────────────────────────────────
+   The header measured 174px at 390 and 189px at 768 — taller on a tablet
+   than on a phone, because the rows wrap there. These trim the padding that
+   wrapping adds rather than removing anything from the rows. */
+@media (max-width: 1180px) {
+  .header-row { padding-top: 7px !important; padding-bottom: 7px !important; }
+  .header-row-search { padding-top: 8px !important; padding-bottom: 10px !important; row-gap: 7px !important; }
+  .header-row-main { min-height: 50px !important; }
+}
+@media (max-width: 640px) {
+  .header-row-main { gap: 8px !important; }
+  .grid-wrap { padding-top: 14px !important; }
+  /* The daily strip and the band both shrink rather than scroll away. */
+  .daily-strip { height: 88px !important; margin-top: 20px !important; }
+  .daily-strip-img { width: 74px !important; height: 74px !important; transform: translateY(-16px) !important; }
+  .section-title { font-size: 21px !important; }
+  .section-sub { font-size: 13px !important; }
+}
+
+/* ── Detail modal ───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* The sprite timeline is a horizontal scroller, so it only needs its cells
+     to stay legible — not to fit. */
+  .modal-overlay .detail-sheet .st-head { gap: 8px !important; }
+  .modal-overlay .detail-sheet .st-controls { width: 100%; justify-content: flex-start; }
+  .modal-overlay .detail-sheet .st-foot { flex-wrap: wrap; }
+  .modal-overlay .detail-sheet .st-arrow { display: none !important; }
+  .modal-overlay .detail-sheet .st-rail { padding-left: 2px !important; padding-right: 2px !important; }
+  .modal-overlay .detail-sheet .st-axis { left: 2px !important; right: 2px !important; }
+}
+
+/* ── AI search panel ────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .snap-v4-modal { padding: 20px 16px !important; border-radius: 16px !important; }
+  .snap-v4-picker-title { font-size: 19px !important; }
+  .snap-v4-card { flex-direction: row !important; align-items: center !important; text-align: left; padding: 14px !important; gap: 12px !important; }
+  .snap-v4-card-icon { width: 44px !important; height: 44px !important; flex: 0 0 auto; }
+  .snap-v4-card-desc { text-align: left !important; }
+  .snap-found { max-width: none !important; }
+  .snap-found-img { width: 120px !important; height: 120px !important; }
+  .snap-found-name { font-size: 21px !important; }
+  .snap-found-actions { flex-wrap: wrap !important; }
+}
+
+/* ── Phone fixes found by looking at it ──────────────────────────────────
+   Three things the numbers did not catch, because none of them overflowed
+   the page — they collided inside their own rows instead. */
+@media (max-width: 640px) {
+  /* "HexaDex" was clipped to "HexaD" by the icon cluster next to it. The
+     wordmark keeps its space and the icons give theirs up. */
+  .header-row-main > .logo { flex: 0 0 auto; min-width: 0; }
+  .header-row-main > .header-actions { min-width: 0; gap: 3px !important; }
+  .header-row-main .nav-stats { display: none; }
+  .header-row-main .more-menu-wrap { display: none; }
+
+  /* The daily name lost its end to the call-to-action. The button shrinks to
+     its verb, the name gets the rest. */
+  .daily-strip { gap: 10px !important; padding: 0 11px !important; }
+  .daily-strip-text { min-width: 0; }
+  .daily-strip-name { font-size: 17px !important; }
+  .daily-strip-num { display: none; }
+  .daily-strip-cta { padding: 8px 13px !important; font-size: 0.76rem !important; }
+  .daily-strip-wm { display: none !important; }
+}
+
+/* The bottom tab bar is fixed, so the last row of cards sat underneath it.
+   Reserve its height plus the home indicator. */
+@media (max-width: 767px) {
+  .grid-wrap { padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
+}
+
+/* Very narrow: the CTA becomes the arrow it replaced, rather than pushing the
+   name out of the panel entirely. */
+@media (max-width: 400px) {
+  .daily-strip-cta span,
+  .daily-strip-cta { font-size: 0 !important; padding: 9px !important; }
+  .daily-strip-cta svg { display: block; }
+}
+
+/* ── Header row on phones: back to flex ──────────────────────────────────
+   Row 1 is a 3-column grid (logo | menu | account) so the menu can sit on the
+   true centre of the page. Below 768 the menu becomes the fixed bottom bar,
+   which takes it out of flow — and the account cluster then fell into the
+   middle column instead of the last one, so it sat beside the logo rather
+   than at the edge. With the menu gone there is nothing left to centre, so
+   the row is a plain flex line again. */
+@media (max-width: 767px) {
+  .header-row-main {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  .header-row-main > .logo { justify-self: auto !important; margin-right: auto !important; }
+  .header-row-main > .header-actions {
+    justify-self: auto !important;
+    margin-left: auto !important;
+    flex: 0 0 auto !important;
+  }
+}
+
+/* ── Deeper polish, by width ─────────────────────────────────────────────
+   The gutter, the type ramp and the touch targets step together rather than
+   each finding its own breakpoint. */
+@media (max-width: 767px) {
+  /* Thumb-sized: 40px is the smallest comfortable target, and the row has
+     room for it once the stats capsule is gone. */
+  .header-row-main .nav-music,
+  .header-row-main .auth-avatar-btn,
+  .header-row-main .auth-login-btn { width: 38px !important; height: 38px !important; }
+  .header-actions { gap: 6px !important; }
+
+  /* Search keeps the full width of the row it now owns. */
+  .header-row-search > .nav-searchbar { flex: 1 1 100% !important; height: 42px !important; }
+  .nav-search-input { font-size: 16px !important; }  /* 16px stops iOS zooming on focus */
+  .nav-type { padding: 0 11px !important; }
+
+  /* Region chips: bigger hit area, still one line. */
+  .gen-btn { padding: 9px 15px !important; }
+}
+
+@media (max-width: 480px) {
+  /* Cards tighten before they shrink: the artwork keeps its size and the
+     padding gives way. */
+  .card-body { padding-left: 10px !important; padding-right: 10px !important; }
+  .card-name { font-size: 12.5px !important; }
+  .type-tag { font-size: 9px !important; padding: 2px 7px !important; }
+  .card-num { top: 6px !important; left: 7px !important; }
+
+  /* The band and the heading follow the same ramp. */
+  .gb-title { font-size: 22px !important; }
+  .gb-starter { width: 46px !important; height: 46px !important; }
+  .gb-starter.fire { width: 58px !important; height: 58px !important; }
+  .gb-facts { padding: 11px 15px !important; font-size: 13px !important; }
+  .gb-dot { margin: 0 7px !important; }
+}
+
+/* Landscape phones are short, not narrow — the bottom bar plus a tall header
+   leaves almost nothing for the list. */
+@media (max-height: 460px) and (orientation: landscape) {
+  .daily-strip { display: none !important; }
+  .header-row-search { padding-top: 5px !important; padding-bottom: 6px !important; }
+  .grid-wrap { padding-top: 10px !important; }
+}
+
+/* ── Bottom tab bar: the last tab was falling off the screen ─────────────
+   Four tabs laid out as pill-shaped rows — icon beside label, each sized to
+   its own text — came to more than 390px, so "Games" sat past the right
+   edge on every screen. It is a fixed bar, so nothing could scroll to it.
+   Each tab takes an equal quarter and stacks its icon over its label, which
+   is the shape a bottom bar wants anyway. */
+@media (max-width: 767px) {
+  .header-row-main > .mode-tabs {
+    display: flex !important;
+    justify-content: stretch !important;
+    gap: 0 !important;
+    padding: 5px 4px calc(5px + env(safe-area-inset-bottom)) !important;
+  }
+  .header-row-main > .mode-tabs .mode-tab {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 5px 2px !important;
+    border-radius: 12px !important;
+  }
+  .header-row-main > .mode-tabs .mode-tab-label {
+    font-size: 10.5px !important;
+    line-height: 1.15 !important;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* The active underline belonged to a horizontal bar; in a stacked tab it
+     cuts the label in half. */
+  .header-row-main > .mode-tabs .mode-tab::after,
+  .header-row-main > .mode-tabs .mode-tab.active::after { content: none !important; }
+  .header-row-main > .mode-tabs .mode-tab.active {
+    background: color-mix(in srgb, var(--blue) 10%, transparent) !important;
+  }
+}
+/* Narrowest phones: the icons alone still say which tab is which. */
+@media (max-width: 340px) {
+  .header-row-main > .mode-tabs .mode-tab-label { font-size: 9.5px !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHONE PASS — four sets, in the order they hurt
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Set 1 · The bottom bar ──────────────────────────────────────────────────
+   It was still wearing its desktop costume: a translucent dark pill
+   (rgba(0,0,0,.28)) with 999px corners and white 55%-opacity labels. Pinned to
+   the bottom of a light page that reads as a smoked-glass lozenge with cards
+   swimming through it and the labels nearly invisible. Here it stops being a
+   pill and becomes a bar: opaque, edge to edge, dark ink. */
+@media (max-width: 767px) {
+  .header-row-main > .mode-tabs {
+    background: rgba(255,255,255,0.96) !important;
+    -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+    border: 0 !important;
+    border-top: 0.5px solid rgba(0,0,0,0.08) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.07) !important;
+    max-width: none !important;
+    width: 100% !important;
+    gap: 2px !important;
+    padding: 5px 4px calc(5px + env(safe-area-inset-bottom)) !important;
+  }
+  /* Icon over label, each tab an equal share of the width — sizing tabs to
+     their own text is what pushed "Games" off the right edge. */
+  .header-row-main > .mode-tabs .mode-tab {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 2px !important;
+    border-radius: 12px !important;
+    font-size: 10px !important;
+    line-height: 1.15;
+    color: #5a5550 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .header-row-main > .mode-tabs .mode-tab-icon { font-size: 17px; }
+  .header-row-main > .mode-tabs .mode-tab.active {
+    color: #8f2f2a !important;
+    background: rgba(143,47,42,0.09) !important;
+    font-weight: 800;
+  }
+  /* Bar height (about 56px) plus the home indicator, or the last row of cards
+     sits underneath it. */
+  .grid-wrap { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+}
+[data-theme="dark"] .header-row-main > .mode-tabs {
+  background: rgba(24,22,26,0.96) !important;
+  border-top-color: rgba(255,255,255,0.10) !important;
+}
+[data-theme="dark"] .header-row-main > .mode-tabs .mode-tab { color: #b9b2ab !important; }
+[data-theme="dark"] .header-row-main > .mode-tabs .mode-tab.active {
+  color: #ff9d96 !important;
+  background: rgba(255,157,150,0.14) !important;
+}
+
+/* ── Set 2 · The region band ─────────────────────────────────────────────── */
+/* Desktop keeps a name under each sprite. The single line is phones only. */
+.gb-starter-line { display: none; }
+/* Each fact is one unbreakable unit now, so a wrap can only happen between
+   facts — "Strongest" can no longer end a line with "Mewtwo 680" on the next. */
+.gb-fact { display: inline; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  /* The sprites overlap on purpose; their labels did not, and collided into
+     "BulbasauCharmandeSquirtle". */
+  .gb-starter-name { display: none !important; }
+  .gb-starter-line {
+    display: block;
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #6b6560;
+    text-align: center;
+    font-weight: 600;
+  }
+  /* Two columns beat one wrapping line once four facts have to fit in 375px. */
+  .gb-facts {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 12px;
+    justify-items: start;
+  }
+  .gb-facts > .gb-dot { display: none; }
+  .gb-fact { display: flex; align-items: center; gap: 5px; min-width: 0; }
+  .gb-fact .gb-dot { display: none; }
+  .gb-fact .gb-val-name { overflow: hidden; text-overflow: ellipsis; }
+}
+[data-theme="dark"] .gb-starter-line { color: #b0a9a2; }
+
+/* ── Set 3 · Search and region chips ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Search and the type filter share one shell, .nav-searchbar. On the phone
+     the shell kept its desktop left-to-right order, so "All Types" — 120px for
+     a secondary filter — sat ahead of the field and left it 243px of a 390px
+     screen. Wrapping the shell puts the field on its own line at full width
+     (mic and camera still inside it) and drops the filter to a line of its own
+     directly above the region chips. */
+  .nav-searchbar {
+    flex-wrap: wrap !important;
+    row-gap: 8px !important;
+    border-radius: 16px !important;
+  }
+  .nav-searchbar > .nav-search {
+    order: 1 !important;
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+  .nav-searchbar > .nav-type {
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+  }
+  /* A vertical rule between two stacked rows is a rule pointing nowhere. */
+  .nav-searchbar > .nav-searchbar-sep { display: none !important; }
+
+  .header-row-search { flex-wrap: wrap !important; }
+  .header-row-search > .nav-row-side { display: none !important; }
+  .header-row-nav { flex-wrap: nowrap; gap: 8px; }
+
+  .header-gen-row {
+    /* The last chip was landing flush against the screen edge, which reads as
+       clipped rather than as scrollable. */
+    padding-right: 20px !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: smooth;
+  }
+  .header-gen-row::-webkit-scrollbar { display: none; }
+}
+
+/* ── Set 4 · Three columns ───────────────────────────────────────────────── */
+/* auto-fill rather than repeat(3): a 375px iPhone lands on 2 wide-enough
+   columns and a 430px Pro Max on 3, instead of every phone being forced to 3
+   and the small ones ending up with 105px cards. */
+@media (max-width: 640px) {
+  main.grid-wrap > .grid,
+  .grid-wrap > .grid,
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+    gap: 8px !important;
+  }
+  .poke-card { border-radius: 14px !important; }
+  .card-img-wrap { height: 84px !important; }
+  .card-body { padding: 6px 7px 8px !important; }
+  /* Names like "Maushold-Family-Of-Four" have to be allowed to lose. */
+  .card-name {
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .card-name-en { font-size: 9.5px !important; }
+  .card-num { font-size: 9.5px !important; }
+  /* Option A: the pills wrap to a second line. Abbreviations and colour dots
+     both trade a word you can read for one you have to learn. */
+  .type-tags {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 3px !important;
+    justify-content: center;
+  }
+  .type-tag {
+    font-size: 8.5px !important;
+    padding: 2px 6px !important;
+    letter-spacing: 0.2px !important;
+  }
+  /* The icon shrinks; the tap target does not. Negative margin keeps the
+     44x44 hit area from pushing the artwork around. */
+  .fav-btn {
+    width: 44px !important;
+    height: 44px !important;
+    margin: -12px -12px 0 0 !important;
+    padding: 12px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .fav-btn svg { width: 15px !important; height: 15px !important; }
 }

@@ -112,6 +112,15 @@ export default function GenerationBand({
           ))}
         </div>
 
+        {/* Phones only. The per-sprite labels collide once the sprites
+            overlap — "BulbasauCharmandeSquirtle" — so below 640px they are
+            hidden and restated here as one line. */}
+        {starters.length === 3 && starters.every(x => x.name) && (
+          <div className="gb-starter-line">
+            {starters.map(x => x.name).join(" · ")}
+          </div>
+        )}
+
         <div className="gb-text">
           <h2 className="gb-title">
             {region}
@@ -160,22 +169,22 @@ export default function GenerationBand({
       {(stats?.topType || stats?.avgTotal != null) && (
         <p className="gb-facts">
           {stats?.topType && (
-            <>
+            <span className="gb-fact">
               <span className="gb-lbl">{t(lang, "Most common", "ธาตุเด่น", "最多タイプ")}</span>
               <span className="gb-type" style={{ "--tt": typeColor(stats.topType) }}>
                 {typeLabel(stats.topType)}
               </span>
-            </>
+            </span>
           )}
           {stats?.avgTotal != null && (
-            <>
+            <span className="gb-fact">
               <span className="gb-dot" aria-hidden>·</span>
               <span className="gb-lbl">{t(lang, "Average", "เฉลี่ย", "平均")}</span>
               <b className="gb-val">{stats.avgTotal}</b>
-            </>
+            </span>
           )}
           {stats?.strongestName && (
-            <>
+            <span className="gb-fact">
               <span className="gb-dot" aria-hidden>·</span>
               <span className="gb-lbl">{t(lang, "Strongest", "แข็งแกร่งสุด", "最強")}</span>
               <b className="gb-val gb-val-name">
@@ -184,13 +193,15 @@ export default function GenerationBand({
                 ) ?? stats.strongestName}{" "}
                 {stats.strongestTotal}
               </b>
-            </>
+            </span>
           )}
-          <span className="gb-dot" aria-hidden>·</span>
-          <span className="gb-lbl">{t(lang, "Legendary", "ในตำนาน", "伝説")}</span>
-          <b className="gb-val">
-            {shown.legendaries}{t(lang, "", " ตัว", "匹")}
-          </b>
+          <span className="gb-fact">
+            <span className="gb-dot" aria-hidden>·</span>
+            <span className="gb-lbl">{t(lang, "Legendary", "ในตำนาน", "伝説")}</span>
+            <b className="gb-val">
+              {shown.legendaries}{t(lang, "", " ตัว", "匹")}
+            </b>
+          </span>
         </p>
       )}
     </section>

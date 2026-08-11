@@ -14,7 +14,8 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Camera } from "lucide-react";
+import { Camera, Video, Image as ImageIcon, AudioLines, X,
+         UploadCloud, CameraOff, SearchX } from "lucide-react";
 import { typeColor, getArt, getLocalName, padId, playCry, isSoundEnabled } from "../utils.js";
 
 const API_ENDPOINT = "/api/detect-pokemon";
@@ -296,8 +297,31 @@ export default function SnapSearch({ loaded, thaiArr, jpArr, lang, onOpen }) {
   const [mode, setMode] = useState("picker"); // picker | camera | upload | analyzing | result | error
   const [result, setResult] = useState(null); // { name, raw, pokemon } | null
   const [errorMsg, setErrorMsg] = useState("");
+  // Asked once, before the cards are drawn: pressing a route only to be told
+  // the hardware is not there is a dead end the UI can avoid offering.
+  const [caps, setCaps] = useState({ camera: null, mic: null });
+  const [dragging, setDragging] = useState(false);
+  const modalRef = useRef(null);
+  const closeModalRef = useRef(null);
+  // analyzeBase64 is defined further down; the drop handler reaches it through
+  // a ref so neither has to be declared before the other.
+  const analyzeBase64Ref = useRef(null);
 
   const t = TXT[lang] || TXT.en;
+
+  /** A file dropped on the panel goes straight to analysis. Declared after
+   *  `t`, because its dependency array is read during render — a const in its
+   *  temporal dead zone throws there just as it would anywhere else. */
+  const handleDroppedFile = useCallback(async (file) => {
+    setMode("analyzing");
+    try {
+      const base64 = await blobToBase64(file);
+      await analyzeBase64Ref.current?.(base64, null, file.type || "image/jpeg");
+    } catch {
+      setErrorMsg(t.errGeneric ?? "Could not read that file");
+      setMode("error");
+    }
+  }, [t]);
 
   const openModal = useCallback(() => {
     setOpen(true);
@@ -306,12 +330,54 @@ export default function SnapSearch({ loaded, thaiArr, jpArr, lang, onOpen }) {
     setErrorMsg("");
   }, []);
 
+  // Probe the device once the panel opens. enumerateDevices needs no
+  // permission for the KIND of device present, only for its label — so this
+  // costs no prompt.
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    (async () => {
+      try {
+        const list = await navigator.mediaDevices?.enumerateDevices?.() ?? [];
+        if (!alive) return;
+        setCaps({
+          camera: list.some(d => d.kind === "videoinput"),
+          mic: list.some(d => d.kind === "audioinput"),
+        });
+      } catch { if (alive) setCaps({ camera: null, mic: null }); }
+    })();
+    return () => { alive = false; };
+  }, [open]);
+
+  // Escape closes, and focus is held inside while it is open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); closeModalRef.current?.(); return; }
+      if (e.key !== "Tab") return;
+      const f = modalRef.current?.querySelectorAll(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!f?.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [open]);
+
   const closeModal = useCallback(() => {
     setOpen(false);
     setMode("picker");
     setResult(null);
     setErrorMsg("");
   }, []);
+
+  // Assigned after the declaration it reads. The key handler above reaches
+  // closeModal through this ref rather than closing over it, so the listener
+  // does not resubscribe on every render — but a `const` is in its temporal
+  // dead zone until its own line runs, so the write has to live below it.
+  closeModalRef.current = closeModal;
 
   // Browser back-button trap
   useEffect(() => {
@@ -366,6 +432,7 @@ export default function SnapSearch({ loaded, thaiArr, jpArr, lang, onOpen }) {
       setMode("error");
     }
   }, [loaded]);
+  analyzeBase64Ref.current = analyzeBase64;
 
   return (
     <>
@@ -379,12 +446,48 @@ export default function SnapSearch({ loaded, thaiArr, jpArr, lang, onOpen }) {
 
       {open && createPortal(
         <div className="snap-v4-overlay" onClick={closeModal}>
-          <div className="snap-v4-modal" onClick={e => e.stopPropagation()}>
-            <button className="snap-v4-close" onClick={closeModal} aria-label="Close">✕</button>
+          <div
+            ref={modalRef}
+            className={`snap-v4-modal${dragging ? " dropping" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.pickHow}
+            onClick={e => e.stopPropagation()}
+            // Dropping onto the panel is quicker than the file dialog, and the
+            // whole panel is a bigger target than the one card.
+            onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
+            onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              const file = [...(e.dataTransfer?.files ?? [])].find(f => f.type.startsWith("image/"));
+              if (file) handleDroppedFile(file);
+            }}
+          >
+            <button className="snap-v4-close" onClick={closeModal}
+              aria-label={lang === "th" ? "ปิด" : lang === "ja" ? "閉じる" : "Close"}>
+              <X size={16} strokeWidth={2.6} />
+            </button>
+
+            {/* Every state change is announced, so the outcome does not rely
+                on seeing a spinner stop. */}
+            <p className="snap-v4-live" role="status" aria-live="polite">
+              {mode === "analyzing" ? t.analyzing
+                : mode === "result" && result ? `${t.foundIt ?? "Found"}: ${result.name}`
+                : mode === "error" ? errorMsg : ""}
+            </p>
+
+            {dragging && (
+              <div className="snap-v4-dropzone" aria-hidden>
+                {lang === "th" ? "วางไฟล์ที่นี่" : lang === "ja" ? "ここにドロップ" : "Drop the image here"}
+              </div>
+            )}
 
             {mode === "picker" && (
               <ModePicker
                 t={t}
+                lang={lang}
+                caps={caps}
                 onPickCamera={() => setMode("camera")}
                 onPickUpload={() => setMode("upload")}
                 onPickSound={() => setMode("sound")}
@@ -456,45 +559,67 @@ export default function SnapSearch({ loaded, thaiArr, jpArr, lang, onOpen }) {
 // ═══════════════════════════════════════════════════════════════════════
 // Sub: Mode Picker
 // ═══════════════════════════════════════════════════════════════════════
-function ModePicker({ t, onPickCamera, onPickUpload, onPickSound }) {
+function ModePicker({ t, lang, caps, onPickCamera, onPickUpload, onPickSound }) {
+  const L = (en, th, ja) => (lang === "th" ? th : lang === "ja" ? ja : en);
+
+  // Three equal columns. The old 2-up grid left the third card alone on a
+  // second row, which made the panel tall for no reason.
+  const cards = [
+    {
+      key: "camera", Icon: Video, onClick: onPickCamera,
+      title: t.cameraTitle, desc: t.cameraDesc,
+      ok: caps.camera !== false,
+      why: caps.camera === false
+        ? L("No camera on this device", "เครื่องนี้ไม่มีกล้อง", "カメラがありません") : null,
+    },
+    {
+      key: "upload", Icon: ImageIcon, onClick: onPickUpload,
+      title: t.uploadTitle, desc: t.uploadDesc, ok: true, why: null,
+    },
+    {
+      key: "sound", Icon: AudioLines, onClick: onPickSound,
+      title: t.soundTitle, desc: t.soundDesc,
+      ok: caps.mic !== false,
+      why: caps.mic === false
+        ? L("No microphone on this device", "เครื่องนี้ไม่มีไมโครโฟน", "マイクがありません") : null,
+    },
+  ];
+
   return (
     <div className="snap-v4-picker">
       <div className="snap-v4-picker-header">
-        <div className="snap-v4-picker-icon">🤖</div>
-        <h2 className="snap-v4-picker-title">{t.pickHow}</h2>
-        <div className="snap-v4-picker-sub">Powered by Google Gemini Vision</div>
+        {/* No mascot icon and no vendor line: one names nothing, and the other
+            is an implementation detail that would need a UI change the day the
+            provider does. */}
+        <h2 className="snap-v4-picker-title">
+          {L("Search with AI", "ค้นหาด้วย AI", "AIで検索")}
+        </h2>
+        <p className="snap-v4-picker-sub">
+          {L("Pick a way to show it, and AI will work out which Pokémon it is.",
+             "เลือกวิธีที่สะดวก แล้วให้ AI ช่วยระบุว่าเป็นโปเกมอนตัวไหน",
+             "方法を選ぶと、AIがどのポケモンか判定します")}
+        </p>
       </div>
 
       <div className="snap-v4-picker-cards">
-        <button className="snap-v4-card snap-v4-card-camera" onClick={onPickCamera}>
-          <div className="snap-v4-card-icon-wrap">
-            <div className="snap-v4-card-icon">🎥</div>
-            <div className="snap-v4-card-pulse" />
-          </div>
-          <div className="snap-v4-card-title">{t.cameraTitle}</div>
-          <div className="snap-v4-card-desc">{t.cameraDesc}</div>
-          <div className="snap-v4-card-badge">⚡ LIVE</div>
-        </button>
-
-        <button className="snap-v4-card snap-v4-card-upload" onClick={onPickUpload}>
-          <div className="snap-v4-card-icon-wrap">
-            <div className="snap-v4-card-icon">🖼️</div>
-            <div className="snap-v4-card-pulse" />
-          </div>
-          <div className="snap-v4-card-title">{t.uploadTitle}</div>
-          <div className="snap-v4-card-desc">{t.uploadDesc}</div>
-          <div className="snap-v4-card-badge">🎯 AI</div>
-        </button>
-
-        <button className="snap-v4-card snap-v4-card-sound" onClick={onPickSound}>
-          <div className="snap-v4-card-icon-wrap">
-            <div className="snap-v4-card-icon">🔊</div>
-            <div className="snap-v4-card-pulse" />
-          </div>
-          <div className="snap-v4-card-title">{t.soundTitle}</div>
-          <div className="snap-v4-card-desc">{t.soundDesc}</div>
-          <div className="snap-v4-card-badge">🎵 CRY</div>
-        </button>
+        {cards.map(({ key, Icon, onClick, title, desc, ok, why }) => (
+          <button
+            key={key}
+            type="button"
+            className={`snap-v4-card${ok ? "" : " disabled"}`}
+            onClick={ok ? onClick : undefined}
+            disabled={!ok}
+            aria-label={ok ? `${title} — ${desc}` : `${title}: ${why}`}
+          >
+            <span className="snap-v4-card-icon">
+              <Icon size={24} strokeWidth={2} />
+            </span>
+            <span className="snap-v4-card-title">{title}</span>
+            {/* The badges are gone: LIVE / AI / CRY repeated the line above
+                them, and all three routes are AI either way. */}
+            <span className="snap-v4-card-desc">{ok ? desc : why}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -692,7 +817,7 @@ function CameraView({ t, onCapture, onBack, onAutoResult }) {
   if (error) {
     return (
       <div className="snap-v4-camera-error">
-        <div className="snap-v4-camera-error-icon">🚫</div>
+        <div className="snap-v4-camera-error-icon"><CameraOff size={26} strokeWidth={2} /></div>
         <div className="snap-v4-camera-error-text">{error}</div>
         <button className="snap-v4-btn snap-v4-btn-ghost" onClick={onBack}>{t.back}</button>
       </div>
@@ -797,7 +922,7 @@ function UploadView({ t, onAnalyze, onBack }) {
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}>
-          <div className="snap-v4-drop-icon">🖼️</div>
+          <div className="snap-v4-drop-icon"><UploadCloud size={26} strokeWidth={2} /></div>
           <div className="snap-v4-drop-title">{t.dropHere}</div>
           <div className="snap-v4-drop-sub">{t.orClick}</div>
           <div className="snap-v4-drop-accept">{t.accept}</div>
@@ -1034,7 +1159,7 @@ function ResultView({ t, result, lang, thaiArr, jpArr, onPick, onRetry }) {
     });
 
     return (
-      <div className="snap-found">
+      <div className="snap-found" style={{ "--sc1": tc1, "--sc2": tc2 }}>
         {/* One-shot diagnostic scan sweep */}
         <div className="snap-found-sweep" />
 
@@ -1051,14 +1176,14 @@ function ResultView({ t, result, lang, thaiArr, jpArr, onPick, onRetry }) {
             <span className="snap-found-badge-pulse" style={{ background: tc1, boxShadow: `0 0 6px ${tc1}` }} />
             IDENTIFIED
           </div>
-          <div className="snap-found-dex-num">#{padId(pokemon.id)}</div>
+          <div className="snap-found-dex-num">{padId(pokemon.id)}</div>
         </div>
 
         {/* Type chips */}
         <div className="snap-found-types">
           {types.map(tn => (
             <span key={tn} className="snap-found-type"
-              style={{ background: typeColor(tn), boxShadow: `0 4px 14px ${typeColor(tn)}55` }}>
+              style={{ "--tt": typeColor(tn) }}>
               {tn}
             </span>
           ))}
@@ -1101,7 +1226,7 @@ function ResultView({ t, result, lang, thaiArr, jpArr, onPick, onRetry }) {
                     className="snap-found-stat-fill"
                     style={{
                       width: `${Math.round(s.base_stat / 255 * 100)}%`,
-                      background: `linear-gradient(90deg, ${tc1}, ${tc2})`,
+                      background: tc1,
                       "--si": si,
                     }}
                   />
@@ -1146,7 +1271,7 @@ function ResultView({ t, result, lang, thaiArr, jpArr, onPick, onRetry }) {
   // Pokemon name returned by AI but not in pokedex list
   return (
     <div className="snap-v4-result snap-v4-result-notfound">
-      <div className="snap-v4-result-confused-icon">🤔</div>
+      <div className="snap-v4-result-confused-icon"><SearchX size={30} strokeWidth={2} /></div>
       <h2 className="snap-v4-result-title">{t.notFoundTitle}</h2>
       <div className="snap-v4-result-desc">{t.notFoundDesc}</div>
       <div className="snap-v4-result-rawname">"{raw || name}"</div>
@@ -2252,6 +2377,668 @@ function SnapStyles() {
         .snap-found-actions { width: calc(100% - 32px); }
         .snap-found-meta-item { padding: 6px 16px; }
         .snap-found-meta-val { font-size: 13px; }
+      }
+
+      /* ══════════════════════════════════════════════════════════════════
+         Light theme pass — the panel used a dark space palette with neon
+         glows belonging to no other screen in the app. Brand red is the only
+         accent now, and every glow is gone.
+         ══════════════════════════════════════════════════════════════════ */
+      .snap-v4-overlay {
+        background: rgba(20, 26, 32, 0.5) !important;
+        backdrop-filter: blur(6px) !important;
+        -webkit-backdrop-filter: blur(6px) !important;
+      }
+      .snap-v4-modal {
+        background: #ffffff !important;
+        border: 1px solid #e8e4dc !important;
+        border-radius: 20px !important;
+        box-shadow: 0 18px 48px rgba(0,0,0,0.18) !important;
+        color: #2a2521 !important;
+        padding: 26px !important;
+      }
+      [data-theme="dark"] .snap-v4-modal {
+        background: #1b1a1f !important; border-color: rgba(255,255,255,0.1) !important; color: #f2f0ea !important;
+      }
+
+      /* Standard place: inside the panel, 16px in. It used to float outside
+         the content box entirely. */
+      .snap-v4-close {
+        position: absolute !important;
+        top: 16px !important; right: 16px !important;
+        width: 32px !important; height: 32px !important;
+        display: grid !important; place-items: center !important;
+        border: none !important; border-radius: 50% !important;
+        background: transparent !important;
+        color: #a09d95 !important;
+        font-size: 0 !important;
+        box-shadow: none !important;
+        cursor: pointer;
+      }
+      .snap-v4-close:hover { background: #f2efe9 !important; color: #2a2521 !important; }
+      [data-theme="dark"] .snap-v4-close:hover { background: rgba(255,255,255,0.1) !important; color: #f2f0ea !important; }
+      .snap-v4-close:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; }
+
+      .snap-v4-picker-header { text-align: center; margin-bottom: 20px; }
+      .snap-v4-picker-title {
+        margin: 0 0 6px !important;
+        font-size: 22px !important; font-weight: 800 !important;
+        color: #2a2521 !important; text-shadow: none !important;
+        background: none !important; -webkit-text-fill-color: currentColor !important;
+      }
+      [data-theme="dark"] .snap-v4-picker-title { color: #f2f0ea !important; }
+      .snap-v4-picker-sub {
+        margin: 0 !important;
+        font-size: 13px !important; font-weight: 500 !important;
+        letter-spacing: 0 !important; text-transform: none !important;
+        color: #7a756c !important;
+      }
+
+      /* Three equal columns in one row, so the panel is short. */
+      .snap-v4-picker-cards {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+      }
+      @media (max-width: 640px) {
+        .snap-v4-picker-cards { grid-template-columns: 1fr !important; }
+      }
+
+      .snap-v4-card {
+        display: flex !important; flex-direction: column !important;
+        align-items: center !important; gap: 8px !important;
+        padding: 20px 14px 18px !important;
+        border: 1px solid #e8e4dc !important;
+        border-radius: 14px !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        cursor: pointer;
+        transition: border-color 0.16s ease, transform 0.14s ease-out !important;
+      }
+      [data-theme="dark"] .snap-v4-card { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.12) !important; }
+      .snap-v4-card:hover:not(.disabled) { border-color: #8f2f2a !important; transform: translateY(-2px) !important; }
+      .snap-v4-card:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; }
+      .snap-v4-card.disabled { opacity: 0.5; cursor: not-allowed; }
+      .snap-v4-card.disabled:hover { transform: none !important; border-color: #e8e4dc !important; }
+
+      /* Line icons in a soft disc — the family the rest of the app uses,
+         instead of emoji that render differently on every machine. */
+      .snap-v4-card-icon {
+        width: 56px !important; height: 56px !important;
+        display: grid !important; place-items: center !important;
+        border-radius: 50% !important;
+        background: #f5f2ec !important;
+        color: #2a2521 !important;
+        font-size: 0 !important;
+        animation: none !important;
+        filter: none !important;
+        box-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-v4-card-icon { background: rgba(255,255,255,0.08) !important; color: #f2f0ea !important; }
+      .snap-v4-card-icon svg { display: block; }
+      .snap-v4-card-title {
+        font-size: 16px !important; font-weight: 800 !important;
+        color: #2a2521 !important; text-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-v4-card-title { color: #f2f0ea !important; }
+      .snap-v4-card-desc {
+        font-size: 13px !important; font-weight: 500 !important;
+        color: #7a756c !important; text-align: center; line-height: 1.45;
+      }
+
+      /* Anything left from the neon build. */
+      .snap-v4-card-pulse,
+      .snap-v4-card-badge,
+      .snap-v4-picker-icon { display: none !important; }
+
+      .snap-v4-dropzone {
+        position: absolute; inset: 10px; z-index: 5;
+        display: grid; place-items: center;
+        border: 2px dashed #8f2f2a; border-radius: 16px;
+        background: rgba(255,255,255,0.94);
+        color: #8f2f2a; font-size: 15px; font-weight: 800;
+        pointer-events: none;
+      }
+      [data-theme="dark"] .snap-v4-dropzone { background: rgba(27,26,31,0.94); }
+
+      .snap-v4-live {
+        position: absolute; width: 1px; height: 1px; margin: -1px;
+        padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .snap-v4-card { transition: none !important; }
+        .snap-v4-card:hover:not(.disabled) { transform: none !important; }
+      }
+
+      /* ══════════════════════════════════════════════════════════════════
+         Inner views — same light palette as the picker
+         Upload, camera, sound, analysing, result and error were all still on
+         the dark neon build. One ink set, one accent, no glows.
+         ══════════════════════════════════════════════════════════════════ */
+      .snap-v4-upload,
+      .snap-v4-camera,
+      .snap-v4-analyzing,
+      .snap-v4-result { color: #2a2521 !important; }
+      [data-theme="dark"] .snap-v4-upload,
+      [data-theme="dark"] .snap-v4-camera,
+      [data-theme="dark"] .snap-v4-analyzing,
+      [data-theme="dark"] .snap-v4-result { color: #f2f0ea !important; }
+
+      /* Header shared by the inner views: back on the left, title centred, and
+         a spacer so the title does not drift as the button's label changes. */
+      .snap-v4-upload-header,
+      .snap-v4-camera-topbar {
+        display: flex !important; align-items: center !important; gap: 10px !important;
+        margin-bottom: 16px !important;
+        background: none !important; border: none !important; padding: 0 !important;
+      }
+      .snap-v4-upload-title,
+      .snap-v4-camera-topbar h2 {
+        flex: 1 1 auto;
+        margin: 0 !important;
+        font-size: 17px !important; font-weight: 800 !important;
+        color: #2a2521 !important; text-align: center;
+        text-shadow: none !important; background: none !important;
+        -webkit-text-fill-color: currentColor !important;
+      }
+      [data-theme="dark"] .snap-v4-upload-title { color: #f2f0ea !important; }
+
+      .snap-v4-back-btn-inline,
+      .snap-v4-back-btn {
+        display: inline-flex !important; align-items: center !important; gap: 5px !important;
+        padding: 7px 13px !important;
+        border: 1px solid #e8e4dc !important; border-radius: 999px !important;
+        background: #fff !important; color: #2a2521 !important;
+        font-size: 12.5px !important; font-weight: 700 !important;
+        box-shadow: none !important; text-shadow: none !important;
+        cursor: pointer;
+      }
+      .snap-v4-back-btn-inline:hover,
+      .snap-v4-back-btn:hover { border-color: #8f2f2a !important; color: #8f2f2a !important; }
+      [data-theme="dark"] .snap-v4-back-btn-inline,
+      [data-theme="dark"] .snap-v4-back-btn { background: rgba(255,255,255,0.06) !important; color: #f2f0ea !important; border-color: rgba(255,255,255,0.14) !important; }
+
+      /* ── Upload: the drop zone is the whole view ─────────────────────── */
+      .snap-v4-drop {
+        display: flex !important; flex-direction: column !important;
+        align-items: center !important; justify-content: center !important;
+        gap: 10px !important;
+        min-height: 260px !important;
+        padding: 30px 22px !important;
+        border: 2px dashed #ddd7cc !important;
+        border-radius: 16px !important;
+        background: #faf8f4 !important;
+        box-shadow: none !important;
+        cursor: pointer;
+        transition: border-color 0.16s ease, background 0.16s ease !important;
+      }
+      [data-theme="dark"] .snap-v4-drop { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.16) !important; }
+      .snap-v4-drop:hover { border-color: #c9c1b2 !important; }
+      .snap-v4-drop-over,
+      .snap-v4-drop.snap-v4-drop-over {
+        border-color: #8f2f2a !important;
+        background: rgba(143, 47, 42, 0.05) !important;
+      }
+      .snap-v4-drop-icon {
+        width: 64px !important; height: 64px !important;
+        display: grid !important; place-items: center !important;
+        border-radius: 50% !important;
+        background: #f0ece4 !important; color: #7a756c !important;
+        font-size: 26px !important;
+        animation: none !important; filter: none !important; box-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-v4-drop-icon { background: rgba(255,255,255,0.08) !important; color: #cfc9bd !important; }
+      .snap-v4-drop-title {
+        font-size: 16px !important; font-weight: 800 !important;
+        color: #2a2521 !important; text-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-v4-drop-title { color: #f2f0ea !important; }
+      .snap-v4-drop-sub, .snap-v4-drop-accept {
+        /* Same reason as the accept line: #7a756c is 4.31:1 against the drop
+           zone's own tint, so the secondary ink is a shade darker here than it
+           is on the white panel. */
+        font-size: 12.5px !important; color: #6b665e !important; text-align: center;
+      }
+      .snap-v4-drop-accept { font-size: 11.5px !important; color: #a09d95 !important; }
+
+      /* Preview after a file is chosen. */
+      .snap-v4-preview-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+      .snap-v4-preview-frame {
+        padding: 10px !important;
+        border: 1px solid #e8e4dc !important; border-radius: 16px !important;
+        background: #faf8f4 !important; box-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-v4-preview-frame { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.12) !important; }
+      .snap-v4-preview-img { border-radius: 10px !important; max-height: 260px !important; display: block; }
+      .snap-v4-preview-actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; }
+
+      /* ── Buttons ─────────────────────────────────────────────────────── */
+      .snap-v4-btn {
+        padding: 10px 20px !important;
+        border-radius: 999px !important;
+        font-size: 13.5px !important; font-weight: 700 !important;
+        text-shadow: none !important; box-shadow: none !important;
+        cursor: pointer;
+      }
+      .snap-v4-btn-primary {
+        background: #8f2f2a !important; border: 1px solid #8f2f2a !important; color: #fff !important;
+      }
+      .snap-v4-btn-primary:hover { background: #7a2723 !important; border-color: #7a2723 !important; }
+      .snap-v4-btn-ghost {
+        background: #fff !important; border: 1px solid #e8e4dc !important; color: #2a2521 !important;
+      }
+      .snap-v4-btn-ghost:hover { border-color: #8f2f2a !important; color: #8f2f2a !important; }
+      [data-theme="dark"] .snap-v4-btn-ghost { background: rgba(255,255,255,0.06) !important; color: #f2f0ea !important; border-color: rgba(255,255,255,0.14) !important; }
+      .snap-v4-btn:focus-visible,
+      .snap-v4-drop:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; }
+
+      /* ── Camera: the stage stays dark, the chrome around it does not ─── */
+      .snap-v4-camera-stage {
+        border-radius: 16px !important;
+        overflow: hidden !important;
+        background: #17161a !important;
+        border: 1px solid #e8e4dc !important;
+        box-shadow: none !important;
+      }
+      .snap-v4-guide-corner { border-color: rgba(255,255,255,0.85) !important; box-shadow: none !important; }
+      .snap-v4-scan-tip {
+        background: rgba(20,20,24,0.72) !important;
+        color: #fff !important; font-weight: 600 !important;
+        border-radius: 999px !important; padding: 6px 13px !important;
+        font-size: 12px !important; text-shadow: none !important;
+      }
+      .snap-v4-camera-bottombar {
+        display: flex !important; align-items: center !important; justify-content: center !important;
+        gap: 14px !important; margin-top: 14px !important;
+        background: none !important; border: none !important;
+      }
+      .snap-v4-shutter {
+        width: 62px !important; height: 62px !important;
+        border-radius: 50% !important;
+        border: 3px solid #8f2f2a !important;
+        background: #fff !important;
+        box-shadow: none !important; animation: none !important;
+        display: grid !important; place-items: center !important;
+        cursor: pointer;
+      }
+      .snap-v4-shutter-inner {
+        width: 44px !important; height: 44px !important; border-radius: 50% !important;
+        background: #8f2f2a !important; box-shadow: none !important;
+      }
+      .snap-v4-shutter:hover .snap-v4-shutter-inner { background: #7a2723 !important; }
+      .snap-v4-flip-btn {
+        width: 42px !important; height: 42px !important;
+        border-radius: 50% !important;
+        border: 1px solid #e8e4dc !important;
+        background: #fff !important; color: #2a2521 !important;
+        box-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-v4-flip-btn { background: rgba(255,255,255,0.08) !important; color: #f2f0ea !important; border-color: rgba(255,255,255,0.14) !important; }
+
+      .snap-v4-camera-error {
+        display: flex; flex-direction: column; align-items: center; gap: 9px;
+        padding: 34px 20px !important; text-align: center;
+      }
+      .snap-v4-camera-error-icon { font-size: 30px !important; filter: none !important; }
+      .snap-v4-camera-error-text { font-size: 13.5px !important; color: #7a756c !important; }
+
+      /* ── Analysing ───────────────────────────────────────────────────── */
+      .snap-v4-analyzing {
+        display: flex !important; flex-direction: column !important;
+        align-items: center !important; justify-content: center !important;
+        gap: 12px !important; padding: 52px 20px !important; text-align: center;
+      }
+      /* The pulsing neon halo is replaced by a plain ring that spins — one
+         moving thing, no glow. */
+      .snap-v4-ai-bubble {
+        position: relative;
+        width: 62px !important; height: 62px !important;
+        border-radius: 50% !important;
+        background: none !important;
+        border: 3px solid #eee9e0 !important;
+        border-top-color: #8f2f2a !important;
+        box-shadow: none !important; filter: none !important;
+        animation: snap-spin 0.9s linear infinite !important;
+      }
+      @keyframes snap-spin { to { transform: rotate(360deg); } }
+      .snap-v4-ai-icon,
+      .snap-v4-ai-pulse-1,
+      .snap-v4-ai-pulse-2 { display: none !important; }
+      .snap-v4-analyzing-title {
+        font-size: 17px !important; font-weight: 800 !important;
+        color: #2a2521 !important; text-shadow: none !important;
+        background: none !important; -webkit-text-fill-color: currentColor !important;
+      }
+      [data-theme="dark"] .snap-v4-analyzing-title { color: #f2f0ea !important; }
+      .snap-v4-analyzing-hint { font-size: 13px !important; color: #7a756c !important; }
+      .snap-v4-dots { display: inline-flex; gap: 5px; }
+      .snap-v4-dot {
+        width: 6px !important; height: 6px !important; border-radius: 50% !important;
+        background: #c9c1b2 !important; box-shadow: none !important;
+      }
+
+      /* ── Result / not found / error ──────────────────────────────────── */
+      .snap-v4-result {
+        display: flex !important; flex-direction: column !important;
+        align-items: center !important; gap: 12px !important;
+        padding: 26px 20px 8px !important; text-align: center;
+      }
+      .snap-v4-result-title {
+        font-size: 19px !important; font-weight: 800 !important;
+        color: #2a2521 !important; text-shadow: none !important;
+        background: none !important; -webkit-text-fill-color: currentColor !important;
+      }
+      [data-theme="dark"] .snap-v4-result-title { color: #f2f0ea !important; }
+      .snap-v4-result-desc,
+      .snap-v4-result-hint,
+      .snap-v4-result-error-msg { font-size: 13px !important; color: #7a756c !important; line-height: 1.55; }
+      .snap-v4-result-rawname {
+        font-size: 12.5px !important; color: #a09d95 !important;
+        text-transform: capitalize;
+      }
+      .snap-v4-result-confused-icon { font-size: 34px !important; filter: none !important; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .snap-v4-ai-bubble { animation: none !important; border-top-color: #eee9e0 !important; }
+        .snap-v4-drop { transition: none !important; }
+      }
+
+      /* The emoji are gone from the inner views too; these hold the line icons
+         that replaced them. font-size:0 kills any stray text node. */
+      .snap-v4-drop-icon,
+      .snap-v4-camera-error-icon,
+      .snap-v4-result-confused-icon { font-size: 0 !important; }
+      .snap-v4-drop-icon svg,
+      .snap-v4-camera-error-icon svg,
+      .snap-v4-result-confused-icon svg { display: block; }
+      .snap-v4-camera-error-icon,
+      .snap-v4-result-confused-icon {
+        width: 56px; height: 56px;
+        display: grid !important; place-items: center !important;
+        border-radius: 50%;
+        background: #f5f2ec; color: #7a756c;
+      }
+      [data-theme="dark"] .snap-v4-camera-error-icon,
+      [data-theme="dark"] .snap-v4-result-confused-icon { background: rgba(255,255,255,0.08); color: #cfc9bd; }
+
+      /* The accepted-formats line sat as pale grey on a pale pill and could not
+         be read at all. Plain text, dark enough to clear AA. */
+      .snap-v4-drop-accept {
+        margin-top: 2px;
+        padding: 0 !important;
+        background: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        /* #7a756c measured 4.31:1 on the drop zone's #faf8f4 — just under
+           the 4.5 floor, so it goes a shade darker. */
+        color: #6b665e !important;
+        font-size: 11.5px !important;
+        font-weight: 600 !important;
+        letter-spacing: 0 !important;
+        box-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-v4-drop-accept { color: rgba(241,239,233,0.6) !important; }
+
+      /* ══════════════════════════════════════════════════════════════════
+         Result card — calm, not a light show
+         It shipped with six simultaneous effects: a sweeping beam, a grid
+         overlay, two coloured orbs, three glowing rings, eight burst
+         particles and a glow behind the art. Each one competed with the
+         Pokémon it was meant to present. What survives is the type colour as
+         a wash and one gentle arrival — the same restraint as the generation
+         band and the daily strip.
+         ══════════════════════════════════════════════════════════════════ */
+      .snap-found-sweep,
+      .snap-found-grid,
+      .snap-found-orb,
+      .snap-found-ring,
+      .snap-found-particle,
+      .snap-found-hero-glow { display: none !important; }
+
+      .snap-found {
+        position: relative;
+        /* The parent centres its children, which shrank the card to its
+           narrowest content and stacked the two actions. */
+        width: 100% !important;
+        max-width: 420px !important;
+        margin: 0 auto !important;
+        display: flex !important; flex-direction: column !important;
+        align-items: center !important; gap: 0 !important;
+        padding: 0 !important;
+        border: 1px solid #e8e4dc !important;
+        border-radius: 18px !important;
+        background: #fff !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        animation: snap-found-in 260ms cubic-bezier(.22,1,.36,1) !important;
+      }
+      [data-theme="dark"] .snap-found { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.12) !important; }
+      @keyframes snap-found-in {
+        from { opacity: 0; transform: translateY(10px) scale(0.985); }
+        to   { opacity: 1; transform: none; }
+      }
+
+      /* Upper half carries the type wash and the artwork. */
+      .snap-found-header {
+        order: 1;
+        width: 100%;
+        display: flex !important; align-items: center !important; justify-content: space-between !important;
+        padding: 13px 17px 0 !important;
+        background: none !important; border: none !important;
+      }
+      .snap-found-scan-badge {
+        display: inline-flex !important; align-items: center !important; gap: 6px !important;
+        padding: 4px 10px !important;
+        border-radius: 999px !important;
+        background: #f2efe9 !important;
+        color: #6b665e !important;
+        font-size: 10.5px !important; font-weight: 800 !important;
+        letter-spacing: 0.05em !important; text-transform: uppercase;
+        border: none !important; box-shadow: none !important; text-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-found-scan-badge { background: rgba(255,255,255,0.1) !important; color: #cfc9bd !important; }
+      .snap-found-badge-pulse {
+        width: 6px !important; height: 6px !important; border-radius: 50% !important;
+        box-shadow: none !important; animation: none !important;
+      }
+      .snap-found-dex-num {
+        font-size: 13px !important; font-weight: 800 !important;
+        color: #a09d95 !important; font-variant-numeric: tabular-nums;
+        text-shadow: none !important; background: none !important;
+        -webkit-text-fill-color: currentColor !important;
+      }
+
+      /* The wash sits behind the art only, so the lower half stays white and
+         the numbers below it stay easy to read. */
+      .snap-found-hero {
+        order: 2;
+        position: relative;
+        width: 100%;
+        display: grid !important; place-items: center !important;
+        padding: 4px 0 10px !important;
+        margin: 0 !important;
+        background: radial-gradient(ellipse 78% 84% at 50% 52%,
+                    color-mix(in srgb, var(--sc1, #e8dcc4) 17%, transparent), transparent 76%) !important;
+      }
+      .snap-found-img {
+        width: 152px !important; height: 152px !important;
+        object-fit: contain !important;
+        filter: drop-shadow(0 6px 14px rgba(0,0,0,0.18)) !important;
+        animation: snap-art-in 380ms cubic-bezier(.22,1,.36,1) !important;
+      }
+      @keyframes snap-art-in {
+        from { opacity: 0; transform: scale(0.86); }
+        to   { opacity: 1; transform: none; }
+      }
+
+      .snap-found-name {
+        order: 3;
+        margin: 0 0 2px !important;
+        font-size: 25px !important; font-weight: 800 !important;
+        letter-spacing: -0.01em !important;
+        text-transform: capitalize;
+        color: #2a2521 !important;
+        background: none !important;
+        -webkit-text-fill-color: currentColor !important;
+        text-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-found-name { color: #f2f0ea !important; }
+
+      .snap-found-types {
+        order: 4;
+        display: flex !important; gap: 6px !important;
+        margin: 0 0 10px !important; padding: 0 !important;
+      }
+      /* The same tinted pill the grid cards use, so a type reads identically
+         wherever it appears. */
+      .snap-found-type {
+        padding: 3px 11px !important;
+        border-radius: 999px !important;
+        font-size: 11px !important; font-weight: 600 !important;
+        text-transform: capitalize !important; letter-spacing: 0 !important;
+        border: none !important; box-shadow: none !important; text-shadow: none !important;
+        background: color-mix(in srgb, var(--tt, #b5b9c4) 16%, #ffffff) !important;
+        color: color-mix(in srgb, var(--tt, #b5b9c4) 42%, #17151a) !important;
+      }
+      [data-theme="dark"] .snap-found-type {
+        background: color-mix(in srgb, var(--tt, #b5b9c4) 26%, transparent) !important;
+        color: color-mix(in srgb, var(--tt, #b5b9c4) 52%, #ffffff) !important;
+      }
+
+      /* Cry indicator: four quiet bars, not a neon equaliser. */
+      .snap-found-wave { order: 5; display: flex !important; gap: 3px !important; height: 14px; align-items: flex-end; margin-bottom: 8px !important; transition: opacity 0.25s ease; }
+      .snap-found-bar {
+        width: 3px !important; border-radius: 2px !important;
+        background: #c9c1b2 !important; box-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-found-bar { background: rgba(255,255,255,0.3) !important; }
+
+      /* Lower half: the numbers, on white. */
+      .snap-found-meta,
+      .snap-found-stats {
+        order: 6;
+        width: 100%;
+        margin: 0 !important;
+        padding: 11px 17px !important;
+        background: #fff !important;
+        border-top: 1px solid #f0ece4 !important;
+      }
+      [data-theme="dark"] .snap-found-meta,
+      [data-theme="dark"] .snap-found-stats { background: transparent !important; border-top-color: rgba(255,255,255,0.08) !important; }
+      .snap-found-stats { order: 7; }
+      .snap-found-meta { display: flex !important; justify-content: center !important; gap: 0 !important; }
+      .snap-found-meta-item { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 0 18px; }
+      .snap-found-meta-div { width: 1px; background: #eae6de; align-self: stretch; }
+      [data-theme="dark"] .snap-found-meta-div { background: rgba(255,255,255,0.1); }
+      .snap-found-meta-label {
+        font-size: 10px !important; font-weight: 700 !important;
+        letter-spacing: 0.05em !important; text-transform: uppercase;
+        /* #a09d95 measured 2.71:1 on white — the muted ink is fine for the
+           dex number over a tint, but not for a label on the plain lower
+           half. */
+        color: #6b665e !important;
+      }
+      .snap-found-meta-val {
+        font-size: 14px !important; font-weight: 800 !important;
+        color: #2a2521 !important; font-variant-numeric: tabular-nums;
+        text-shadow: none !important;
+      }
+      [data-theme="dark"] .snap-found-meta-val { color: #f2f0ea !important; }
+
+      .snap-found-stats { display: grid !important; gap: 7px !important; }
+      .snap-found-stat-row { display: grid !important; grid-template-columns: 34px 1fr 34px !important; align-items: center !important; gap: 9px !important; }
+      .snap-found-stat-label {
+        font-size: 10px !important; font-weight: 800 !important;
+        letter-spacing: 0.04em !important; color: #6b665e !important; text-align: left;
+      }
+      .snap-found-stat-track {
+        height: 6px !important; border-radius: 999px !important;
+        background: #f0ece4 !important; box-shadow: none !important; overflow: hidden;
+      }
+      [data-theme="dark"] .snap-found-stat-track { background: rgba(255,255,255,0.09) !important; }
+      .snap-found-stat-fill {
+        height: 100% !important; border-radius: 999px !important;
+        box-shadow: none !important; filter: none !important;
+        /* Grows once on arrival rather than pulsing forever. */
+        animation: snap-bar-in 520ms cubic-bezier(.22,1,.36,1) both !important;
+      }
+      @keyframes snap-bar-in { from { transform: scaleX(0); transform-origin: left; } to { transform: none; } }
+      .snap-found-stat-val {
+        font-size: 11.5px !important; font-weight: 800 !important;
+        color: #6b665e !important; text-align: right; font-variant-numeric: tabular-nums;
+      }
+      [data-theme="dark"] .snap-found-stat-val { color: rgba(241,239,233,0.75) !important; }
+
+      .snap-found-actions {
+        order: 8; width: 100%;
+        /* The older rule stacked these; row has to be stated, not assumed. */
+        display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important;
+        gap: 9px !important;
+        padding: 0 17px 15px !important; margin: 12px 0 0 !important;
+      }
+      .snap-found-view-btn,
+      .snap-found-retry-btn {
+        flex: 1 1 0 !important;
+        padding: 11px 16px !important;
+        border-radius: 999px !important;
+        font-size: 13.5px !important; font-weight: 700 !important;
+        box-shadow: none !important; text-shadow: none !important;
+        cursor: pointer;
+      }
+      .snap-found-view-btn {
+        background: #8f2f2a !important; border: 1px solid #8f2f2a !important; color: #fff !important;
+      }
+      .snap-found-view-btn:hover { background: #7a2723 !important; border-color: #7a2723 !important; }
+      .snap-found-retry-btn {
+        background: #fff !important; border: 1px solid #e8e4dc !important; color: #2a2521 !important;
+      }
+      .snap-found-retry-btn:hover { border-color: #8f2f2a !important; color: #8f2f2a !important; }
+      [data-theme="dark"] .snap-found-retry-btn { background: rgba(255,255,255,0.06) !important; color: #f2f0ea !important; border-color: rgba(255,255,255,0.14) !important; }
+      .snap-found-view-btn:focus-visible,
+      .snap-found-retry-btn:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; }
+
+      /* ══════════════════════════════════════════════════════════════════
+         Picker, second pass — a little more considered
+         ══════════════════════════════════════════════════════════════════ */
+      .snap-v4-card {
+        position: relative;
+        overflow: hidden;
+      }
+      /* A wash that only appears under the pointer: the card stays plain at
+         rest, so three of them side by side read as one calm row. */
+      .snap-v4-card::before {
+        content: "";
+        position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(143,47,42,0.05), transparent 62%);
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        pointer-events: none;
+      }
+      .snap-v4-card:hover:not(.disabled)::before { opacity: 1; }
+      .snap-v4-card:hover:not(.disabled) .snap-v4-card-icon {
+        background: rgba(143,47,42,0.1) !important;
+        color: #8f2f2a !important;
+      }
+      .snap-v4-card-icon { transition: background 0.18s ease, color 0.18s ease !important; }
+
+      /* Every view arrives the same way, so moving between them feels like one
+         panel changing rather than three unrelated screens. */
+      .snap-v4-picker,
+      .snap-v4-upload,
+      .snap-v4-camera,
+      .snap-v4-analyzing,
+      .snap-v4-result { animation: snap-view-in 200ms ease-out; }
+      @keyframes snap-view-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: none; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .snap-found, .snap-found-img, .snap-found-stat-fill,
+        .snap-v4-picker, .snap-v4-upload, .snap-v4-camera,
+        .snap-v4-analyzing, .snap-v4-result { animation: none !important; }
+        .snap-v4-card::before, .snap-v4-card-icon { transition: none !important; }
       }
     `}</style>
   );

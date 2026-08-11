@@ -231,7 +231,7 @@ export default function PokemonModal({
 
             {tab === 3 && <MoveLearnset pokemonId={pokemon.id} lang={lang} moveCache={moveCache} />}
 
-            {tab === 4 && <SpritesTab pokemonId={pokemon.id} sprites={pokemon.sprites} lang={lang} s={s} />}
+            {tab === 4 && <SpritesTab pokemonId={pokemon.id} lang={lang} />}
 
             {tab === 5 && <LocationsSection pokemonId={pokemon.id} lang={lang} s={s} />}
           </div>

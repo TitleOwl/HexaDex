@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useWeather } from "../useWeather.js";
-import { typeColor } from "../utils.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import RaidCounterFinder from "./RaidCounterFinder.jsx";
 import RaidGuide          from "./RaidGuide.jsx";
@@ -13,33 +12,10 @@ import FieldResearch     from "./FieldResearch.jsx";
 import { findPokemonInList } from "../perfUtils.js";
 import {
   Swords, Globe, BarChart3, Shield, Rocket, CalendarDays, Egg, ClipboardList,
-  CloudSun, Target, Zap, Camera, ArrowRight, Clock, Sparkles, Radio,
-  Sun, Cloud, CloudRain, CloudSnow, CloudFog, MapPin, Route,
+  CloudSun, Zap, ArrowRight, Sparkles, Sun, Cloud, CloudRain, CloudSnow, CloudFog, MapPin, RefreshCw,
 } from "lucide-react";
 
 // ─── Live Thailand clock (ICT · UTC+7, ticks every second) ───
-function ThaiClock({ lang }) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const fmt = (opts) => now.toLocaleString("en-GB", { timeZone: "Asia/Bangkok", ...opts });
-  const time = fmt({ hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-  const date = now.toLocaleDateString(lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-GB",
-    { timeZone: "Asia/Bangkok", day: "numeric", month: "short", weekday: "short" });
-  return (
-    <div className="go-hub-clock">
-      <div className="go-hub-clock-top">
-        <Clock size={14} strokeWidth={2.4} />
-        <span className="go-hub-clock-time">{time}</span>
-        <span className="go-hub-clock-zone">ICT</span>
-      </div>
-      <div className="go-hub-clock-date">{date}</div>
-    </div>
-  );
-}
-
 // ─── Weekly recurring "hour" events (local 18:00–19:00) ───
 function weeklyStatus(day, hour) {
   const now = Date.now();
@@ -88,85 +64,226 @@ const WORLD_ZONES = [
   { tz: "Europe/London",   label: "UK"  },
 ];
 
-// ─── Live Now panel: weather boost + weekly countdowns + world clocks ───
-function LiveNow({ lang }) {
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+// Was a black banner carrying two floating hexagons, a clock with a stray
+// pointer, and three chips that looked pressable but were not. One white row.
+
+function HubHeader({ lang }) {
+  const [zones, setZones] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const [refreshedAt] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
+    const id = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(id);
   }, []);
-  const { weather } = useWeather();
 
-  const typeName = (tn) => lang === "th" ? (TYPE_NAMES_TH[tn] ?? tn) : lang === "ja" ? (TYPE_NAMES_JA[tn] ?? tn) : tn;
-  const boost = weather ? CONDITION_BOOST[weather.condition] : null;
-  const lbl = (o) => o[lang] ?? o.en;
+  const mins = Math.max(0, Math.round((now.getTime() - refreshedAt) / 60000));
+  const ago = mins < 1
+    ? (lang === "th" ? "เมื่อสักครู่" : lang === "ja" ? "たった今" : "just now")
+    : (lang === "th" ? `${mins} นาทีที่แล้ว` : lang === "ja" ? `${mins}分前` : `${mins} min ago`);
 
   return (
-    <div className="go-live-panel">
-      {/* Weather boost */}
-      <div className="go-live-card go-live-weather">
-        <div className="go-live-card-head">
-          {boost ? <boost.Icon size={15} strokeWidth={2.2} /> : <CloudSun size={15} strokeWidth={2.2} />}
-          <span>{lang === "th" ? "ธาตุที่บูสต์ตอนนี้" : lang === "ja" ? "現在のブースト" : "Boosted now"}</span>
-        </div>
-        {boost ? (
-          <div className="go-live-types">
-            {boost.types.map(tp => (
-              <span key={tp} className="go-live-type"
-                style={{ color: typeColor(tp), background: `color-mix(in srgb, ${typeColor(tp)} 16%, transparent)` }}>
-                {typeName(tp)}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div className="go-live-weather-na">
-            {lang === "th" ? "เปิดตำแหน่งเพื่อดูบูสต์" : lang === "ja" ? "位置情報を許可" : "Enable location"}
-          </div>
-        )}
+    <header className="gh-bar">
+      <div className="gh-bar-left">
+        <h2 className="gh-bar-title">Pokémon GO</h2>
+        <p className="gh-bar-sub">
+          {lang === "th" ? "ข้อมูลสดจาก LeekDuck · อัปเดตล่าสุด "
+            : lang === "ja" ? "LeekDuckのライブデータ · 最終更新 "
+            : "Live data from LeekDuck · updated "}{ago}
+        </p>
       </div>
 
-      {/* Weekly hour countdowns */}
-      {WEEKLY_HOURS.map(ev => {
-        const st = weeklyStatus(ev.day, ev.hour);
-        return (
-          <div key={ev.key} className={`go-live-card${st.live ? " is-live" : ""}`}
-            style={{ "--ev-color": ev.color }}>
-            <div className="go-live-card-head">
-              <ev.Icon size={15} strokeWidth={2.2} style={{ color: ev.color }} />
-              <span>{lbl(ev.label)}</span>
+      <div className="gh-bar-right">
+        <span className="gh-bar-clock">
+          {now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+          <em>ICT</em>
+        </span>
+        <button type="button" className="gh-bar-btn" onClick={() => window.location.reload()}>
+          <RefreshCw size={14} strokeWidth={2.4} />
+          {lang === "th" ? "รีเฟรช" : lang === "ja" ? "更新" : "Refresh"}
+        </button>
+        <div className="gh-zones-wrap">
+          {/* The world clocks were a card the size of a card holding one
+              number. Few people need them; they get a button. */}
+          <button type="button" className="gh-bar-btn" aria-expanded={zones}
+            onClick={() => setZones(v => !v)}>
+            <Globe size={14} strokeWidth={2.4} />
+            {lang === "th" ? "เขตเวลาอื่น" : lang === "ja" ? "他の時間帯" : "Other zones"}
+          </button>
+          {zones && (
+            <div className="gh-zones">
+              {WORLD_ZONES.map(z => (
+                <div key={z.label} className="gh-zone">
+                  <span>{z.label}</span>
+                  <b>{now.toLocaleTimeString("en-GB",
+                    { timeZone: z.tz, hour: "2-digit", minute: "2-digit", hour12: false })}</b>
+                </div>
+              ))}
             </div>
-            <div className="go-live-count">
-              {st.live
-                ? <><span className="go-live-now-dot" />{lang === "th" ? "กำลังจัด!" : lang === "ja" ? "開催中!" : "LIVE NOW"}</>
-                : fmtCountdown(st.ms)}
-            </div>
-            <div className="go-live-sub">
-              {st.live
-                ? (lang === "th" ? "เหลือ " : lang === "ja" ? "残り " : "ends in ") + fmtCountdown(st.ms)
-                : (lang === "th" ? "อีก" : lang === "ja" ? "後" : "until next")}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* World clocks */}
-      <div className="go-live-card go-live-clocks">
-        <div className="go-live-card-head">
-          <Globe size={15} strokeWidth={2.2} />
-          <span>{lang === "th" ? "เวลาทั่วโลก" : lang === "ja" ? "世界時計" : "World clocks"}</span>
+          )}
         </div>
-        <div className="go-live-zones">
-          {WORLD_ZONES.map(z => (
-            <div key={z.label} className="go-live-zone">
-              <span className="go-live-zone-label">{z.label}</span>
-              <span className="go-live-zone-time">
-                {now.toLocaleTimeString("en-GB", { timeZone: z.tz, hour: "2-digit", minute: "2-digit", hour12: false })}
-              </span>
+      </div>
+    </header>
+  );
+}
+
+// ─── Now / Next ──────────────────────────────────────────────────────────────
+//
+// The old panel gave a weather card, three identical countdown cards and a
+// world-clock card equal billing in one row. The one thing people open this
+// page for — what is running right now — was a tile the same size as a list
+// of timezones. Here the live event is the page, and the rest is a queue.
+
+function NowNext({ lang }) {
+  // A minute, not a second. Nothing here is decided by seconds, and a
+  // per-second interval means a re-render every second plus a screen reader
+  // reading the countdown aloud on every tick.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick(n => n + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  const lbl = (o) => o[lang] ?? o.en;
+
+  // Every weekly hour with its status, soonest first. Live ones lead.
+  const events = WEEKLY_HOURS
+    .map(ev => ({ ...ev, st: weeklyStatus(ev.day, ev.hour) }))
+    .sort((a, b) => (b.st.live - a.st.live) || (a.st.ms - b.st.ms));
+
+  const lead = events[0];
+  const queue = events.slice(1, 4);
+  const liveCount = events.filter(e => e.st.live).length;
+
+  const when = (ev) => {
+    const d = new Date();
+    d.setHours(ev.hour, 0, 0, 0);
+    d.setDate(d.getDate() + ((ev.day - d.getDay() + 7) % 7));
+    return d.toLocaleString(lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-GB",
+      { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+  };
+
+  // How far through its hour a live event is; for an upcoming one, how close.
+  const pct = lead.st.live ? Math.round((1 - lead.st.ms / 3600000) * 100) : null;
+
+  return (
+    <section className="gh-now">
+      <div className="gh-now-lead" style={{ "--ev": lead.color }}>
+        <span className={`gh-flag${lead.st.live ? " live" : ""}`}>
+          {lead.st.live && <span className="gh-flag-dot" aria-hidden />}
+          {lead.st.live
+            ? (lang === "th" ? "กำลังเกิดขึ้น" : lang === "ja" ? "開催中" : "Happening now")
+            : (lang === "th" ? "กิจกรรมถัดไป" : lang === "ja" ? "次のイベント" : "Up next")}
+          {liveCount > 0 && <span className="gh-flag-n">{liveCount}</span>}
+        </span>
+
+        <h3 className="gh-now-title">
+          <lead.Icon size={22} strokeWidth={2.2} aria-hidden />
+          {lbl(lead.label)}
+        </h3>
+        <p className="gh-now-desc">
+          {lang === "th" ? "กิจกรรมประจำสัปดาห์ · 1 ชั่วโมง"
+            : lang === "ja" ? "毎週開催 · 1時間" : "Weekly, one hour long"}
+        </p>
+
+        <div className="gh-now-foot">
+          <div className="gh-now-time">
+            <span className="gh-now-lbl">
+              {lead.st.live
+                ? (lang === "th" ? "เหลือเวลา" : lang === "ja" ? "残り" : "Time left")
+                : (lang === "th" ? "เริ่มในอีก" : lang === "ja" ? "開始まで" : "Starts in")}
+            </span>
+            {/* Announced when it changes, but only once a minute. */}
+            <b className="gh-now-count" aria-live="polite">{fmtCountdown(lead.st.ms)}</b>
+          </div>
+          {pct != null && (
+            <div className="gh-now-bar">
+              <span className="gh-now-fill" style={{ width: `${pct}%` }} />
             </div>
+          )}
+          <div className="gh-now-when">{when(lead)}</div>
+        </div>
+      </div>
+
+      <div className="gh-next">
+        <div className="gh-next-head">
+          {lang === "th" ? "ถัดไป" : lang === "ja" ? "この後" : "Coming up"}
+        </div>
+        <ul className="gh-next-list">
+          {queue.map(ev => (
+            <li key={ev.key} className="gh-next-row">
+              <span className="gh-next-ico" style={{ "--ev": ev.color }}>
+                <ev.Icon size={16} strokeWidth={2.3} aria-hidden />
+              </span>
+              <span className="gh-next-copy">
+                <span className="gh-next-name">{lbl(ev.label)}</span>
+                <span className="gh-next-when">{when(ev)}</span>
+              </span>
+              <span className="gh-next-left">{fmtCountdown(ev.st.ms)}</span>
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
-    </div>
+    </section>
+  );
+}
+
+// ─── Weather and location, on one line ───────────────────────────────────────
+// These two were cards in a row of cards that otherwise held numbers, so an
+// empty "Enable location" tile read as a tile that had failed to load.
+
+function ContextBar({ lang }) {
+  const { weather } = useWeather();
+  const boost = weather ? CONDITION_BOOST[weather.condition] : null;
+  const typeName = (tn) => lang === "th" ? (TYPE_NAMES_TH[tn] ?? tn)
+    : lang === "ja" ? (TYPE_NAMES_JA[tn] ?? tn) : tn;
+
+  return (
+    <section className="gh-ctx">
+      <div className="gh-ctx-half">
+        <span className="gh-ctx-ico">
+          {boost ? <boost.Icon size={17} strokeWidth={2.2} /> : <CloudSun size={17} strokeWidth={2.2} />}
+        </span>
+        <span className="gh-ctx-copy">
+          <span className="gh-ctx-lbl">
+            {lang === "th" ? "สภาพอากาศตอนนี้" : lang === "ja" ? "現在の天気" : "Weather now"}
+          </span>
+          {boost ? (
+            <span className="gh-ctx-types">
+              {boost.types.map(tp => (
+                <span key={tp} className="tp" data-type={tp}>{typeName(tp)}</span>
+              ))}
+            </span>
+          ) : (
+            <span className="gh-ctx-na">
+              {lang === "th" ? "ยังไม่ทราบ — เปิดตำแหน่งเพื่อดูธาตุที่ได้โบนัส"
+                : lang === "ja" ? "位置情報を許可するとブーストが表示されます"
+                : "Unknown — turn on location to see boosted types"}
+            </span>
+          )}
+        </span>
+      </div>
+
+      <span className="gh-ctx-div" aria-hidden />
+
+      <div className="gh-ctx-half">
+        <span className="gh-ctx-ico"><MapPin size={17} strokeWidth={2.2} /></span>
+        <span className="gh-ctx-copy">
+          <span className="gh-ctx-lbl">
+            {lang === "th" ? "ตำแหน่ง" : lang === "ja" ? "位置情報" : "Location"}
+          </span>
+          {weather?.place ? (
+            <span className="gh-ctx-val">{weather.place}</span>
+          ) : (
+            <button type="button" className="gh-ctx-btn"
+              onClick={() => navigator.geolocation?.getCurrentPosition(() => window.location.reload(), () => {})}>
+              {lang === "th" ? "เปิดใช้ตำแหน่ง" : lang === "ja" ? "位置情報を許可" : "Enable location"}
+            </button>
+          )}
+        </span>
+      </div>
+    </section>
   );
 }
 
@@ -537,66 +654,12 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
         }
       `}</style>
 
-      {/* ─── HERO HEADER ─── */}
-      <div className="go-hub-header">
-        <div style={{
-          position: "absolute", top: 20, right: 30,
-          width: 70, height: 70, opacity: 0.18,
-          animation: "gth-float 4s ease-in-out infinite",
-        }}>
-          <svg viewBox="0 0 100 100">
-            <polygon points="50,8 87,30 87,70 50,92 13,70 13,30"
-              fill="none" stroke="white" strokeWidth="2" strokeLinejoin="round" />
-            <polygon points="50,25 70,37 70,63 50,75 30,63 30,37"
-              fill="white" opacity="0.3" />
-          </svg>
-        </div>
-        <div style={{
-          position: "absolute", bottom: 12, right: 110,
-          width: 44, height: 44, opacity: 0.1,
-          animation: "gth-float 5s ease-in-out infinite 1.5s",
-        }}>
-          <svg viewBox="0 0 100 100">
-            <polygon points="50,8 87,30 87,70 50,92 13,70 13,30" fill="white" />
-          </svg>
-        </div>
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: "radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
-          pointerEvents: "none",
-        }} />
+      {/* ─── HEADER ─── */}
+      <HubHeader lang={lang} />
 
-        <ThaiClock lang={lang} />
+      <NowNext lang={lang} />
+      <ContextBar lang={lang} />
 
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <h2 className="go-hub-title" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <Target size={24} strokeWidth={2.2} /> {lang === "th" ? "Pokémon GO Tools" : lang === "ja" ? "ポケモンGOツール" : "Pokémon GO Tools"}
-          </h2>
-          <p className="go-hub-subtitle">
-            {lang === "th" ? "ข้อมูล real-time จาก LeekDuck"
-              : lang === "ja" ? "LeekDuckからのリアルタイムデータ"
-              : "Real-time data from LeekDuck"}
-          </p>
-
-          <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-            {[
-              { Ico: "live", label: "6 LIVE" },
-              { Ico: Zap, label: lang === "th" ? "อัปเดต 1ชม." : lang === "ja" ? "1時間更新" : "1h refresh" },
-              { Ico: Camera, label: lang === "th" ? "เซฟรูปได้" : lang === "ja" ? "画像保存" : "Image save" },
-            ].map((s, i) => (
-              <div key={i} className="go-hub-badge">
-                {s.Ico === "live"
-                  ? <span className="go-hub-live-dot" />
-                  : <s.Ico size={13} strokeWidth={2.4} />}
-                <span>{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <LiveNow lang={lang} />
 
       {TOOL_CATEGORIES.map((cat, catIdx) => (
         <div key={cat.id} data-cat={cat.id} className="go-category">

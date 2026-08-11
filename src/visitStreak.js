@@ -21,7 +21,21 @@ export function readVisitStreak() {
     const next = saved.lastDate === day(Date.now() - 86400000)
       ? (saved.streak || 0) + 1
       : 1;
-    localStorage.setItem(KEY, JSON.stringify({ lastDate: today, streak: next }));
+    const best = Math.max(saved.best || 0, next);
+    localStorage.setItem(KEY, JSON.stringify({ lastDate: today, streak: next, best }));
     return next;
   } catch { return 1; }
+}
+
+/**
+ * The same counter plus the personal best, for the panel behind the flame.
+ * Read-only: readVisitStreak() is what rolls the day over, and having two
+ * writers is the exact bug this module was extracted to avoid.
+ */
+export function readStreakDetail() {
+  const streak = readVisitStreak();
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) ?? "{}");
+    return { streak, best: Math.max(saved.best || 0, streak), lastDate: saved.lastDate };
+  } catch { return { streak, best: streak, lastDate: day() }; }
 }

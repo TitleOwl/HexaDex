@@ -3,7 +3,6 @@ import { STRINGS, GENERATIONS, ALL_TYPES, TYPE_NAMES_TH, TYPE_NAMES_JA } from ".
 import { setSoundEnabled } from "../utils.js";
 import { getPerfMode, setPerfMode } from "../perfMode.js";
 import { routeUrl } from "../router.js";
-import { readVisitStreak } from "../visitStreak.js";
 import { genById, genCount, STARTER_ORDER } from "../data/generations.js";
 import { artworkUrl } from "../utils.js";
 
@@ -11,10 +10,11 @@ const t = (lang, en, th, ja) => (lang === "th" ? th : lang === "ja" ? ja : en);
 import { readPetSave, PET_EVENT } from "./PetCareGame.jsx";
 import HexaDexLogo from "./HexaDexLogo.jsx";
 import AuthWidget from "./AuthWidget.jsx";
+import StreakButton from "./StreakButton.jsx";
 import {
   Gamepad2, Search, Settings, Sun, Moon, Sparkles, Heart, Swords,
   BarChart3, Cake, Globe, Volume2, VolumeX, Palette, Info, Newspaper, SunMedium, Gauge,
-  Filter, ChevronDown, Flame,
+  Filter, ChevronDown,
 } from "lucide-react";
 
 // tiny helper: inline icon aligned with text
@@ -423,7 +423,6 @@ export default function Header({
   const searchInputRef = useRef(null);
   // Read once per mount: the value only changes at midnight, and re-reading it
   // would roll the counter forward again on every render.
-  const [streak] = useState(readVisitStreak);
   // Drives the shadow under the sticky row: only once the page has actually
   // moved, so a page that fits on screen never wears one.
   const [scrolled, setScrolled] = useState(false);
@@ -436,6 +435,15 @@ export default function Header({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Bring the active chip into view on load: on a phone the strip starts at
+  // "All" and a selected Paldea sits well past the right edge with nothing to
+  // say it is there.
+  useEffect(() => {
+    const el = genRowRef.current;
+    const active = el?.querySelector(".gen-btn.active");
+    if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [genIdx]);
 
   useEffect(() => {
     const el = genRowRef.current;
@@ -503,29 +511,27 @@ export default function Header({
           <ModeTabs view={view} setView={setView} s={s} lang={lang} />
 
           <div className="header-actions">
-            {/* One capsule, because these are two readings of the same kind:
-                numbers about you. Five separate circles gave no clue which was
-                which. */}
+            {/* Two buttons, not one capsule. Favourites is a filter you toggle;
+                the streak is a fact about you. Sharing a container implied they
+                were the same kind of thing and that neither could be pressed. */}
             <div className="nav-stats">
               <button
-                className={`nav-stats-item${showFavsOnly ? " active" : ""}`}
+                className={`nav-stat-btn nav-stat-fav${showFavsOnly ? " active" : ""}`}
                 onClick={onToggleFavs}
                 aria-pressed={showFavsOnly}
                 aria-label={t(lang,
                   `Favourites, ${favCount}`, `รายการโปรด ${favCount} ตัว`, `お気に入り ${favCount}`)}
-                title={s.favFilter}
+                title={t(lang,
+                  favCount === 1 ? "1 Pokémon you liked — click to show only these"
+                                 : `${favCount} Pokémon you liked — click to show only these`,
+                  `โปเกมอนที่ถูกใจ ${favCount} ตัว — กดเพื่อดูเฉพาะรายการนี้`,
+                  `お気に入り ${favCount}匹 — クリックで絞り込み`)}
               >
-                <Heart size={14} strokeWidth={2.3} fill={showFavsOnly ? "currentColor" : "none"} />
-                <span>{favCount}</span>
+                <Heart size={16} strokeWidth={2.2} fill={showFavsOnly ? "currentColor" : "none"} />
+                <span className="nav-stat-num">{favCount}</span>
               </button>
-              <span className="nav-stats-sep" aria-hidden />
-              <span className="nav-stats-item nav-stats-static"
-                aria-label={t(lang,
-                  `Visit streak, ${streak} days`, `เข้าต่อเนื่อง ${streak} วัน`, `連続 ${streak}日`)}
-                title={s.visitStreak}>
-                <Flame size={14} strokeWidth={2.3} />
-                <span>{streak}</span>
-              </span>
+
+              <StreakButton lang={lang} />
             </div>
 
             {musicEl}

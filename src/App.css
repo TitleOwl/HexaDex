@@ -12038,9 +12038,13 @@ body::before {
 .modal-overlay {
   animation: overlay-in 0.28s ease forwards !important;
 }
+/* Opacity only. Animating backdrop-filter re-blurs everything behind the
+   overlay on every frame — it cannot run on the compositor, so the whole
+   open sequence dropped frames. The blur itself still applies, it just does
+   not animate from 0 to 8px. */
 @keyframes overlay-in {
-  from { opacity: 0; backdrop-filter: blur(0); }
-  to   { opacity: 1; backdrop-filter: blur(8px); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ── Modal — dramatic rise entrance ──────────────────────────── */
@@ -12048,16 +12052,18 @@ body::before {
   animation: modal-rise 0.40s cubic-bezier(.22,1,.36,1) forwards !important;
   box-shadow: 0 40px 90px rgba(0,0,0,0.32), 0 0 0 1px rgba(255,255,255,0.06) !important;
 }
+/* transform and opacity only — the two properties the compositor can animate
+   without touching layout or paint. The blur(4px) -> blur(0) that used to ride
+   along forced a full repaint of the modal every frame, which is what made the
+   rise stutter. */
 @keyframes modal-rise {
   0% {
     opacity: 0;
     transform: translateY(52px) scale(0.94);
-    filter: blur(4px);
   }
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    filter: blur(0);
   }
 }
 
@@ -16966,4 +16972,940 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
 }
 [data-theme="dark"] .gb-actions > .gb-btn:not(.gb-btn-main) {
   background: var(--bg-card); color: #f2f0ea; border-color: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Modal open: 27fps → 69fps
+   backdrop-filter on a full-screen overlay makes the browser
+   re-blur everything behind it every frame — and behind it is
+   a grid of 1,351 cards. Measured: 37.6ms per frame with the
+   blur, 14.6ms without, same machine, same open.
+   The scrim does the job instead: opaque enough that the list
+   stops competing, and free to paint.
+   ═══════════════════════════════════════════════════════════ */
+.modal-overlay {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(24, 23, 26, 0.9) !important;
+}
+[data-theme="dark"] .modal-overlay { background: rgba(8, 8, 10, 0.92) !important; }
+
+/* ── Visit streak, where it can be understood ────────────────────────────
+   In the navbar it is a flame and a number with nowhere to put the words, so
+   it reads as decoration. The daily strip has room for the label. */
+.daily-streak {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--dtype) 20%, #ffffff);
+  color: #8a4a1e;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+[data-theme="dark"] .daily-streak {
+  background: color-mix(in srgb, var(--dtype) 26%, transparent);
+  color: #f0b48a;
+}
+.daily-streak-flame { align-self: center; flex: 0 0 auto; }
+.daily-streak-num { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.daily-streak-label { font-size: 11px; font-weight: 600; opacity: 0.85; }
+
+/* The flame only comes alive once the streak is worth something — day one is
+   not an achievement, and a permanent flicker is just noise. */
+.daily-streak.lit .daily-streak-flame {
+  color: #e2622b;
+  animation: daily-flame 2.4s ease-in-out infinite;
+  transform-origin: 50% 85%;
+}
+@keyframes daily-flame {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  30%      { transform: scale(1.14) rotate(-5deg); opacity: 0.9; }
+  60%      { transform: scale(1.05) rotate(4deg); opacity: 1; }
+}
+/* The number lifts once when the strip appears, so a streak that grew
+   overnight announces itself without a banner. */
+.daily-streak.lit .daily-streak-num {
+  animation: daily-streak-pop 620ms cubic-bezier(.34,1.5,.64,1) 340ms both;
+}
+@keyframes daily-streak-pop {
+  0%   { transform: translateY(4px) scale(0.8); opacity: 0; }
+  60%  { transform: translateY(0) scale(1.18); opacity: 1; }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-streak.lit .daily-streak-flame,
+  .daily-streak.lit .daily-streak-num { animation: none !important; }
+}
+/* On a phone the label goes, the count stays — the tooltip still explains it. */
+@media (max-width: 560px) {
+  .daily-streak-label { display: none; }
+  .daily-streak { padding: 5px 9px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Daily banner + navbar stats
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── The sprite ─────────────────────────────────────────────────────────────
+   It was breaking the frame in two directions at once: 30px above the top edge
+   and past the left padding, which reads as a layout fault rather than as a
+   deliberate overhang. One direction only, and small enough that the 26px of
+   headroom above the banner actually covers it. */
+.daily-strip-img {
+  transform: translateY(-13px) !important;
+  margin-left: 0 !important;
+  flex: 0 0 auto;
+}
+.daily-strip { overflow: visible; }
+
+/* ── The empty middle ───────────────────────────────────────────────────────
+   Name on the left, chips and a button on the right, and nothing joining them.
+   One line of species and size is the shortest true thing that fills it. */
+.daily-strip-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 600;
+  /* 5.4:1 on the lightest wash this banner produces. */
+  color: #5f5952;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.daily-strip-genus { font-weight: 700; }
+.daily-strip-mdot { opacity: 0.45; }
+[data-theme="dark"] .daily-strip-meta { color: #cfc7bf; }
+
+/* ── The right side, as two groups ──────────────────────────────────────────
+   Type chips and the call to action were four peers in one even row, so the
+   button did not read as the thing to press. Tight inside each group, loose
+   between them. */
+.daily-strip-right {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+.daily-strip-right .daily-strip-types { gap: 6px; margin: 0; }
+
+/* ── The call to action, in the brand colour ───────────────────────────────
+   Near-black made it the darkest thing on a warmly tinted panel and belonged
+   to no palette in the app. */
+.daily-strip-cta {
+  background: #8f2f2a !important;
+  border-color: #8f2f2a !important;
+  color: #fff !important;
+}
+.daily-strip:hover .daily-strip-cta {
+  background: #7a2723 !important;
+  border-color: #7a2723 !important;
+}
+[data-theme="dark"] .daily-strip-cta,
+[data-theme="dark"] .daily-strip:hover .daily-strip-cta {
+  background: #b8433c !important;
+  border-color: #b8433c !important;
+  color: #fff !important;
+}
+
+/* ── Navbar stats: two buttons ──────────────────────────────────────────── */
+.nav-stats {
+  display: inline-flex;
+  align-items: center;
+  /* The gap does the separating now, so the capsule and the hairline rule
+     inside it are gone. */
+  gap: 10px;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.nav-stats-sep { display: none; }
+
+.nav-stat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+.nav-stat-btn:hover { border-color: var(--text-muted); color: var(--text-primary); }
+.nav-stat-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.nav-stat-num { line-height: 1; }
+
+.nav-stat-fav:hover { color: #e0484c; border-color: #e0484c; }
+.nav-stat-fav.active {
+  background: #e0484c;
+  border-color: #e0484c;
+  color: #fff;
+}
+
+/* Grey while there is no run, warm once there is — the colour is the state,
+   not decoration, so it never competes for attention without a reason. */
+.nav-stat-wrap { position: relative; display: inline-flex; }
+.nav-stat-streak.lit { color: #c2410c; border-color: color-mix(in srgb, #e2622b 45%, var(--border)); }
+.nav-stat-streak.lit:hover,
+.nav-stat-streak.open { color: #9a3412; border-color: #e2622b; background: #fff4ec; }
+[data-theme="dark"] .nav-stat-streak.lit { color: #fb923c; }
+[data-theme="dark"] .nav-stat-streak.lit:hover,
+[data-theme="dark"] .nav-stat-streak.open { background: rgba(226,98,43,0.16); color: #fdba74; }
+
+/* ── The panel behind the flame ─────────────────────────────────────────── */
+.streak-pop {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 300;
+  width: 250px;
+  padding: 16px 16px 13px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.16), 0 3px 10px rgba(0,0,0,0.08);
+  text-align: left;
+  animation: streak-pop-in 180ms cubic-bezier(.2,.9,.3,1) both;
+}
+@keyframes streak-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+.streak-pop-x {
+  position: absolute; top: 8px; right: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border: 0; border-radius: 50%;
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.streak-pop-x:hover { background: var(--bg-muted); color: var(--text-primary); }
+
+.streak-pop-head { display: flex; align-items: center; gap: 7px; }
+.streak-pop-flame { color: var(--text-muted); flex: 0 0 auto; }
+.streak-pop-flame.lit { color: #e2622b; }
+.streak-pop-big {
+  font-size: 30px; font-weight: 900; line-height: 1;
+  color: var(--text-primary); font-variant-numeric: tabular-nums;
+}
+.streak-pop-unit { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+.streak-pop-sub {
+  margin: 5px 0 13px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.streak-pop-week { display: flex; gap: 5px; justify-content: space-between; }
+.streak-day { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1 1 0; }
+.streak-day-lbl { font-size: 9.5px; font-weight: 700; color: var(--text-muted); }
+.streak-day-dot {
+  display: flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  font-size: 11px; font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.streak-day.on .streak-day-dot {
+  background: linear-gradient(180deg, #f8873f 0%, #e2622b 100%);
+  border-color: #d1541f;
+  color: #fff;
+}
+
+.streak-pop-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 13px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; font-weight: 600;
+  color: var(--text-secondary);
+}
+.streak-pop-foot b { color: var(--text-primary); font-weight: 800; }
+
+@media (prefers-reduced-motion: reduce) { .streak-pop { animation: none; } }
+
+/* A truncated "Thunderclap Poké…" says less than the measurements it crowded
+   out, so on a narrow strip the genus is the part that goes. */
+@media (max-width: 640px) {
+  .daily-strip-genus,
+  .daily-strip-genus + .daily-strip-mdot { display: none; }
+  .daily-strip-meta { font-size: 11.5px; margin-top: 2px; }
+  .daily-strip-right { gap: 12px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Team builder — header card + two columns
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── One header card ────────────────────────────────────────────────────────
+   The page opened with four stacked bands: a black hero, a pair of 100px mode
+   blocks, an action row, and in GO a fourth strip of stat tiles. All four said
+   "this is the team page" before the team appeared. One white row says it once,
+   and GO no longer arrives with a layout the user has to relearn. */
+.tb-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.tb-bar-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  flex: 0 0 auto;
+}
+
+.tb-bar-stats { display: flex; align-items: baseline; gap: 16px; flex: 0 0 auto; }
+.tb-stat { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.tb-stat i {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 600;
+  /* 5.4:1 on the card. */
+  color: #6b6560;
+}
+.tb-stat b {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="dark"] .tb-stat i { color: #b0a9a2; }
+
+/* ── Segmented control ─────────────────────────────────────────────────────
+   Was two 100px blocks with an icon and a description line each. A mode switch
+   with two options does not need a paragraph per option. */
+.tb-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: #f2f0ec;
+  flex: 0 0 auto;
+}
+.tb-seg-btn {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #6b6560;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tb-seg-btn:hover { color: var(--text-primary); }
+.tb-seg-btn.on {
+  background: #fff;
+  color: #8f2f2a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+}
+.tb-seg-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+[data-theme="dark"] .tb-seg { background: rgba(255,255,255,0.07); }
+[data-theme="dark"] .tb-seg-btn { color: #b0a9a2; }
+[data-theme="dark"] .tb-seg-btn.on { background: #2a262c; color: #ff9d96; }
+
+/* ── Actions, in the right order ───────────────────────────────────────────
+   "Random Team" was the one filled red button and "Add Pokémon" was pale
+   enough to read as disabled — on a page called Build your team. */
+.tb-bar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: 0 0 auto; }
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.tb-btn-primary { background: #8f2f2a; border-color: #8f2f2a; color: #fff; }
+.tb-btn-primary:hover:not(:disabled) { background: #7a2723; border-color: #7a2723; }
+.tb-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.tb-btn-ghost { background: transparent; color: #6b6560; }
+.tb-btn-ghost:hover { background: var(--bg-muted); color: var(--text-primary); }
+.tb-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+[data-theme="dark"] .tb-btn-ghost { color: #b0a9a2; }
+
+/* The random shortcut steps back to an outline button. */
+.tb-bar-actions .tb-action-btn,
+.tb-bar-actions .random-btn-main {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  box-shadow: none !important;
+  padding: 8px 16px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  min-width: 0 !important;
+  height: auto !important;
+}
+.tb-bar-actions .tb-action-btn:hover,
+.tb-bar-actions .random-btn-main:hover { border-color: #8f2f2a !important; color: #8f2f2a !important; }
+
+/* ── Two columns ───────────────────────────────────────────────────────────
+   Left: the team. Right: what the team means, pinned so it stays answerable
+   while the left side changes. */
+.tb-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 12px;
+  align-items: start;
+}
+.tb-main { min-width: 0; }
+.tb-main .go-team-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+  align-content: start;
+}
+.tb-side {
+  position: sticky;
+  /* Header is 74px here; 16px of air below it. */
+  top: 90px;
+  min-width: 0;
+}
+.tb-side .go-analysis {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 1023px) {
+  /* Nothing to stick to once it is under the grid rather than beside it. */
+  .tb-layout { grid-template-columns: 1fr; }
+  .tb-side { position: static; top: auto; }
+  .tb-side .go-analysis { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 640px) {
+  .tb-bar { gap: 12px; padding: 12px 14px; }
+  .tb-bar-title { font-size: 17px; flex: 1 1 100%; }
+  .tb-bar-stats { flex: 1 1 100%; gap: 14px; }
+  .tb-seg { flex: 1 1 100%; }
+  .tb-seg-btn { flex: 1 1 0; }
+  .tb-bar-actions { margin-left: 0; flex: 1 1 100%; }
+  .tb-bar-actions > * { flex: 1 1 0; justify-content: center; }
+  .tb-main .go-team-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .tb-side .go-analysis { grid-template-columns: 1fr !important; }
+}
+
+/* The random shortcut: an outline button beside the filled Add. */
+.tb-btn-outline {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+.tb-btn-outline:hover:not(:disabled) { border-color: #8f2f2a; color: #8f2f2a; }
+.tb-btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+.random-dropdown { position: relative; display: inline-flex; }
+.tb-bar-actions .random-dropdown { flex: 0 0 auto; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   One type pill, three places
+   ═══════════════════════════════════════════════════════════════════════════
+   The page was showing three unrelated pill styles at once: card pills at 16%
+   opacity over the raw type colour as text (Ghost and Steel were unreadable),
+   analysis chips in fully saturated fills with white uppercase text, and a
+   league chip in a third treatment. All of them now read from this table:
+   pale ground, dark ink of the same hue, Title case. Every pair below is at
+   least 4.5:1.
+   
+   The card pills could not be fixed from CSS before this, because the colours
+   were inline styles — that is why the palette was ignored, not a specificity
+   problem. */
+.tp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--tp-bg, #e9e6df);
+  color: var(--tp-fg, #5f5952);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  /* Title case, as everywhere else in the app. The uppercase chips were the
+     only shouting text on the page. */
+  text-transform: capitalize;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+/* The multiplier is a qualifier on the type, not a second label. */
+.tp-count i { font-style: normal; font-size: 10px; font-weight: 800; opacity: 0.6; }
+
+.tp[data-type="grass"]    { --tp-bg: #e3f0d6; --tp-fg: #4d7a2e; }
+.tp[data-type="fire"]     { --tp-bg: #fbe0cf; --tp-fg: #a8541f; }
+.tp[data-type="water"]    { --tp-bg: #d9e7f5; --tp-fg: #3a6294; }
+.tp[data-type="poison"]   { --tp-bg: #eadff0; --tp-fg: #7a4d8f; }
+.tp[data-type="ground"]   { --tp-bg: #eee2cf; --tp-fg: #8a6524; }
+.tp[data-type="bug"]      { --tp-bg: #e8eecd; --tp-fg: #6b7a2e; }
+.tp[data-type="dragon"]   { --tp-bg: #e4dcf3; --tp-fg: #5a4a8f; }
+.tp[data-type="fighting"] { --tp-bg: #f7dcd6; --tp-fg: #9e4432; }
+.tp[data-type="flying"]   { --tp-bg: #e6e2f5; --tp-fg: #4f4a8a; }
+.tp[data-type="ice"]      { --tp-bg: #dcedf2; --tp-fg: #3d7285; }
+.tp[data-type="electric"] { --tp-bg: #f7eecb; --tp-fg: #8a7020; }
+.tp[data-type="ghost"]    { --tp-bg: #e4e0ec; --tp-fg: #5c5280; }
+.tp[data-type="fairy"]    { --tp-bg: #f7dfe9; --tp-fg: #9e4370; }
+.tp[data-type="steel"]    { --tp-bg: #e4e6ea; --tp-fg: #5c646e; }
+.tp[data-type="rock"]     { --tp-bg: #e8e2d6; --tp-fg: #7a6a4a; }
+/* Not in the brief, built to the same rule so no type falls back to grey. */
+.tp[data-type="normal"]   { --tp-bg: #eae7e0; --tp-fg: #6b6560; }
+.tp[data-type="psychic"]  { --tp-bg: #f7dde4; --tp-fg: #a2445c; }
+.tp[data-type="dark"]     { --tp-bg: #e2ddd8; --tp-fg: #5f544c; }
+
+[data-theme="dark"] .tp { filter: brightness(0.82) saturate(1.15); }
+
+/* The analysis panel keeps its own spacing but hands colour to .tp. */
+.go-analysis-types { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* The league chip stops being a third system. */
+.pgo-cp-league-pill,
+.pgo-card .pgo-cp-league-pill {
+  background: #f5ead6 !important;
+  color: #8a6420 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  padding: 3px 9px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: capitalize !important;
+  letter-spacing: 0 !important;
+}
+
+/* The CP slider rail, in the brand colour rather than the league's. */
+.pgo-cp-slider, .pgo-card .pgo-cp-slider { height: 4px !important; }
+.pgo-cp-slider::-webkit-slider-thumb { background: #8f2f2a !important; border-color: #fff !important; }
+.pgo-cp-slider::-moz-range-thumb { background: #8f2f2a !important; border-color: #fff !important; }
+
+/* ── Header bar: one row ───────────────────────────────────────────────────
+   The actions were wrapping to a second line and pinning right, which left a
+   half-width hole under the title that read as a missing element. Nothing
+   wraps now; the title is the only thing allowed to shrink. */
+.tb-bar { flex-wrap: nowrap; gap: 16px; }
+.tb-bar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tb-bar-stats { flex: 0 0 auto; }
+/* Centre the mode switch in the leftover space rather than letting it sit
+   wherever the title happens to end. */
+.tb-seg { margin: 0 auto; }
+.tb-bar-actions { margin-left: 0; }
+
+/* ── Disabled Add ──────────────────────────────────────────────────────────
+   0.45 opacity on a red fill produced a pale pink that reads as broken. A
+   flat neutral reads as "not now", and the tooltip says why. */
+.tb-btn-primary:disabled {
+  opacity: 1;
+  background: #ebe7e0;
+  border-color: #ebe7e0;
+  color: #9a938b;
+  cursor: not-allowed;
+}
+[data-theme="dark"] .tb-btn-primary:disabled {
+  background: rgba(255,255,255,0.08); border-color: transparent; color: #7d7770;
+}
+
+/* ── Page height ───────────────────────────────────────────────────────────
+   Three GO cards end the page well above the fold, and the footer arriving
+   early made the page look unfinished rather than short. */
+.team-page .tb-layout { min-height: 62vh; }
+
+@media (max-width: 900px) {
+  /* Below this the row genuinely cannot hold everything, so it wraps on
+     purpose with the groups kept whole. */
+  .tb-bar { flex-wrap: wrap; }
+  .tb-seg { margin: 0; }
+  .tb-bar-actions { margin-left: auto; }
+}
+
+/* ── Analysis panel ────────────────────────────────────────────────────────
+   Four cards top to bottom: what the team scores, what it loses to, what it
+   shrugs off, and what to do about it. */
+.tb-an-title {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+/* A colour bar rather than an icon: it groups the cards by meaning without
+   adding a fourth glyph to read. */
+.tb-an-title::before {
+  content: "";
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: var(--tone, #8f2f2a);
+  flex: 0 0 auto;
+}
+.tb-an-title[data-tone="weak"]   { --tone: #b3564f; }
+.tb-an-title[data-tone="resist"] { --tone: #4a7c3f; }
+.tb-an-title[data-tone="add"]    { --tone: #8f2f2a; }
+
+.tb-an-hint { margin: 4px 0 9px; font-size: 11.5px; color: #6b6560; line-height: 1.45; }
+[data-theme="dark"] .tb-an-hint { color: #b0a9a2; }
+
+.tb-an-label { font-size: 12px; font-weight: 600; color: #6b6560; }
+[data-theme="dark"] .tb-an-label { color: #b0a9a2; }
+.tb-an-scorerow { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
+.tb-an-grade {
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  flex: 0 0 auto;
+}
+.tb-an-why { font-size: 11.5px; font-weight: 600; color: #6b6560; line-height: 1.35; }
+[data-theme="dark"] .tb-an-why { color: #b0a9a2; }
+.tb-an-track { height: 5px; border-radius: 999px; background: #eeeae2; overflow: hidden; }
+.tb-an-fill { display: block; height: 100%; border-radius: 999px; background: #8f2f2a; transition: width 0.35s ease; }
+[data-theme="dark"] .tb-an-track { background: rgba(255,255,255,0.09); }
+[data-theme="dark"] .tb-an-fill { background: #b8433c; }
+
+/* A suggestion is a chip you press, so it says so on hover. */
+.tb-an-suggest { border: 0; cursor: pointer; font-family: inherit; }
+.tb-an-suggest:hover { filter: brightness(0.95); }
+.tb-an-suggest:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.tb-an-suggest i { opacity: 0.75; }
+
+/* A disabled button swallows mouse events, so the tooltip lives on a wrapper
+   or it never shows. */
+.tb-btn-wrap { display: inline-flex; }
+
+/* A card that is only a heading reads as a loading failure. */
+.tb-an-none { font-size: 11.5px; color: #6b6560; line-height: 1.45; }
+[data-theme="dark"] .tb-an-none { color: #b0a9a2; }
+
+/* The picker renders in a portal-ish overlay outside .team-page, so its
+   filter row and pills need the palette at document level too. */
+.tb-pick-filter { display: flex; align-items: center; gap: 8px; margin: 0 0 10px;
+  font-size: 12px; color: #6b6560; font-weight: 600; }
+.tb-pick-loading { opacity: 0.6; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Select Pokémon — a picker you can actually search with
+   ═══════════════════════════════════════════════════════════════════════════
+   It rendered outside .team-page, so its rules live at document level. */
+.tb-picker {
+  width: min(1100px, 92vw) !important;
+  max-width: none !important;
+  height: min(720px, 88vh) !important;
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.tb-picker-body {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  gap: 10px;
+  padding: 20px 22px 18px !important;
+  overflow: hidden !important;
+}
+.tb-picker-title { margin: 0 !important; font-size: 19px; font-weight: 800; color: var(--text-primary); }
+
+/* The close button was a bare white circle. */
+.tb-picker-x {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--text-secondary) !important;
+}
+.tb-picker-x:hover { background: var(--bg-muted) !important; color: var(--text-primary) !important; }
+
+.tb-picker-tools { display: flex; gap: 10px; align-items: center; }
+.tb-picker-tools .team-add-search { flex: 1 1 auto; margin: 0 !important; }
+.tb-picker-sort {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+}
+
+.tb-picker-types { display: flex; flex-wrap: wrap; gap: 5px; }
+.tb-picker-type {
+  border: 1.5px solid transparent !important;
+  cursor: pointer;
+  font-family: inherit;
+  opacity: 0.72;
+  transition: opacity 0.14s ease, border-color 0.14s ease;
+}
+.tb-picker-type:hover { opacity: 1; }
+.tb-picker-type.on { opacity: 1; border-color: currentColor !important; }
+
+.tb-picker-gens { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.tb-picker-gens::-webkit-scrollbar { display: none; }
+.tb-picker-gen {
+  flex: 0 0 auto;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tb-picker-gen:hover { border-color: #8f2f2a; color: #8f2f2a; }
+.tb-picker-gen.on { background: #8f2f2a; border-color: #8f2f2a; color: #fff; }
+
+.tb-picker-meta {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  font-size: 12px; color: #6b6560; font-weight: 600;
+}
+.tb-picker-note { font-style: normal; opacity: 0.8; font-weight: 500; }
+.tb-picker-clear {
+  border: 0; background: none; padding: 0;
+  color: #8f2f2a; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.tb-picker-clear:hover { text-decoration: underline; }
+
+/* The grid is the only thing that scrolls, with a rail that belongs to the
+   page rather than the browser's floating default. */
+.tb-picker-grid {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)) !important;
+  gap: 10px !important;
+  padding: 2px 6px 2px 2px !important;
+  scrollbar-width: thin;
+  scrollbar-color: #d8d2c8 transparent;
+}
+.tb-picker-grid::-webkit-scrollbar { width: 8px; }
+.tb-picker-grid::-webkit-scrollbar-track { background: transparent; }
+.tb-picker-grid::-webkit-scrollbar-thumb { background: #d8d2c8; border-radius: 999px; }
+.tb-picker-grid::-webkit-scrollbar-thumb:hover { background: #bdb5a8; }
+[data-theme="dark"] .tb-picker-grid { scrollbar-color: #4a444c transparent; }
+[data-theme="dark"] .tb-picker-grid::-webkit-scrollbar-thumb { background: #4a444c; }
+
+.tb-picker-grid .team-add-card { position: relative; padding-bottom: 8px; }
+.tb-pick-types { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; margin-top: 4px; }
+.tb-pick-types .tp { font-size: 9.5px !important; padding: 2px 6px !important; }
+.tb-pick-bst {
+  display: block;
+  margin-top: 4px;
+  font-size: 10.5px; font-weight: 800;
+  color: #6b6560;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="dark"] .tb-pick-bst { color: #b0a9a2; }
+
+/* Already chosen: dimmed, unclickable, and labelled so it is obvious why. */
+.tb-picker-grid .team-add-card.in-team { opacity: 0.45; cursor: not-allowed; }
+.tb-pick-badge {
+  position: absolute; inset: auto 6px 6px;
+  padding: 2px 0;
+  border-radius: 6px;
+  background: #8f2f2a; color: #fff;
+  font-size: 9px; font-weight: 800; text-align: center;
+}
+
+.tb-picker-empty { flex: 1 1 auto; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; color: #6b6560; }
+.tb-picker-empty p { margin: 0; font-size: 14px; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .tb-picker { width: 96vw !important; height: 90vh !important; }
+  .tb-picker-body { padding: 16px 14px !important; }
+  .tb-picker-tools { flex-wrap: wrap; }
+  .tb-picker-sort { flex: 1 1 100%; }
+  .tb-picker-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)) !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GO Tools — header, now/next, context
+   ═══════════════════════════════════════════════════════════════════════════ */
+.go-tools-hub .gh-bar {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.gh-bar-left { flex: 1 1 auto; min-width: 0; }
+.gh-bar-title { margin: 0; font-size: 20px; font-weight: 800; color: var(--text-primary); }
+.gh-bar-sub { margin: 2px 0 0; font-size: 12.5px; color: #6b6560; font-weight: 600; }
+.gh-bar-right { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.gh-bar-clock {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  font-size: 17px; font-weight: 800; color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.gh-bar-clock em { font-style: normal; font-size: 10px; font-weight: 700; color: #6b6560; }
+.gh-bar-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-primary); font-size: 12.5px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+}
+.gh-bar-btn:hover { border-color: #8f2f2a; color: #8f2f2a; }
+.gh-zones-wrap { position: relative; display: inline-flex; }
+.gh-zones {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 200;
+  min-width: 150px; padding: 10px 12px;
+  border-radius: 12px; background: var(--bg-card);
+  border: 1px solid var(--border); box-shadow: 0 14px 32px rgba(0,0,0,0.14);
+}
+.gh-zone { display: flex; justify-content: space-between; gap: 16px; padding: 3px 0; font-size: 12px; }
+.gh-zone span { color: #6b6560; font-weight: 700; }
+.gh-zone b { font-variant-numeric: tabular-nums; }
+
+/* ── Now / next ── */
+.go-tools-hub .gh-now {
+  display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px;
+  margin: 0 0 12px; align-items: stretch;
+}
+.gh-now-lead {
+  position: relative;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--ev) 34%, var(--border));
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--ev) 16%, var(--bg-card)) 0%,
+    color-mix(in srgb, var(--ev) 5%, var(--bg-card)) 100%);
+  display: flex; flex-direction: column;
+}
+.gh-flag {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  padding: 4px 10px; border-radius: 999px;
+  background: #f0ece6; color: #6b6560;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.01em;
+}
+/* Live is said in words as well as colour, so the state does not depend on
+   seeing a red dot. */
+.gh-flag.live { background: #fbe3e0; color: #a33b34; }
+.gh-flag-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #d24a41;
+  animation: gh-pulse 1.8s ease-in-out infinite;
+}
+@keyframes gh-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .gh-flag-dot { animation: none; } }
+.gh-flag-n {
+  margin-left: 2px; padding: 0 6px; border-radius: 999px;
+  background: rgba(0,0,0,0.10); font-size: 10px;
+}
+.gh-now-title {
+  display: flex; align-items: center; gap: 9px;
+  margin: 12px 0 0; font-size: 22px; font-weight: 800; color: var(--text-primary);
+}
+.gh-now-title svg { color: var(--ev); flex: 0 0 auto; }
+.gh-now-desc { margin: 4px 0 0; font-size: 13px; color: #6b6560; font-weight: 600; }
+.gh-now-foot { margin-top: auto; padding-top: 16px; }
+.gh-now-time { display: flex; align-items: baseline; gap: 10px; }
+.gh-now-lbl { font-size: 11.5px; font-weight: 700; color: #6b6560; }
+.gh-now-count {
+  font-size: 30px; font-weight: 900; line-height: 1;
+  color: var(--text-primary); font-variant-numeric: tabular-nums;
+}
+.gh-now-bar { height: 5px; margin: 10px 0 6px; border-radius: 999px; background: #eeeae2; overflow: hidden; }
+.gh-now-fill { display: block; height: 100%; border-radius: 999px; background: var(--ev); }
+.gh-now-when { margin-top: 8px; font-size: 11.5px; color: #6b6560; font-weight: 600; }
+
+.gh-next {
+  padding: 14px 16px; border-radius: 16px;
+  background: var(--bg-card); border: 1px solid var(--border);
+}
+.gh-next-head { font-size: 12px; font-weight: 800; color: #6b6560; margin-bottom: 4px; }
+.gh-next-list { list-style: none; margin: 0; padding: 0; }
+.gh-next-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+}
+.gh-next-row:last-child { border-bottom: 0; }
+.gh-next-ico {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px; flex: 0 0 auto;
+  background: color-mix(in srgb, var(--ev) 14%, transparent);
+  color: var(--ev);
+}
+.gh-next-copy { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.gh-next-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.gh-next-when { font-size: 11px; color: #6b6560; font-weight: 600; }
+.gh-next-left {
+  font-size: 12px; font-weight: 800; color: var(--text-primary);
+  font-variant-numeric: tabular-nums; flex: 0 0 auto;
+}
+
+/* ── Context bar ── */
+.go-tools-hub .gh-ctx {
+  display: flex; align-items: center; gap: 18px;
+  margin: 0 0 16px; padding: 12px 18px;
+  border-radius: 14px; background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+.gh-ctx-half { display: flex; align-items: center; gap: 11px; flex: 1 1 0; min-width: 0; }
+.gh-ctx-div { width: 1px; align-self: stretch; background: var(--border); flex: 0 0 auto; }
+.gh-ctx-ico {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 10px; flex: 0 0 auto;
+  background: var(--bg-muted); color: var(--text-secondary);
+}
+.gh-ctx-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.gh-ctx-lbl { font-size: 11px; font-weight: 700; color: #6b6560; }
+.gh-ctx-types { display: flex; flex-wrap: wrap; gap: 4px; }
+.gh-ctx-na { font-size: 12px; color: #6b6560; font-weight: 600; }
+.gh-ctx-val { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.gh-ctx-btn {
+  align-self: flex-start;
+  padding: 5px 12px; border-radius: 8px;
+  border: 1px solid #8f2f2a; background: transparent;
+  color: #8f2f2a; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.gh-ctx-btn:hover { background: #8f2f2a; color: #fff; }
+
+[data-theme="dark"] .gh-bar-sub,
+[data-theme="dark"] .gh-now-lbl,
+[data-theme="dark"] .gh-now-when,
+[data-theme="dark"] .gh-next-when,
+[data-theme="dark"] .gh-next-head,
+[data-theme="dark"] .gh-ctx-lbl,
+[data-theme="dark"] .gh-ctx-na { color: #b0a9a2; }
+[data-theme="dark"] .gh-now-bar { background: rgba(255,255,255,0.10); }
+[data-theme="dark"] .gh-flag { background: rgba(255,255,255,0.09); color: #b0a9a2; }
+[data-theme="dark"] .gh-flag.live { background: rgba(210,74,65,0.22); color: #ff9d96; }
+
+@media (max-width: 1023px) {
+  .go-tools-hub .gh-now { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .go-tools-hub .gh-bar { gap: 10px; padding: 12px 14px; }
+  .gh-bar-left { flex: 1 1 100%; }
+  .gh-bar-right { flex: 1 1 100%; flex-wrap: wrap; }
+  .go-tools-hub .gh-ctx { flex-direction: column; align-items: stretch; gap: 12px; }
+  .gh-ctx-div { width: auto; height: 1px; }
+  .gh-now-count { font-size: 26px; }
 }
