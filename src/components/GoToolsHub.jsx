@@ -267,8 +267,7 @@ function NowNext({ lang }) {
 // These two were cards in a row of cards that otherwise held numbers, so an
 // empty "Enable location" tile read as a tile that had failed to load.
 
-function ContextBar({ lang }) {
-  const { weather } = useWeather();
+function ContextBar({ lang, weather, loading, error, permissionState, requestLocation }) {
   const boost = weather ? CONDITION_BOOST[weather.condition] : null;
   const typeName = (tn) => lang === "th" ? (TYPE_NAMES_TH[tn] ?? tn)
     : lang === "ja" ? (TYPE_NAMES_JA[tn] ?? tn) : tn;
@@ -307,14 +306,27 @@ function ContextBar({ lang }) {
           <span className="gh-ctx-lbl">
             {lang === "th" ? "ตำแหน่ง" : lang === "ja" ? "位置情報" : "Location"}
           </span>
-          {weather?.place ? (
-            <span className="gh-ctx-val">{weather.place}</span>
+          {/* The hook has no place name — it has coordinates and a reading.
+              Showing the reading is both true and more useful than a city. */}
+          {weather ? (
+            <span className="gh-ctx-val">
+              {weather.temp}&deg;C · {weather.latitude.toFixed(2)}, {weather.longitude.toFixed(2)}
+            </span>
+          ) : permissionState === "denied" ? (
+            <span className="gh-ctx-na">
+              {lang === "th" ? "ถูกปฏิเสธ — เปิดสิทธิ์ตำแหน่งในตั้งค่าเบราว์เซอร์"
+                : lang === "ja" ? "拒否されました — ブラウザの設定で許可してください"
+                : "Blocked — allow location in your browser settings"}
+            </span>
           ) : (
             <button type="button" className="gh-ctx-btn"
-              onClick={() => navigator.geolocation?.getCurrentPosition(() => window.location.reload(), () => {})}>
-              {lang === "th" ? "เปิดใช้ตำแหน่ง" : lang === "ja" ? "位置情報を許可" : "Enable location"}
+              disabled={loading} onClick={requestLocation}>
+              {loading
+                ? (lang === "th" ? "กำลังขอ…" : lang === "ja" ? "取得中…" : "Locating…")
+                : (lang === "th" ? "เปิดใช้ตำแหน่ง" : lang === "ja" ? "位置情報を許可" : "Enable location")}
             </button>
           )}
+          {error && !weather && <span className="gh-ctx-na">{error}</span>}
         </span>
       </div>
     </section>
@@ -368,7 +380,7 @@ function Sprite({ id, name, tint, badge, onGo, big }) {
   );
 }
 
-function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0, go, big }) {
+function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0, go, big, onLocate, locating }) {
   // Grey boxes the size of the real sprites: a card that grows when its data
   // lands is worse than one that never had a preview.
   if (status === "loading" && kind !== "weather") {
@@ -429,11 +441,14 @@ function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0, go, big
             {lang === "th" ? "เปิดตำแหน่งเพื่อดูธาตุที่ได้โบนัส"
               : lang === "ja" ? "位置情報を許可するとブーストが表示されます"
               : "Turn on location to see boosted types"}
-            <button type="button" className="gh-ctx-btn"
-              onClick={(e) => { e.preventDefault(); e.stopPropagation();
-                navigator.geolocation?.getCurrentPosition(() => window.location.reload(), () => {}); }}>
-              {lang === "th" ? "เปิดใช้ตำแหน่ง" : lang === "ja" ? "許可する" : "Enable location"}
-            </button>
+            {onLocate && (
+              <button type="button" className="gh-ctx-btn" disabled={locating}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onLocate(); }}>
+                {locating
+                  ? (lang === "th" ? "กำลังขอ…" : lang === "ja" ? "取得中…" : "Locating…")
+                  : (lang === "th" ? "เปิดใช้ตำแหน่ง" : lang === "ja" ? "許可する" : "Enable location")}
+              </button>
+            )}
           </span>
         </div>
       );
@@ -540,7 +555,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
     const id = setInterval(() => setNowMs(Date.now()), 60000);
     return () => clearInterval(id);
   }, []);
-  const { weather } = useWeather();
+  const { weather, loading: locating, error: weatherError, permissionState, requestLocation } = useWeather();
   const boostTypes = weather ? CONDITION_BOOST[weather.condition]?.types : null;
 
   // The sprites in a preview are decoration with alt=""; the count they stand
@@ -869,7 +884,8 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
       <HubHeader lang={lang} />
 
       <NowNext lang={lang} />
-      <ContextBar lang={lang} />
+      <ContextBar lang={lang} weather={weather} loading={locating} error={weatherError}
+        permissionState={permissionState} requestLocation={requestLocation} />
 
 
       {/* ─── TODAY, IN ONE PLACE ───
@@ -908,7 +924,8 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
             <SumBlock onGo={() => setActive("weather")}
               label={lang === "th" ? "ธาตุที่ได้โบนัส" : lang === "ja" ? "天候ブースト" : "Weather boost"}>
               <PreviewStrip kind="weather" data={go.data} status={go.status}
-                lang={lang} weatherTypes={boostTypes} now={nowMs} big />
+                lang={lang} weatherTypes={boostTypes} now={nowMs} big
+                onLocate={requestLocation} locating={locating} />
             </SumBlock>
           </div>
         </section>
@@ -961,7 +978,8 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
                 </span>
                 {t.preview && (
                   <PreviewStrip kind={t.preview} data={go.data} status={go.status}
-                    lang={lang} weatherTypes={boostTypes} now={nowMs} />
+                    lang={lang} weatherTypes={boostTypes} now={nowMs}
+                    onLocate={requestLocation} locating={locating} />
                 )}
               </a>
             ))}
