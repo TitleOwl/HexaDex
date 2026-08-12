@@ -16,7 +16,7 @@ import FieldResearch     from "./FieldResearch.jsx";
 import { findPokemonInList } from "../perfUtils.js";
 import {
   Swords, Globe, BarChart3, Shield, Rocket, CalendarDays, Egg, ClipboardList,
-  CloudSun, Zap, ArrowRight, Sparkles, Sun, Cloud, CloudRain, CloudSnow, CloudFog, MapPin, RefreshCw,
+  CloudSun, Zap, ArrowRight, Sparkles, Sun, Cloud, CloudRain, CloudSnow, CloudFog, RefreshCw,
   Camera,
 } from "lucide-react";
 
@@ -87,7 +87,6 @@ const WORLD_ZONES = [
 function HubHeader({ lang }) {
   const [zones, setZones] = useState(false);
   const [now, setNow] = useState(() => new Date());
-  const [refreshedAt] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     const wake = () => { if (!document.hidden) setNow(new Date()); };
@@ -95,25 +94,26 @@ function HubHeader({ lang }) {
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", wake); };
   }, []);
 
-  const mins = Math.max(0, Math.round((now.getTime() - refreshedAt) / 60000));
-  const ago = mins < 1
-    ? (lang === "th" ? "เมื่อสักครู่" : lang === "ja" ? "たった今" : "just now")
-    : (lang === "th" ? `${mins} นาทีที่แล้ว` : lang === "ja" ? `${mins}分前` : `${mins} min ago`);
+  // Data is cached for an hour, so the useful fact is when the next refresh
+  // lands — not how stale this copy is, which reads as a stalled system.
+  const toNext = Math.ceil((3600000 - (now.getTime() % 3600000)) / 60000);
 
   return (
     <header className="gh-bar">
       <div className="gh-bar-left">
         <h2 className="gh-bar-title">Pokémon GO</h2>
         <p className="gh-bar-sub">
-          {lang === "th" ? "ข้อมูลสดจาก LeekDuck · อัปเดตล่าสุด "
-            : lang === "ja" ? "LeekDuckのライブデータ · 最終更新 "
-            : "Live data from LeekDuck · updated "}{ago}
+          {lang === "th" ? `ข้อมูลสดจาก LeekDuck · รีเฟรชอัตโนมัติทุกชั่วโมง · ครั้งถัดไปในอีก ${toNext} นาที`
+            : lang === "ja" ? `LeekDuckのライブデータ · 毎時自動更新 · 次は${toNext}分後`
+            : `Live data from LeekDuck · auto-refreshes hourly · next in ${toNext} min`}
         </p>
       </div>
 
       <div className="gh-bar-right">
         <span className="gh-bar-clock">
-          {now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}
+          <span className="num">
+            {now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+          </span>
           <em>ICT</em>
         </span>
         <button type="button" className="gh-bar-btn" onClick={() => window.location.reload()}>
@@ -145,194 +145,225 @@ function HubHeader({ lang }) {
   );
 }
 
-// ─── Now / Next ──────────────────────────────────────────────────────────────
+// ─── Bento ───────────────────────────────────────────────────────────────────
 //
-// The old panel gave a weather card, three identical countdown cards and a
-// world-clock card equal billing in one row. The one thing people open this
-// page for — what is running right now — was a tile the same size as a list
-// of timezones. Here the live event is the page, and the rest is a queue.
+// Raid Hour and Max Monday used to live in a "Coming up" list next to the raid
+// bosses, as if they were unrelated. They are the same subject: someone who
+// came here about raids had to read two boxes to learn what raids are doing.
+// One raid tile holds the bosses that are open and the schedule that governs
+// them; the rest of the page is what is *not* raids.
 
-function NowNext({ lang }) {
-  // Every value below is recomputed from Date.now() against a fixed target,
-  // never by subtracting a second from the last value — that drifts as soon
-  // as the tab is throttled or slept.
+/** Format by distance: seconds only matter when they are about to matter. */
+function fmtNear(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const p = (n) => String(n).padStart(2, "0");
+  if (d > 0) return `${d}d ${h}h ${m}m`;      // a week out: no seconds
+  if (h > 0) return `${h}:${p(m)}:${p(sec)}`; // today
+  return `${p(m)}:${p(sec)}`;                 // within the hour
+}
+
+function useSecondTick() {
   const [, tick] = useState(0);
   useEffect(() => {
     const bump = () => tick(n => n + 1);
     const id = setInterval(bump, 1000);
-    // A backgrounded tab stops getting timers; recompute the moment it
-    // returns rather than showing whatever was on screen when it left.
+    // A throttled or slept tab stops receiving timers. Every value here is
+    // recomputed from Date.now() against a fixed target, so one recompute on
+    // return is enough to be correct again.
     const wake = () => { if (!document.hidden) bump(); };
     document.addEventListener("visibilitychange", wake);
     return () => { clearInterval(id); document.removeEventListener("visibilitychange", wake); };
   }, []);
+}
 
-  // Announced once a minute. A polite region that changes every second is
-  // read aloud continuously and makes the page unusable with a screen reader.
-  // Updated during render rather than in an effect: the announced value has
-  // to change with the minute, not one paint after it.
-  const [spoken, setSpoken] = useState("");
-
+function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, permissionState, requestLocation }) {
+  useSecondTick();
   const lbl = (o) => o[lang] ?? o.en;
+  const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
 
-  // Every weekly hour with its status, soonest first. Live ones lead.
   const events = WEEKLY_HOURS
     .map(ev => ({ ...ev, st: weeklyStatus(ev.day, ev.hour) }))
     .sort((a, b) => (b.st.live - a.st.live) || (a.st.ms - b.st.ms));
 
-  const lead = events[0];
-  const queue = events.slice(1, 4);
-  const liveCount = events.filter(e => e.st.live).length;
-
-  const leadCoarse = fmtCoarse(lead.st.ms);
-  if (spoken !== leadCoarse) setSpoken(leadCoarse);
+  // Raid-flavoured hours belong to the raid tile; whatever is left leads.
+  const raidHours = events.filter(e => e.key !== "spotlight");
+  const lead = events.find(e => e.st.live) ?? events.find(e => e.key === "spotlight") ?? events[0];
 
   const when = (ev) => {
     const d = new Date();
     d.setHours(ev.hour, 0, 0, 0);
     d.setDate(d.getDate() + ((ev.day - d.getDay() + 7) % 7));
     return d.toLocaleString(lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-GB",
-      { weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+      { weekday: "long", hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
-  // How far through its hour a live event is; for an upcoming one, how close.
-  const pct = lead.st.live ? Math.round((1 - lead.st.ms / 3600000) * 100) : null;
+  // Announced once a minute. A polite region changing every second is read
+  // aloud without pause and makes the page unusable with a screen reader.
+  const coarse = fmtCoarse(lead.st.ms);
+  const [spoken, setSpoken] = useState(coarse);
+  if (spoken !== coarse) setSpoken(coarse);
+
+  // Elapsed-of-duration only exists once the thing is running. Before that it
+  // is closeness, measured against the day before it starts.
+  const pct = lead.st.live
+    ? Math.round((1 - lead.st.ms / 3600000) * 100)
+    : Math.max(0, Math.min(100, Math.round((1 - lead.st.ms / 86400000) * 100)));
+
+  const bosses = raidBosses(data, 6);
+  const total = raidCount(data);
+  const running = liveEvents(data, 1)?.[0];
+  const eggs = eggHighlights(data, 1);
 
   return (
-    <section className="gh-now">
-      <div className="gh-now-lead" style={{ "--ev": lead.color }}>
-        <span className={`gh-flag${lead.st.live ? " live" : ""}`}>
-          {lead.st.live && <span className="gh-flag-dot" aria-hidden />}
-          {lead.st.live
-            ? (lang === "th" ? "กำลังเกิดขึ้น" : lang === "ja" ? "開催中" : "Happening now")
-            : (lang === "th" ? "กิจกรรมถัดไป" : lang === "ja" ? "次のイベント" : "Up next")}
-          {liveCount > 0 && <span className="gh-flag-n">{liveCount}</span>}
-        </span>
+    <div className="gh-bento">
+      {/* ── Lead event ── */}
+      <section className="gh-b gh-b-hero" style={{ "--ev": lead.color }}>
+        <span className="gh-hero-ring" aria-hidden />
+        <div className="gh-hero-kicker">
+          <b>{lead.st.live ? t("Happening now", "กำลังเกิดขึ้น", "開催中") : t("Up next", "ถัดไป", "次")}</b>
+          <span>{when(lead)}</span>
+        </div>
 
-        <h3 className="gh-now-title">
-          <lead.Icon size={22} strokeWidth={2.2} aria-hidden />
-          {lbl(lead.label)}
-        </h3>
-        <p className="gh-now-desc">
-          {lang === "th" ? "กิจกรรมประจำสัปดาห์ · 1 ชั่วโมง"
-            : lang === "ja" ? "毎週開催 · 1時間" : "Weekly, one hour long"}
-        </p>
+        <div className="gh-hero-body">
+          <h3 className="gh-hero-name">{lbl(lead.label)}</h3>
+          <p className="gh-hero-desc">
+            {t("Weekly · one hour long", "ทุกสัปดาห์ · ยาว 1 ชั่วโมง", "毎週 · 1時間")}
+          </p>
 
-        <div className="gh-now-foot">
-          <div className="gh-now-time">
-            <span className="gh-now-lbl">
-              {lead.st.live
-                ? (lang === "th" ? "เหลือเวลา" : lang === "ja" ? "残り" : "Time left")
-                : (lang === "th" ? "เริ่มในอีก" : lang === "ja" ? "開始まで" : "Starts in")}
-            </span>
-            <b className="gh-now-count">{fmtCountdown(lead.st.ms)}</b>
-            {/* The seconds are for the eye; only the minute is announced. */}
-            <span className="sr-only" aria-live="polite">{spoken}</span>
-          </div>
-          {pct != null && (
-            <div className="gh-now-bar">
-              <span className="gh-now-fill" style={{ width: `${pct}%` }} />
+          <div className="gh-hero-count">
+            <div>
+              <div className="gh-hero-lbl">
+                {lead.st.live ? t("Time left", "เหลือเวลา", "残り") : t("Starts in", "เริ่มในอีก", "開始まで")}
+              </div>
+              <b className="gh-hero-num num">{fmtNear(lead.st.ms)}</b>
+              <span className="sr-only" aria-live="polite">{spoken}</span>
             </div>
-          )}
-          <div className="gh-now-when">{when(lead)}</div>
-        </div>
-      </div>
+            <span className="gh-hero-mark"><lead.Icon size={30} strokeWidth={1.9} /></span>
+          </div>
 
-      <div className="gh-next">
-        <div className="gh-next-head">
-          {lang === "th" ? "ถัดไป" : lang === "ja" ? "この後" : "Coming up"}
+          <div className="gh-hero-bar"><span style={{ width: `${pct}%` }} /></div>
         </div>
-        <ul className="gh-next-list">
-          {queue.map(ev => (
-            <li key={ev.key} className="gh-next-row">
-              <span className="gh-next-ico" style={{ "--ev": ev.color }}>
-                <ev.Icon size={16} strokeWidth={2.3} aria-hidden />
-              </span>
-              <span className="gh-next-copy">
-                <span className="gh-next-name">{lbl(ev.label)}</span>
-                <span className="gh-next-when">{when(ev)}</span>
-              </span>
-              {/* Days away: seconds would be noise, and re-rendering them
-                  every second would be noise the browser pays for. */}
-              <span className="gh-next-left">{fmtCoarse(ev.st.ms)}</span>
-            </li>
+      </section>
+
+      {/* ── Everything raids, in one place ── */}
+      <section className="gh-b gh-b-raid">
+        <div className="gh-b-head">
+          <b>{t("Raids", "เรด", "レイド")}</b>
+          <span className="go-hub-live"><span className="go-hub-live-dot" aria-hidden />LIVE</span>
+          <button type="button" className="gh-b-link" onClick={() => go("raidguide")}>
+            {total ? t(`All ${total} bosses`, `ดูทั้ง ${total} ตัว`, `${total}体すべて`) : t("All bosses", "ดูทั้งหมด", "すべて")}
+            <span aria-hidden>&rsaquo;</span>
+          </button>
+        </div>
+
+        {/* Scrollable rather than truncated: the +N chip is a shortcut to the
+            full page, not the only way past the sixth boss. */}
+        <div className="gh-rail">
+          {status === "loading" && [0,1,2,3,4].map(i => <span key={i} className="gh-pv-cell big gh-pv-skel" />)}
+          {bosses?.map((b, i) => (
+            <Sprite key={i} id={b.id} name={b.name} big
+              onGo={() => go("raid")}
+              badge={typeof b.tier === "number" ? `${b.tier}★` : b.tier === "mega" ? "M" : null} />
           ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-// ─── Weather and location, on one line ───────────────────────────────────────
-// These two were cards in a row of cards that otherwise held numbers, so an
-// empty "Enable location" tile read as a tile that had failed to load.
-
-function ContextBar({ lang, weather, loading, error, permissionState, requestLocation }) {
-  const boost = weather ? CONDITION_BOOST[weather.condition] : null;
-  const typeName = (tn) => lang === "th" ? (TYPE_NAMES_TH[tn] ?? tn)
-    : lang === "ja" ? (TYPE_NAMES_JA[tn] ?? tn) : tn;
-
-  return (
-    <section className="gh-ctx">
-      <div className="gh-ctx-half">
-        <span className="gh-ctx-ico">
-          {boost ? <boost.Icon size={17} strokeWidth={2.2} /> : <CloudSun size={17} strokeWidth={2.2} />}
-        </span>
-        <span className="gh-ctx-copy">
-          <span className="gh-ctx-lbl">
-            {lang === "th" ? "สภาพอากาศตอนนี้" : lang === "ja" ? "現在の天気" : "Weather now"}
-          </span>
-          {boost ? (
-            <span className="gh-ctx-types">
-              {boost.types.map(tp => (
-                <span key={tp} className="tp" data-type={tp}>{typeName(tp)}</span>
-              ))}
-            </span>
-          ) : (
-            <span className="gh-ctx-na">
-              {lang === "th" ? "ยังไม่ทราบ — เปิดตำแหน่งเพื่อดูธาตุที่ได้โบนัส"
-                : lang === "ja" ? "位置情報を許可するとブーストが表示されます"
-                : "Unknown — turn on location to see boosted types"}
-            </span>
-          )}
-        </span>
-      </div>
-
-      <span className="gh-ctx-div" aria-hidden />
-
-      <div className="gh-ctx-half">
-        <span className="gh-ctx-ico"><MapPin size={17} strokeWidth={2.2} /></span>
-        <span className="gh-ctx-copy">
-          <span className="gh-ctx-lbl">
-            {lang === "th" ? "ตำแหน่ง" : lang === "ja" ? "位置情報" : "Location"}
-          </span>
-          {/* The hook has no place name — it has coordinates and a reading.
-              Showing the reading is both true and more useful than a city. */}
-          {weather ? (
-            <span className="gh-ctx-val">
-              {weather.temp}&deg;C · {weather.latitude.toFixed(2)}, {weather.longitude.toFixed(2)}
-            </span>
-          ) : permissionState === "denied" ? (
-            <span className="gh-ctx-na">
-              {lang === "th" ? "ถูกปฏิเสธ — เปิดสิทธิ์ตำแหน่งในตั้งค่าเบราว์เซอร์"
-                : lang === "ja" ? "拒否されました — ブラウザの設定で許可してください"
-                : "Blocked — allow location in your browser settings"}
-            </span>
-          ) : (
-            <button type="button" className="gh-ctx-btn"
-              disabled={loading} onClick={requestLocation}>
-              {loading
-                ? (lang === "th" ? "กำลังขอ…" : lang === "ja" ? "取得中…" : "Locating…")
-                : (lang === "th" ? "เปิดใช้ตำแหน่ง" : lang === "ja" ? "位置情報を許可" : "Enable location")}
+          {total && bosses && total > bosses.length && (
+            <button type="button" className="gh-pv-more go big" onClick={() => go("raidguide")}>
+              +{total - bosses.length}
             </button>
           )}
-          {error && !weather && <span className="gh-ctx-na">{error}</span>}
-        </span>
-      </div>
-    </section>
+        </div>
+
+        <div className="gh-sched">
+          {raidHours.map(ev => (
+            <div key={ev.key} className={`gh-sched-row${ev.st.live ? " live" : ""}`}>
+              <span className="gh-sched-ico" style={{ "--ev": ev.color }}>
+                <ev.Icon size={15} strokeWidth={2.3} aria-hidden />
+              </span>
+              <span className="gh-sched-copy">
+                <span className="gh-sched-name">{lbl(ev.label)}</span>
+                <span className="gh-sched-when">{when(ev)}</span>
+              </span>
+              <span className="gh-sched-cd num">{fmtNear(ev.st.ms)}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Eggs ── */}
+      <section className="gh-b gh-b-eggs">
+        <div className="gh-b-head">
+          <span className="gh-b-lbl">{t("Hatching now", "ไข่ที่ฟักได้ตอนนี้", "現在のタマゴ")}</span>
+          <button type="button" className="gh-b-link" onClick={() => go("eggs")}>
+            {t("Plan hatches", "วางแผนฟัก", "ふ化を計画")}<span aria-hidden>&rsaquo;</span>
+          </button>
+        </div>
+        <div className="gh-rail">
+          {status === "loading" && [0,1,2,3].map(i => <span key={i} className="gh-pv-cell big gh-pv-skel" />)}
+          {eggs?.map(g => (
+            <Sprite key={g.km} id={g.mons[0]?.id} name={g.mons[0]?.name} big
+              onGo={() => go("eggs")} badge={g.km.replace(" km", "k")} />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Weather ── */}
+      <section className="gh-b gh-b-weather">
+        <span className="gh-b-lbl">{t("Weather now", "อากาศตอนนี้", "現在の天気")}</span>
+        {weather ? (
+          <>
+            <div className="gh-w-read">{weather.temp}&deg;C</div>
+            <div className="gh-w-types">
+              {boostTypes?.map(tp => (
+                <span key={tp} className="tp" data-type={tp}>
+                  {lang === "th" ? (TYPE_NAMES_TH[tp] ?? tp) : lang === "ja" ? (TYPE_NAMES_JA[tp] ?? tp) : tp}
+                </span>
+              ))}
+            </div>
+          </>
+        ) : permissionState === "denied" ? (
+          <p className="gh-w-na">
+            {t("Blocked — allow location in your browser settings",
+               "ถูกปฏิเสธ — เปิดสิทธิ์ตำแหน่งในตั้งค่าเบราว์เซอร์",
+               "拒否されました — ブラウザの設定で許可してください")}
+          </p>
+        ) : (
+          <>
+            <p className="gh-w-na">
+              {t("Turn on location to see boosted types",
+                 "เปิดตำแหน่งเพื่อดูธาตุที่ได้โบนัส",
+                 "位置情報を許可するとブーストが表示されます")}
+            </p>
+            <button type="button" className="gh-ctx-btn" disabled={locating} onClick={requestLocation}>
+              {locating ? t("Locating…", "กำลังขอ…", "取得中…") : t("Enable location", "เปิดใช้ตำแหน่ง", "許可する")}
+            </button>
+          </>
+        )}
+      </section>
+
+      {/* ── An event actually running ── */}
+      <section className="gh-b gh-b-running">
+        <div className="gh-b-head">
+          <span className="gh-b-lbl">{t("Running now", "กำลังจัดอยู่", "開催中")}</span>
+          {running && <span className="go-hub-live"><span className="go-hub-live-dot" aria-hidden />LIVE</span>}
+        </div>
+        {running ? (
+          <button type="button" className="gh-run" onClick={() => go("events")} title={running.name}>
+            <span className="gh-run-name">{running.name}</span>
+            <span className="gh-run-left">
+              {t("ends in", "เหลือ", "残り")} <b className="num">{fmtNear(running.end - nowMs)}</b>
+            </span>
+          </button>
+        ) : (
+          <p className="gh-w-na">
+            {status === "loading" ? t("Loading…", "กำลังโหลด…", "読み込み中…")
+              : t("No event running right now", "ตอนนี้ไม่มีอีเวนต์", "現在開催中のイベントはありません")}
+          </p>
+        )}
+      </section>
+    </div>
   );
 }
-
 
 function SumBlock({ label, onGo, children }) {
   return (
@@ -555,7 +586,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
     const id = setInterval(() => setNowMs(Date.now()), 60000);
     return () => clearInterval(id);
   }, []);
-  const { weather, loading: locating, error: weatherError, permissionState, requestLocation } = useWeather();
+  const { weather, loading: locating, permissionState, requestLocation } = useWeather();
   const boostTypes = weather ? CONDITION_BOOST[weather.condition]?.types : null;
 
   // The sprites in a preview are decoration with alt=""; the count they stand
@@ -883,8 +914,8 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
       {/* ─── HEADER ─── */}
       <HubHeader lang={lang} />
 
-      <NowNext lang={lang} />
-      <ContextBar lang={lang} weather={weather} loading={locating} error={weatherError}
+      <Bento lang={lang} go={goTo} data={go.data} status={go.status} nowMs={nowMs}
+        weather={weather} boostTypes={boostTypes} locating={locating}
         permissionState={permissionState} requestLocation={requestLocation} />
 
 

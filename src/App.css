@@ -18087,3 +18087,123 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
   padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GO Tools — bento
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Equal-width digits, so a clock that ticks every second does not jitter
+   left and right as the glyphs change. */
+.go-tools-hub .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.go-tools-hub .gh-bento {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+  margin: 0 0 18px;
+}
+.gh-b {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  min-width: 0;
+}
+.gh-b-hero  { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+  background: linear-gradient(140deg,
+    color-mix(in srgb, var(--ev) 16%, var(--bg-card)) 0%,
+    color-mix(in srgb, var(--ev) 4%, var(--bg-card)) 55%, var(--bg-card) 100%);
+  border-color: color-mix(in srgb, var(--ev) 28%, var(--border)); }
+.gh-b-raid  { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; }
+.gh-b-eggs  { grid-column: span 2; }
+.gh-b-weather, .gh-b-running { display: flex; flex-direction: column; gap: 6px; }
+
+.gh-hero-ring {
+  position: absolute; right: -56px; top: -56px;
+  width: 200px; height: 200px; border-radius: 50%;
+  border: 24px solid color-mix(in srgb, var(--ev) 9%, transparent);
+  pointer-events: none;
+}
+.gh-hero-kicker { display: flex; align-items: baseline; gap: 9px; position: relative; }
+.gh-hero-kicker b { font-size: 10.5px; font-weight: 800; letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--ev) 72%, #2a2521); }
+.gh-hero-kicker span { font-size: 11.5px; color: #6b6560; font-weight: 600; }
+.gh-hero-body { margin-top: auto; position: relative; }
+.gh-hero-name { margin: 0; font-size: 25px; font-weight: 800; line-height: 1.25;
+  color: color-mix(in srgb, var(--ev) 68%, #241f1c); }
+.gh-hero-desc { margin: 2px 0 0; font-size: 12.5px; color: #6b6560; font-weight: 600; }
+.gh-hero-count { display: flex; align-items: flex-end; gap: 14px; margin-top: 18px; }
+.gh-hero-lbl { font-size: 10.5px; font-weight: 700; color: #6b6560; }
+.gh-hero-num { font-size: 40px; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
+  color: color-mix(in srgb, var(--ev) 68%, #241f1c); display: block; }
+.gh-hero-mark { margin-left: auto; display: flex; align-items: center; justify-content: center;
+  width: 70px; height: 70px; border-radius: 16px;
+  background: color-mix(in srgb, var(--ev) 12%, transparent); color: var(--ev); flex: 0 0 auto; }
+.gh-hero-bar { height: 5px; border-radius: 999px; margin-top: 15px; overflow: hidden;
+  background: color-mix(in srgb, var(--ev) 14%, transparent); }
+.gh-hero-bar span { display: block; height: 100%; border-radius: 999px; background: var(--ev);
+  transition: width 1s linear; }
+@media (prefers-reduced-motion: reduce) { .gh-hero-bar span { transition: none; } }
+
+.gh-b-head { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
+.gh-b-head > b { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+.gh-b-lbl { font-size: 11px; color: #6b6560; font-weight: 700; }
+.gh-b-link {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 3px;
+  border: 0; background: none; padding: 0; font: inherit;
+  font-size: 11.5px; font-weight: 700; color: #8f2f2a; cursor: pointer;
+}
+.gh-b-link:hover { text-decoration: underline; }
+.gh-b-link span { font-size: 14px; line-height: 1; }
+
+/* Scrolls rather than truncating; the +N chip is a shortcut, not the only way
+   past the sixth boss. */
+.gh-rail { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px;
+  scrollbar-width: none; }
+.gh-rail::-webkit-scrollbar { display: none; }
+.gh-pv-more.big { width: 60px; height: 60px; border-radius: 13px; font-size: 12.5px; padding: 0;
+  justify-content: center; }
+
+.gh-sched { margin-top: auto; padding-top: 6px; }
+.gh-sched-row { display: flex; align-items: center; gap: 11px; padding: 9px 0;
+  border-top: 1px solid var(--border); }
+.gh-sched-ico { display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
+  background: color-mix(in srgb, var(--ev) 14%, transparent); color: var(--ev); }
+.gh-sched-copy { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.gh-sched-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.gh-sched-when { font-size: 11px; color: #6b6560; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gh-sched-cd { font-size: 15px; font-weight: 800; color: var(--text-primary); flex: 0 0 auto; }
+.gh-sched-row.live .gh-sched-cd { color: #a33b34; }
+
+.gh-w-read { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+.gh-w-types { display: flex; flex-wrap: wrap; gap: 4px; }
+.gh-w-na { margin: 0; font-size: 11.5px; color: #6b6560; font-weight: 600; line-height: 1.45; }
+
+.gh-run { display: flex; flex-direction: column; gap: 4px; align-items: flex-start;
+  border: 0; background: none; padding: 0; font: inherit; text-align: left; cursor: pointer; }
+.gh-run-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gh-run:hover .gh-run-name { color: #8f2f2a; }
+.gh-run-left { font-size: 11.5px; color: #6b6560; font-weight: 600; }
+.gh-run-left b { color: var(--text-primary); }
+
+[data-theme="dark"] .gh-hero-kicker span,
+[data-theme="dark"] .gh-hero-desc, [data-theme="dark"] .gh-hero-lbl,
+[data-theme="dark"] .gh-b-lbl, [data-theme="dark"] .gh-sched-when,
+[data-theme="dark"] .gh-w-na, [data-theme="dark"] .gh-run-left { color: #b0a9a2; }
+[data-theme="dark"] .gh-hero-name, [data-theme="dark"] .gh-hero-num { color: #f0ebe6; }
+
+@media (max-width: 1023px) {
+  .go-tools-hub .gh-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gh-b-hero, .gh-b-raid, .gh-b-eggs { grid-column: span 2; grid-row: auto; }
+}
+@media (max-width: 640px) {
+  .go-tools-hub .gh-bento { grid-template-columns: 1fr; }
+  .gh-b-hero, .gh-b-raid, .gh-b-eggs, .gh-b-weather, .gh-b-running { grid-column: span 1; }
+  .gh-hero-num { font-size: 32px; }
+  .gh-hero-mark { width: 54px; height: 54px; }
+}
