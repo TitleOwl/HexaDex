@@ -18250,3 +18250,5 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
 /* The tile now stacks several groups, so it sizes to them. */
 .go-tools-hub .gh-b-raid { grid-row: span 3; }
 @media (max-width: 1023px) { .go-tools-hub .gh-b-raid { grid-row: auto; } }
+
+.gh-egg-img { flex: 0 0 auto; object-fit: contain; }

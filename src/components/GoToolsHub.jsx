@@ -145,8 +145,24 @@ function HubHeader({ lang }) {
   );
 }
 
-/** The raid egg for a tier. Drawn, because the data has no image for it. */
+/**
+ * The raid egg for a tier — the same Wiki image the Raid Battle Guide uses.
+ * The drawn egg stays as the fallback: the images are hotlinked from a third
+ * party, and a tier row with a hole in it is worse than a shape.
+ */
 function RaidEgg({ tier, size = 24 }) {
+  const [failed, setFailed] = useState(false);
+  if (tier.img && !failed) {
+    return (
+      // Fandom refuses hotlinks by Referer: curl gets 200, a browser sending
+      // http://localhost gets 404. Sending no referrer is what makes the
+      // request look like curl's, and is why these images were broken.
+      <img className="gh-egg-img" src={tier.img} alt="" aria-hidden
+        referrerPolicy="no-referrer"
+        width={size} height={size * 1.22} loading="lazy" decoding="async"
+        onError={() => setFailed(true)} />
+    );
+  }
   return (
     <span className="gh-egg" style={{ "--eh": tier.hue, width: size, height: size * 1.22 }} aria-hidden>
       {tier.key === "mega"

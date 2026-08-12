@@ -230,19 +230,27 @@ export function raidBosses(data, limit = 5) {
 /**
  * Raid bosses grouped by the egg that hatches them.
  *
- * raids.json carries no egg image and LeekDuck's own asset paths do not
- * resolve, so the egg is drawn (see .gh-egg) rather than fetched. Shadow
- * bosses share the numeric tier with their normal counterparts but hatch from
- * a different egg, so the name has to split them.
+ * The egg images are the ones RaidGuide.jsx already hotlinks from the Pokemon
+ * GO Wiki — the same picture in both places, rather than a second set drawn
+ * here. Shadow bosses share the numeric tier with their normal counterparts
+ * but hatch from a different egg, so the name has to split them.
  */
+const WIKIA = "https://static.wikia.nocookie.net/pokemongo/images";
 export const RAID_TIERS = [
-  { key: "mega",     rank: 6, label: "Mega",       hue: "#a8442f", stars: null, big: true },
-  { key: "5",        rank: 5, label: "5\u2605",       hue: "#8f2f2a", stars: 5, big: true },
-  { key: "s5",       rank: 5, label: "Shadow 5\u2605", hue: "#5c5280", stars: 5, big: true, shadow: true },
-  { key: "3",        rank: 3, label: "3\u2605",       hue: "#8a6524", stars: 3 },
-  { key: "s3",       rank: 3, label: "Shadow 3\u2605", hue: "#6b6560", stars: 3, shadow: true },
-  { key: "1",        rank: 1, label: "1\u2605",       hue: "#4d7a2e", stars: 1 },
-  { key: "s1",       rank: 1, label: "Shadow 1\u2605", hue: "#5f544c", stars: 1, shadow: true },
+  { key: "mega", rank: 6, label: "Mega",        hue: "#a8442f", stars: null, big: true,
+    img: `${WIKIA}/c/c2/Egg_Raid_Mega.png/revision/latest?cb=20200825193419` },
+  { key: "5",    rank: 5, label: "5\u2605",        hue: "#8f2f2a", stars: 5, big: true,
+    img: `${WIKIA}/c/cd/Egg_Raid_Legendary.png/revision/latest?cb=20170620230139` },
+  { key: "s5",   rank: 5, label: "Shadow 5\u2605", hue: "#5c5280", stars: 5, big: true, shadow: true,
+    img: `${WIKIA}/a/a4/Egg_Raid_Legendary_shadow.png/revision/latest?cb=20230519112814` },
+  { key: "3",    rank: 3, label: "3\u2605",        hue: "#8a6524", stars: 3,
+    img: `${WIKIA}/e/e3/Egg_Raid_Rare.png/revision/latest?cb=20170620230126` },
+  { key: "s3",   rank: 3, label: "Shadow 3\u2605", hue: "#6b6560", stars: 3, shadow: true,
+    img: `${WIKIA}/1/1b/Egg_Raid_Rare_shadow.png/revision/latest?cb=20230519112814` },
+  { key: "1",    rank: 1, label: "1\u2605",        hue: "#4d7a2e", stars: 1,
+    img: `${WIKIA}/5/5a/Egg_Raid_Normal.png/revision/latest?cb=20170620230659` },
+  { key: "s1",   rank: 1, label: "Shadow 1\u2605", hue: "#5f544c", stars: 1, shadow: true,
+    img: `${WIKIA}/7/7f/Egg_Raid_Normal_shadow.png/revision/latest?cb=20230519112813` },
 ];
 
 function tierKey(boss) {
