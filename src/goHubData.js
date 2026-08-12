@@ -227,6 +227,55 @@ export function raidBosses(data, limit = 5) {
     }));
 }
 
+/**
+ * Raid bosses grouped by the egg that hatches them.
+ *
+ * raids.json carries no egg image and LeekDuck's own asset paths do not
+ * resolve, so the egg is drawn (see .gh-egg) rather than fetched. Shadow
+ * bosses share the numeric tier with their normal counterparts but hatch from
+ * a different egg, so the name has to split them.
+ */
+export const RAID_TIERS = [
+  { key: "mega",     rank: 6, label: "Mega",       hue: "#a8442f", stars: null, big: true },
+  { key: "5",        rank: 5, label: "5\u2605",       hue: "#8f2f2a", stars: 5, big: true },
+  { key: "s5",       rank: 5, label: "Shadow 5\u2605", hue: "#5c5280", stars: 5, big: true, shadow: true },
+  { key: "3",        rank: 3, label: "3\u2605",       hue: "#8a6524", stars: 3 },
+  { key: "s3",       rank: 3, label: "Shadow 3\u2605", hue: "#6b6560", stars: 3, shadow: true },
+  { key: "1",        rank: 1, label: "1\u2605",       hue: "#4d7a2e", stars: 1 },
+  { key: "s1",       rank: 1, label: "Shadow 1\u2605", hue: "#5f544c", stars: 1, shadow: true },
+];
+
+function tierKey(boss) {
+  const shadow = /^shadow\b/i.test(boss.name ?? "");
+  const t = tierOf(boss.tier);
+  if (t === "mega") return "mega";
+  if (typeof t !== "number") return null;
+  return shadow ? `s${t}` : String(t);
+}
+
+/** One entry per tier that actually has bosses open, strongest first. */
+export function raidsByTier(data) {
+  const list = data?.raids;
+  if (!Array.isArray(list)) return null;
+  const buckets = new Map();
+  list.forEach(b => {
+    const k = tierKey(b);
+    if (!k) return;
+    if (!buckets.has(k)) buckets.set(k, []);
+    buckets.get(k).push({
+      name: b.name,
+      tier: tierOf(b.tier),
+      shiny: !!b.canBeShiny,
+      id: matchPokemonId(b),
+      mega: isMega(b),
+      form: formSuffix(b),
+    });
+  });
+  return RAID_TIERS
+    .map(t => ({ ...t, bosses: buckets.get(t.key) ?? [] }))
+    .filter(t => t.bosses.length > 0);
+}
+
 export function raidCount(data) {
   return Array.isArray(data?.raids) ? data.raids.length : null;
 }

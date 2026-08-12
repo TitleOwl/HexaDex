@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   useGoHubData, spriteUrl, raidBosses, raidCount, liveEvents,
-  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites,
+  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier,
 } from "../goHubData.js";
 import { useWeather } from "../useWeather.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
@@ -145,6 +145,18 @@ function HubHeader({ lang }) {
   );
 }
 
+/** The raid egg for a tier. Drawn, because the data has no image for it. */
+function RaidEgg({ tier, size = 24 }) {
+  return (
+    <span className="gh-egg" style={{ "--eh": tier.hue, width: size, height: size * 1.22 }} aria-hidden>
+      {tier.key === "mega"
+        ? <b className="gh-egg-m">M</b>
+        : <b className="gh-egg-n">{tier.stars}</b>}
+      {tier.shadow && <span className="gh-egg-shadow" />}
+    </span>
+  );
+}
+
 // ─── Bento ───────────────────────────────────────────────────────────────────
 //
 // Raid Hour and Max Monday used to live in a "Coming up" list next to the raid
@@ -211,7 +223,16 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
     ? Math.round((1 - lead.st.ms / 3600000) * 100)
     : Math.max(0, Math.min(100, Math.round((1 - lead.st.ms / 86400000) * 100)));
 
-  const bosses = useMegaSprites(raidBosses(data, 6));
+  const tiersRaw = raidsByTier(data);
+  const allBosses = useMegaSprites((tiersRaw ?? []).flatMap(x => x.bosses));
+  const tiers = (() => {
+    if (!tiersRaw) return null;
+    let n = 0;
+    return tiersRaw.map(t => ({ ...t, bosses: t.bosses.map(() => allBosses[n++]) }));
+  })();
+  // Mega and both 5-star eggs lead; everything else becomes a count.
+  const featured = (tiers ?? []).filter(x => x.big);
+  const rest = (tiers ?? []).filter(x => !x.big);
   const total = raidCount(data);
   const running = liveEvents(data, 1)?.[0];
   const eggs = eggHighlights(data, 1);
@@ -252,27 +273,49 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
         <div className="gh-b-head">
           <b>{t("Raids", "เรด", "レイド")}</b>
           <span className="go-hub-live"><span className="go-hub-live-dot" aria-hidden />LIVE</span>
+          {total && <span className="gh-b-lbl">{t(`${total} bosses`, `${total} ตัว`, `${total}体`)}</span>}
           <button type="button" className="gh-b-link" onClick={() => go("raidguide")}>
-            {total ? t(`All ${total} bosses`, `ดูทั้ง ${total} ตัว`, `${total}体すべて`) : t("All bosses", "ดูทั้งหมด", "すべて")}
-            <span aria-hidden>&rsaquo;</span>
+            {t("See all", "ดูทั้งหมด", "すべて")}<span aria-hidden>&rsaquo;</span>
           </button>
         </div>
 
-        {/* Scrollable rather than truncated: the +N chip is a shortcut to the
-            full page, not the only way past the sixth boss. */}
-        <div className="gh-rail">
-          {status === "loading" && [0,1,2,3,4].map(i => <span key={i} className="gh-pv-cell big gh-pv-skel" />)}
-          {bosses?.map((b, i) => (
-            <Sprite key={i} id={b.id} name={b.name} big
-              onGo={() => go("raid")}
-              badge={typeof b.tier === "number" ? `${b.tier}★` : b.tier === "mega" ? "M" : null} />
-          ))}
-          {total && bosses && total > bosses.length && (
-            <button type="button" className="gh-pv-more go big" onClick={() => go("raidguide")}>
-              +{total - bosses.length}
-            </button>
-          )}
-        </div>
+        {status === "loading" && (
+          <div className="gh-rail">
+            {[0,1,2,3].map(i => <span key={i} className="gh-pv-cell big gh-pv-skel" />)}
+          </div>
+        )}
+
+        {/* Only the tiers people hunt. A 1-star roster in the summary is a
+            list nobody came here to read. */}
+        {featured.map(tier => (
+          <div key={tier.key} className="gh-tier">
+            <div className="gh-tier-head">
+              <RaidEgg tier={tier} />
+              <span className="gh-tier-lbl">{tier.label}</span>
+            </div>
+            <div className="gh-rail">
+              {tier.bosses.map((b, i) => (
+                <Sprite key={i} id={b.id} name={b.name} big onGo={() => go("raid")} />
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* The rest as counts, so they are still reachable without taking the
+            space of the tiers that matter. */}
+        {rest.length > 0 && (
+          <div className="gh-rest">
+            {rest.map(tier => (
+              <button key={tier.key} type="button" className="gh-rest-chip"
+                onClick={() => go("raidguide")}
+                title={t(`${tier.bosses.length} ${tier.label} bosses`,
+                  `${tier.label} ${tier.bosses.length} ตัว`, `${tier.label} ${tier.bosses.length}体`)}>
+                <RaidEgg tier={tier} size={18} />
+                <span>{tier.bosses.length}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="gh-sched">
           {raidHours.map(ev => (

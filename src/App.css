@@ -18207,3 +18207,46 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
   .gh-hero-num { font-size: 32px; }
   .gh-hero-mark { width: 54px; height: 54px; }
 }
+
+/* ── Raid eggs, drawn ──
+   raids.json carries no egg image and LeekDuck's asset paths do not resolve,
+   so these are shapes in the app's own palette rather than a hotlink to a
+   file that may not exist. */
+.gh-egg {
+  position: relative; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50% 50% 46% 46% / 58% 58% 42% 42%;
+  background: linear-gradient(160deg,
+    color-mix(in srgb, var(--eh) 34%, #fff) 0%,
+    color-mix(in srgb, var(--eh) 62%, #fff) 100%);
+  border: 1px solid color-mix(in srgb, var(--eh) 45%, transparent);
+}
+.gh-egg-n, .gh-egg-m {
+  font-size: 9.5px; font-weight: 900; line-height: 1;
+  color: color-mix(in srgb, var(--eh) 82%, #1c1a18);
+}
+.gh-egg-shadow {
+  position: absolute; inset: 0; border-radius: inherit;
+  background: repeating-linear-gradient(-45deg, transparent 0 3px,
+    color-mix(in srgb, var(--eh) 26%, transparent) 3px 5px);
+}
+
+.gh-tier { margin-bottom: 10px; }
+.gh-tier-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.gh-tier-lbl { font-size: 11px; font-weight: 800; color: #6b6560; letter-spacing: 0.01em; }
+[data-theme="dark"] .gh-tier-lbl { color: #b0a9a2; }
+
+.gh-rest { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+.gh-rest-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px 4px 6px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-card);
+  font: inherit; font-size: 11.5px; font-weight: 800; color: var(--text-primary);
+  cursor: pointer;
+}
+.gh-rest-chip:hover { border-color: #8f2f2a; color: #8f2f2a; }
+.gh-rest-chip:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; }
+
+/* The tile now stacks several groups, so it sizes to them. */
+.go-tools-hub .gh-b-raid { grid-row: span 3; }
+@media (max-width: 1023px) { .go-tools-hub .gh-b-raid { grid-row: auto; } }
