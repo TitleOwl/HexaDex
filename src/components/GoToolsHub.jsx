@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   useGoHubData, spriteUrl, raidBosses, raidCount, liveEvents,
-  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier, raidRotations, rotationState, RAID_TIERS,
+  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier, raidRotations, rotationState, RAID_TIERS, useRotationTypes,
 } from "../goHubData.js";
 import { useWeather } from "../useWeather.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
@@ -97,15 +97,20 @@ function HubHeader({ lang }) {
   // Data is cached for an hour, so the useful fact is when the next refresh
   // lands — not how stale this copy is, which reads as a stalled system.
   const toNext = Math.ceil((3600000 - (now.getTime() % 3600000)) / 60000);
+  // A full hour remaining is the moment right after a refresh, not an hour's
+  // wait — saying "next in 60 min" there reads as the opposite of the truth.
+  const fresh = toNext >= 60;
 
   return (
     <header className="gh-bar">
       <div className="gh-bar-left">
         <h2 className="gh-bar-title">Pokémon GO</h2>
         <p className="gh-bar-sub">
-          {lang === "th" ? `ข้อมูลสดจาก LeekDuck · รีเฟรชอัตโนมัติทุกชั่วโมง · ครั้งถัดไปในอีก ${toNext} นาที`
-            : lang === "ja" ? `LeekDuckのライブデータ · 毎時自動更新 · 次は${toNext}分後`
-            : `Live data from LeekDuck · auto-refreshes hourly · next in ${toNext} min`}
+          {lang === "th"
+            ? `ข้อมูลสดจาก LeekDuck · ${fresh ? "เพิ่งอัปเดต" : `รีเฟรชอัตโนมัติทุกชั่วโมง · ครั้งถัดไปในอีก ${toNext} นาที`}`
+            : lang === "ja"
+            ? `LeekDuckのライブデータ · ${fresh ? "更新したばかり" : `毎時自動更新 · 次は${toNext}分後`}`
+            : `Live data from LeekDuck · ${fresh ? "just updated" : `auto-refreshes hourly · next in ${toNext} min`}`}
         </p>
       </div>
 
@@ -175,7 +180,6 @@ function RaidEgg({ tier, size = 24 }) {
 
 function RotationRow({ r, state, nowMs, lang, go }) {
   const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
-  const tier = RAID_TIERS.find(x => x.key === r.tier);
   const fmtDate = (ms) => new Date(ms).toLocaleDateString(
     lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-GB",
     { day: "numeric", month: "short" });
@@ -187,11 +191,21 @@ function RotationRow({ r, state, nowMs, lang, go }) {
   const label = state === "live" ? t("ends in", "จบในอีก", "終了まで")
     : state === "next" ? t("starts in", "เริ่มในอีก", "開始まで") : null;
   const pct = state === "live"
-    ? Math.round(((nowMs - r.start) / (r.end - r.start)) * 100) : null;
+    ? Math.min(100, Math.max(0, Math.round(((nowMs - r.start) / (r.end - r.start)) * 100)))
+    : null;
 
   return (
-    <div className={`gh-rot ${state}`}>
-      <Sprite id={r.id} name={r.name} big onGo={() => go("raid")} />
+    <a className={`gh-rot ${state}`} href="#raid"
+      aria-label={`${r.name} — ${state === "live" ? t("live now", "กำลังเปิด", "開催中")
+        : state === "next" ? t("upcoming", "ถัดไป", "予定") : t("ended", "จบแล้ว", "終了")}`}
+      onClick={(e) => { if (e.metaKey || e.ctrlKey || e.button !== 0) return; e.preventDefault(); go("raid"); }}>
+      <span className="gh-rot-sprite">
+        <Sprite id={r.id} name={r.name} big />
+        {r.shiny && state !== "done" && (
+          <span className="gh-rot-star" title={t("Shiny possible", "มีโอกาสได้ shiny", "色違いあり")}
+            aria-label={t("Shiny possible", "มีโอกาสได้ shiny", "色違いあり")}>✦</span>
+        )}
+      </span>
       <div className="gh-rot-mid">
         <div className="gh-rot-top">
           <b className="gh-rot-name">{r.name}</b>
@@ -200,13 +214,29 @@ function RotationRow({ r, state, nowMs, lang, go }) {
               : state === "next" ? t(`From ${fmtDate(r.start)}`, `เริ่ม ${fmtDate(r.start)}`, `${fmtDate(r.start)}から`)
               : t("Ended", "จบแล้ว", "終了")}
           </span>
-          {r.shiny && state !== "done" && (
-            <span className="gh-rot-shiny" aria-label={t("Shiny possible", "มีโอกาสได้ shiny", "色違いあり")}>✦</span>
-          )}
         </div>
+        {r.types?.length > 0 && (
+          <div className="gh-rot-types">
+            {r.types.map(tp => (
+              <span key={tp} className="tp gh-tp-s" data-type={tp}>
+                {lang === "th" ? (TYPE_NAMES_TH[tp] ?? tp) : lang === "ja" ? (TYPE_NAMES_JA[tp] ?? tp) : tp}
+              </span>
+            ))}
+          </div>
+        )}
+        {r.weaknesses?.length > 0 && state !== "done" && (
+          <div className="gh-rot-weak">
+            <span className="gh-rot-weak-lbl">{t("Weak to", "อ่อนแอต่อ", "弱点")}</span>
+            {r.weaknesses.slice(0, 4).map(tp => (
+              <span key={tp} className="tp gh-tp-xs" data-type={tp}>
+                {lang === "th" ? (TYPE_NAMES_TH[tp] ?? tp) : lang === "ja" ? (TYPE_NAMES_JA[tp] ?? tp) : tp}
+              </span>
+            ))}
+          </div>
+        )}
         <div className="gh-rot-when">{fmtDate(r.start)} – {fmtDate(r.end)}</div>
         {pct != null && (
-          <div className="gh-rot-bar"><span style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} /></div>
+          <div className="gh-rot-bar"><span style={{ width: `${pct}%` }} /></div>
         )}
       </div>
       <div className="gh-rot-right">
@@ -214,9 +244,10 @@ function RotationRow({ r, state, nowMs, lang, go }) {
           <span className="gh-rot-lbl">{label}</span>
           <b className="gh-rot-cd num">{fmtNear(target - nowMs)}</b>
         </>}
-        {tier && <span className="gh-rot-tier">{tier.label}</span>}
+        {r.party && <span className="gh-rot-party">{t(`${r.party} players`, `ใช้ ${r.party} คน`, `${r.party}人`)}</span>}
+        <span className="gh-rot-go">{t("Counters", "ตัวเคาน์เตอร์", "対策")} &rsaquo;</span>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -253,7 +284,7 @@ function useSecondTick() {
   }, []);
 }
 
-function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, permissionState, requestLocation, dex, hideDone, setHideDone }) {
+function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, permissionState, requestLocation, dex, hideDone, setHideDone, cachedFetch }) {
   useSecondTick();
   const lbl = (o) => o[lang] ?? o.en;
   const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
@@ -296,13 +327,15 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
   const rotList = (() => {
     const all = rotsRaw ?? [];
     const by = (st) => all.filter(r => rotationState(r, nowMs) === st);
-    const past = hideDone ? []
-      : by("done").sort((a, b) => b.end - a.end).slice(0, 2).reverse();
+    // What you can battle now comes first. Sorting by date alone put two
+    // finished rotations above the one that is actually open.
     const live = by("live").sort((a, b) => a.end - b.end);
     const next = by("next").sort((a, b) => a.start - b.start).slice(0, 4);
-    return [...past, ...live, ...next];
+    const past = hideDone ? []
+      : by("done").sort((a, b) => b.end - a.end).slice(0, 2);
+    return [...live, ...next, ...past];
   })();
-  const rots = useMegaSprites(rotList);
+  const rots = useRotationTypes(useMegaSprites(rotList), cachedFetch);
 
   const tiersRaw = raidsByTier(data);
   const allBosses = useMegaSprites((tiersRaw ?? []).flatMap(x => x.bosses));
@@ -359,6 +392,7 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
             <span className="gh-switch-track" aria-hidden />
             <span className="gh-switch-txt">{t("Hide ended", "ซ่อนที่จบแล้ว", "終了を隠す")}</span>
           </label>
+          <span className="gh-head-div" aria-hidden />
           <button type="button" className="gh-b-link" onClick={() => go("raidguide")}>
             {t("See all", "ดูทั้งหมด", "すべて")}<span aria-hidden>&rsaquo;</span>
           </button>
@@ -387,7 +421,7 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
                 title={t(`${tier.bosses.length} ${tier.label} bosses`,
                   `${tier.label} ${tier.bosses.length} ตัว`, `${tier.label} ${tier.bosses.length}体`)}>
                 <RaidEgg tier={tier} size={18} />
-                <span>{tier.bosses.length}</span>
+                <span>{tier.label} · {t(`${tier.bosses.length}`, `${tier.bosses.length} ตัว`, `${tier.bosses.length}体`)}</span>
               </button>
             ))}
           </div>
@@ -1050,7 +1084,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
         weather={weather} boostTypes={boostTypes} locating={locating}
         permissionState={permissionState} requestLocation={requestLocation}
         dex={allList.map(x => ({ name: x.name, id: Number(x.url.split("/").filter(Boolean).pop()) }))}
-        hideDone={hideDone} setHideDone={setHideDone} />
+        hideDone={hideDone} setHideDone={setHideDone} cachedFetch={cachedFetch} />
 
 
       {/* ─── TODAY, IN ONE PLACE ───

@@ -370,6 +370,7 @@ export function raidRotations(data, dex = []) {
         types,
         weaknesses: weaknessesOf(types),
         shiny: !!b?.canBeShiny,
+        party: PARTY[tier ?? ""] ?? null,
         matched: !!id,
         detailed: !!b,
         start, end,
@@ -390,6 +391,41 @@ export function rotationState(r, now = Date.now()) {
 }
 
 export function partySize(tier) { return PARTY[tier] ?? null; }
+
+/**
+ * Types and weaknesses for rotations raids.json does not cover — which is
+ * every future one, since that file only lists what is open now. One detail
+ * request per boss, through the app's shared cache.
+ */
+export function useRotationTypes(rows, cachedFetch) {
+  const [types, setTypes] = useState({});
+  const key = (rows ?? []).map(r => r.id).join(",");
+
+  useEffect(() => {
+    if (!cachedFetch || !rows?.length) return;
+    const need = rows.filter(r => r.id && !r.types?.length && !types[r.id]);
+    if (!need.length) return;
+    let live = true;
+    Promise.allSettled(need.map(r =>
+      cachedFetch(`https://pokeapi.co/api/v2/pokemon/${r.id}`)
+        .then(d => [r.id, d?.types?.map(t => t.type.name) ?? []])))
+      .then(res => {
+        if (!live) return;
+        const add = {};
+        res.forEach(x => { if (x.status === "fulfilled" && x.value[1].length) add[x.value[0]] = x.value[1]; });
+        if (Object.keys(add).length) setTypes(prev => ({ ...prev, ...add }));
+      });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, cachedFetch]);
+
+  if (!rows) return rows;
+  return rows.map(r => {
+    if (r.types?.length || !types[r.id]) return r;
+    const t = types[r.id];
+    return { ...r, types: t, weaknesses: weaknessesOf(t) };
+  });
+}
 
 export function raidCount(data) {
   return Array.isArray(data?.raids) ? data.raids.length : null;

@@ -18300,3 +18300,43 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
   .gh-rot-right { width: auto; text-align: left; flex-direction: row; align-items: baseline;
     gap: 6px; margin-left: 76px; }
 }
+
+/* ── 1. The hero stretched to the tallest column and left ~600px of nothing.
+       Cards size to their own content and the grid tops them out. */
+.go-tools-hub .gh-bento { align-items: start; }
+.go-tools-hub .gh-b-hero { grid-row: auto; min-height: 200px; }
+.go-tools-hub .gh-b-raid { grid-row: span 2; }
+
+/* ── Rotation rows, as links ── */
+a.gh-rot { text-decoration: none; color: inherit; }
+a.gh-rot:hover .gh-rot-name { color: #8f2f2a; }
+a.gh-rot:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border-radius: 10px; }
+.gh-rot-sprite { position: relative; flex: 0 0 auto; display: flex; }
+.gh-rot-star {
+  position: absolute; top: -3px; right: -3px;
+  color: #c9a227; font-size: 13px; line-height: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.gh-rot-right { width: 118px; }
+.gh-rot-party { font-size: 10px; color: #6b6560; font-weight: 600; }
+.gh-rot-go { font-size: 10.5px; color: #8f2f2a; font-weight: 700; }
+[data-theme="dark"] .gh-rot-party { color: #b0a9a2; }
+
+/* ── 6. The bar ran past the middle of the card. ── */
+.gh-rot-bar { max-width: 240px; background: #f0ede6; }
+.gh-rot-bar span { background: #8f2f2a; opacity: 0.55; }
+
+/* ── 7. A rule between the switch and the link, which read as one group. ── */
+.gh-head-div { width: 1px; height: 14px; background: #e6e2da; flex: 0 0 auto; }
+[data-theme="dark"] .gh-head-div { background: rgba(255,255,255,0.14); }
+
+/* The schedule closes the card, so it needs its own edge. */
+.gh-b-raid .gh-sched { border-top: 1px solid #eee9e0; margin-top: 12px; padding-top: 2px; }
+[data-theme="dark"] .gh-b-raid .gh-sched { border-top-color: rgba(255,255,255,0.1); }
+
+.gh-rot-types { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.gh-rot-weak { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; }
+.gh-rot-weak-lbl { font-size: 9.5px; font-weight: 700; color: #6b6560; }
+[data-theme="dark"] .gh-rot-weak-lbl { color: #b0a9a2; }
+.go-tools-hub .tp.gh-tp-s  { font-size: 9.5px !important; padding: 2px 7px !important; }
+.go-tools-hub .tp.gh-tp-xs { font-size: 9px !important; padding: 1px 6px !important; }
