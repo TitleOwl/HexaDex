@@ -289,8 +289,20 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
   // Rotations need the dex to resolve a boss name; raids.json only lists what
   // is open now, and lags even that.
   const rotsRaw = raidRotations(data, dex);
-  const rots = useMegaSprites(
-    (rotsRaw ?? []).filter(r => !hideDone || rotationState(r, nowMs) !== "done"));
+
+  // Read in the order it happened: what just ended, what is on, what is next.
+  // Sorting live-first and slicing meant the past rows existed in the data
+  // and never once reached the screen.
+  const rotList = (() => {
+    const all = rotsRaw ?? [];
+    const by = (st) => all.filter(r => rotationState(r, nowMs) === st);
+    const past = hideDone ? []
+      : by("done").sort((a, b) => b.end - a.end).slice(0, 2).reverse();
+    const live = by("live").sort((a, b) => a.end - b.end);
+    const next = by("next").sort((a, b) => a.start - b.start).slice(0, 4);
+    return [...past, ...live, ...next];
+  })();
+  const rots = useMegaSprites(rotList);
 
   const tiersRaw = raidsByTier(data);
   const allBosses = useMegaSprites((tiersRaw ?? []).flatMap(x => x.bosses));
@@ -360,7 +372,7 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
 
         {/* What is on, what is coming, what just ended — the question this
             tile exists to answer. */}
-        {rots && rots.slice(0, 6).map(r => (
+        {rots && rots.map(r => (
           <RotationRow key={r.key} r={r} state={rotationState(r, nowMs)}
             nowMs={nowMs} lang={lang} go={go} />
         ))}
