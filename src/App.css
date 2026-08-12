@@ -18252,3 +18252,51 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
 @media (max-width: 1023px) { .go-tools-hub .gh-b-raid { grid-row: auto; } }
 
 .gh-egg-img { flex: 0 0 auto; object-fit: contain; }
+
+/* ── Raid rotations ── */
+.gh-rot { display: flex; align-items: center; gap: 12px; padding: 10px 0;
+  border-bottom: 1px solid var(--border); }
+.gh-rot:last-of-type { border-bottom: 0; }
+/* Ended rows recede, but the word "Ended" carries the meaning — opacity alone
+   is not a state anyone can read. */
+.gh-rot.done { opacity: 0.45; }
+.gh-rot-mid { flex: 1 1 auto; min-width: 0; }
+.gh-rot-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.gh-rot-name { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+.gh-rot-state { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; }
+.gh-rot-state.live { background: #e4f0dc; color: #3f6b2e; }
+.gh-rot-state.next { background: #eeeae2; color: #7a756c; }
+.gh-rot-state.done { background: #f2efe9; color: #8a857c; }
+.gh-rot-shiny { color: #c9a227; font-size: 13px; line-height: 1; }
+.gh-rot-when { margin-top: 3px; font-size: 11px; color: #6b6560; font-weight: 600; }
+.gh-rot-bar { height: 4px; max-width: 280px; margin-top: 6px; border-radius: 999px;
+  background: #eeeae2; overflow: hidden; }
+.gh-rot-bar span { display: block; height: 100%; border-radius: 999px; background: #8f2f2a; }
+.gh-rot-right { width: 120px; flex: 0 0 auto; text-align: right; display: flex;
+  flex-direction: column; gap: 1px; }
+.gh-rot-lbl { font-size: 10px; color: #6b6560; font-weight: 700; }
+.gh-rot-cd { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.gh-rot-tier { font-size: 10px; color: #6b6560; font-weight: 700; }
+[data-theme="dark"] .gh-rot-when, [data-theme="dark"] .gh-rot-lbl,
+[data-theme="dark"] .gh-rot-tier { color: #b0a9a2; }
+[data-theme="dark"] .gh-rot-bar { background: rgba(255,255,255,0.1); }
+
+.gh-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  margin-left: auto; }
+.gh-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.gh-switch-track { width: 30px; height: 17px; border-radius: 999px; background: #ddd8cf;
+  position: relative; transition: background 0.16s ease; flex: 0 0 auto; }
+.gh-switch-track::after { content: ""; position: absolute; top: 2px; left: 2px;
+  width: 13px; height: 13px; border-radius: 50%; background: #fff;
+  transition: transform 0.16s ease; }
+.gh-switch input:checked + .gh-switch-track { background: #8f2f2a; }
+.gh-switch input:checked + .gh-switch-track::after { transform: translateX(13px); }
+.gh-switch input:focus-visible + .gh-switch-track { outline: 2px solid #8f2f2a; outline-offset: 2px; }
+.gh-switch-txt { font-size: 11px; color: #6b6560; font-weight: 700; }
+.gh-b-raid .gh-b-link { margin-left: 0; }
+
+@media (max-width: 767px) {
+  .gh-rot { flex-wrap: wrap; }
+  .gh-rot-right { width: auto; text-align: left; flex-direction: row; align-items: baseline;
+    gap: 6px; margin-left: 76px; }
+}

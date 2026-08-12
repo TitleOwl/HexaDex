@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   useGoHubData, spriteUrl, raidBosses, raidCount, liveEvents,
-  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier,
+  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier, raidRotations, rotationState, RAID_TIERS,
 } from "../goHubData.js";
 import { useWeather } from "../useWeather.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
@@ -173,6 +173,53 @@ function RaidEgg({ tier, size = 24 }) {
   );
 }
 
+function RotationRow({ r, state, nowMs, lang, go }) {
+  const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
+  const tier = RAID_TIERS.find(x => x.key === r.tier);
+  const fmtDate = (ms) => new Date(ms).toLocaleDateString(
+    lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-GB",
+    { day: "numeric", month: "short" });
+
+  // Live counts down to the end, upcoming to the start. Two different
+  // questions, so each carries its own label — a bare number would be read
+  // as whichever the reader assumed.
+  const target = state === "live" ? r.end : r.start;
+  const label = state === "live" ? t("ends in", "จบในอีก", "終了まで")
+    : state === "next" ? t("starts in", "เริ่มในอีก", "開始まで") : null;
+  const pct = state === "live"
+    ? Math.round(((nowMs - r.start) / (r.end - r.start)) * 100) : null;
+
+  return (
+    <div className={`gh-rot ${state}`}>
+      <Sprite id={r.id} name={r.name} big onGo={() => go("raid")} />
+      <div className="gh-rot-mid">
+        <div className="gh-rot-top">
+          <b className="gh-rot-name">{r.name}</b>
+          <span className={`gh-rot-state ${state}`}>
+            {state === "live" ? t("Live now", "กำลังเปิด", "開催中")
+              : state === "next" ? t(`From ${fmtDate(r.start)}`, `เริ่ม ${fmtDate(r.start)}`, `${fmtDate(r.start)}から`)
+              : t("Ended", "จบแล้ว", "終了")}
+          </span>
+          {r.shiny && state !== "done" && (
+            <span className="gh-rot-shiny" aria-label={t("Shiny possible", "มีโอกาสได้ shiny", "色違いあり")}>✦</span>
+          )}
+        </div>
+        <div className="gh-rot-when">{fmtDate(r.start)} – {fmtDate(r.end)}</div>
+        {pct != null && (
+          <div className="gh-rot-bar"><span style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} /></div>
+        )}
+      </div>
+      <div className="gh-rot-right">
+        {label && <>
+          <span className="gh-rot-lbl">{label}</span>
+          <b className="gh-rot-cd num">{fmtNear(target - nowMs)}</b>
+        </>}
+        {tier && <span className="gh-rot-tier">{tier.label}</span>}
+      </div>
+    </div>
+  );
+}
+
 // ─── Bento ───────────────────────────────────────────────────────────────────
 //
 // Raid Hour and Max Monday used to live in a "Coming up" list next to the raid
@@ -206,7 +253,7 @@ function useSecondTick() {
   }, []);
 }
 
-function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, permissionState, requestLocation }) {
+function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, permissionState, requestLocation, dex, hideDone, setHideDone }) {
   useSecondTick();
   const lbl = (o) => o[lang] ?? o.en;
   const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
@@ -238,6 +285,12 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
   const pct = lead.st.live
     ? Math.round((1 - lead.st.ms / 3600000) * 100)
     : Math.max(0, Math.min(100, Math.round((1 - lead.st.ms / 86400000) * 100)));
+
+  // Rotations need the dex to resolve a boss name; raids.json only lists what
+  // is open now, and lags even that.
+  const rotsRaw = raidRotations(data, dex);
+  const rots = useMegaSprites(
+    (rotsRaw ?? []).filter(r => !hideDone || rotationState(r, nowMs) !== "done"));
 
   const tiersRaw = raidsByTier(data);
   const allBosses = useMegaSprites((tiersRaw ?? []).flatMap(x => x.bosses));
@@ -290,6 +343,11 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
           <b>{t("Raids", "เรด", "レイド")}</b>
           <span className="go-hub-live"><span className="go-hub-live-dot" aria-hidden />LIVE</span>
           {total && <span className="gh-b-lbl">{t(`${total} bosses`, `${total} ตัว`, `${total}体`)}</span>}
+          <label className="gh-switch" title={t("Hide rotations that have ended", "ซ่อนรอบที่จบแล้ว", "終了した回を隠す")}>
+            <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} />
+            <span className="gh-switch-track" aria-hidden />
+            <span className="gh-switch-txt">{t("Hide ended", "ซ่อนที่จบแล้ว", "終了を隠す")}</span>
+          </label>
           <button type="button" className="gh-b-link" onClick={() => go("raidguide")}>
             {t("See all", "ดูทั้งหมด", "すべて")}<span aria-hidden>&rsaquo;</span>
           </button>
@@ -301,20 +359,11 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
           </div>
         )}
 
-        {/* Only the tiers people hunt. A 1-star roster in the summary is a
-            list nobody came here to read. */}
-        {featured.map(tier => (
-          <div key={tier.key} className="gh-tier">
-            <div className="gh-tier-head">
-              <RaidEgg tier={tier} />
-              <span className="gh-tier-lbl">{tier.label}</span>
-            </div>
-            <div className="gh-rail">
-              {tier.bosses.map((b, i) => (
-                <Sprite key={i} id={b.id} name={b.name} big onGo={() => go("raid")} />
-              ))}
-            </div>
-          </div>
+        {/* What is on, what is coming, what just ended — the question this
+            tile exists to answer. */}
+        {rots && rots.slice(0, 6).map(r => (
+          <RotationRow key={r.key} r={r} state={rotationState(r, nowMs)}
+            nowMs={nowMs} lang={lang} go={go} />
         ))}
 
         {/* The rest as counts, so they are still reachable without taking the
@@ -670,6 +719,16 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
   // the destination should open with (a boss, an egg distance).
   const goTo = (toolId) => setActive(toolId);
 
+  // Some players only want what they can battle now; others want the whole
+  // rotation to plan Mega Energy. Both are reasonable, so it is remembered.
+  const [hideDone, setHideDoneRaw] = useState(() => {
+    try { return localStorage.getItem("pkdx_go_hide_done") === "1"; } catch { return false; }
+  });
+  const setHideDone = (v) => {
+    setHideDoneRaw(v);
+    try { localStorage.setItem("pkdx_go_hide_done", v ? "1" : "0"); } catch { /* private mode */ }
+  };
+
   // The summary card is lifted out of the tool list into its own section.
   const summaryTool = TOOL_CATEGORIES.flatMap(c => c.tools).find(t => t.hoisted);
 
@@ -978,7 +1037,9 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
 
       <Bento lang={lang} go={goTo} data={go.data} status={go.status} nowMs={nowMs}
         weather={weather} boostTypes={boostTypes} locating={locating}
-        permissionState={permissionState} requestLocation={requestLocation} />
+        permissionState={permissionState} requestLocation={requestLocation}
+        dex={allList.map(x => ({ name: x.name, id: Number(x.url.split("/").filter(Boolean).pop()) }))}
+        hideDone={hideDone} setHideDone={setHideDone} />
 
 
       {/* ─── TODAY, IN ONE PLACE ───
