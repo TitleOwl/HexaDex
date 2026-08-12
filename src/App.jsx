@@ -28,6 +28,7 @@ import Footer             from "./components/Footer.jsx";
 const PokemonModal    = lazy(() => import("./components/PokemonModal/index.jsx"));
 const TeamBuilder     = lazy(() => import("./components/TeamBuilder.jsx"));
 const GoToolsHub      = lazy(() => import("./components/GoToolsHub.jsx"));
+const RaidSchedule    = lazy(() => import("./components/RaidSchedule.jsx"));
 const GamesHub        = lazy(() => import("./components/GamesHub.jsx"));
 const CardMode        = lazy(() => import("./components/CardMode.jsx"));
 const BirthdayPokemon = lazy(() => import("./components/BirthdayPokemon.jsx"));
@@ -577,6 +578,16 @@ export default function App() {
             thaiArr={thaiArr} jpArr={jpArr}
             lang={lang} cachedFetch={cachedFetch}
             onOpen={handleSelect}
+          />
+        </Suspense>
+      )}
+
+      {/* ── Raid schedule ── */}
+      {view === "raids" && (
+        <Suspense fallback={<ViewLoading />}>
+          <RaidSchedule
+            lang={lang} allList={allList} cachedFetch={cachedFetch}
+            onOpenCounters={() => setView("gotools")}
           />
         </Suspense>
       )}

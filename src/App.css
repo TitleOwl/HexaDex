@@ -18374,3 +18374,171 @@ a.gh-rot:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border
   transform: rotate(-18deg);
   pointer-events: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Raid schedule
+   ═══════════════════════════════════════════════════════════════════════════ */
+.rs-page {
+  max-width: 1100px; margin: 0 auto; padding: 16px 20px 40px;
+  /* Thai needs the taller line; the stack leads with the face the rest of the
+     app already loads. */
+  font-family: "IBM Plex Sans Thai", var(--font-body, system-ui), sans-serif;
+  line-height: 1.65;
+}
+.rs-page .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+.rs-bar {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  margin: 0 0 14px; padding: 14px 20px; border-radius: 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.rs-bar-left { flex: 1 1 auto; min-width: 0; }
+.rs-h1 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text-primary); }
+.rs-sub { margin: 2px 0 0; font-size: 12.5px; color: #6b6560; font-weight: 600; }
+.rs-bar-right { display: flex; align-items: center; gap: 16px; flex: 0 0 auto; flex-wrap: wrap; }
+.rs-stat { display: flex; flex-direction: column; gap: 1px; }
+.rs-stat i { font-style: normal; font-size: 10.5px; font-weight: 700; color: #6b6560; }
+.rs-stat b { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+.rs-stat-rot b { color: #8f2f2a; }
+.rs-clock { display: inline-flex; align-items: baseline; gap: 4px; font-size: 15px; font-weight: 800; }
+.rs-clock em { font-style: normal; font-size: 10px; font-weight: 700; color: #6b6560; }
+/* An outline button, like every other button in the app. */
+.rs-refresh {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 999px;
+  border: 1px solid #ddd8cf; background: var(--bg-card); color: #5c5a55;
+  font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.rs-refresh:hover { border-color: #8f2f2a; color: #8f2f2a; }
+
+.rs-card {
+  margin: 0 0 10px; border-radius: 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden;
+}
+.rs-loading { padding: 22px; text-align: center; color: #6b6560; font-weight: 600; }
+
+.rs-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 12px 18px; border: 0; background: none; font: inherit; cursor: pointer;
+}
+.rs-head-name { font-size: 13px; font-weight: 800; color: var(--text-primary); }
+.rs-head-live { padding: 2px 9px; border-radius: 999px; background: #e4f0dc; color: #3f6b2e;
+  font-size: 10.5px; font-weight: 800; }
+.rs-head-n { margin-left: auto; font-size: 11.5px; color: #6b6560; font-weight: 700; }
+.rs-caret { display: flex; color: #a09d95; transition: transform 0.16s ease; }
+.rs-caret.open { transform: rotate(90deg); }
+.rs-head:hover .rs-caret { color: #8f2f2a; }
+.rs-head:focus-visible { outline: 2px solid #8f2f2a; outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .rs-caret { transition: none; } }
+
+.rs-egg { display: flex; align-items: center; justify-content: center; position: relative;
+  flex: 0 0 auto;
+  border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--eh) 32%, #fff),
+    color-mix(in srgb, var(--eh) 68%, #fff)); }
+.rs-egg b { font-size: 10px; font-weight: 900; color: color-mix(in srgb, var(--eh) 84%, #17140f); }
+.rs-egg::before { content: ""; position: absolute; inset: 13% 22% 54% 17%; border-radius: 50%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.8), rgba(255,255,255,0) 70%);
+  transform: rotate(-18deg); }
+.rs-egg-img { flex: 0 0 auto; object-fit: contain; }
+
+.rs-rows { border-top: 1px solid var(--border); }
+.rs-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 18px; border-bottom: 1px solid var(--border);
+  text-decoration: none; color: inherit;
+}
+.rs-row:last-child { border-bottom: 0; }
+.rs-row:hover { background: var(--bg-muted); }
+.rs-row:hover .rs-name { color: #8f2f2a; }
+.rs-row:focus-visible { outline: 2px solid #8f2f2a; outline-offset: -2px; }
+/* Dimming sits on top of the word "Ended", never instead of it. */
+.rs-row.ended { opacity: 0.42; }
+
+/* Tinted by the boss's own first type, like the cards in the dex. */
+.rs-art {
+  position: relative; flex: 0 0 auto;
+  width: 64px; height: 64px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--tp-bg, #eeeae2);
+}
+.rs-art img { width: 56px; height: 56px; object-fit: contain; }
+.rs-star { position: absolute; top: -4px; right: -4px; color: #c9a227; font-size: 15px;
+  line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+
+.rs-mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.rs-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rs-name { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+.rs-state { display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 800; }
+.rs-state.live { background: #e4f0dc; color: #3f6b2e; }
+.rs-state.upcoming { background: #f5eddd; color: #8a6f3c; }
+.rs-state.ended { background: #f2efe9; color: #a09d95; }
+.rs-dot { width: 6px; height: 6px; border-radius: 50%; background: #3f6b2e;
+  animation: rs-pulse 1.8s ease-in-out infinite; }
+@keyframes rs-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .rs-dot { animation: none; } }
+
+.rs-types, .rs-weak { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.rs-weak-lbl { font-size: 10px; font-weight: 700; color: #6b6560; }
+.rs-weak-more { font-size: 9px; font-weight: 700; color: #6b6560; }
+.rs-page .tp.rs-tp    { font-size: 10px !important; padding: 2px 8px !important; }
+.rs-page .tp.rs-tp-xs { font-size: 9px !important; padding: 1px 6px !important; }
+.rs-when { font-size: 11px; color: #6b6560; font-weight: 600; }
+.rs-bar { display: block; }
+.rs-mid .rs-bar { height: 4px; max-width: 260px; border-radius: 999px; background: #f0ede6;
+  overflow: hidden; padding: 0; margin: 2px 0 0; border: 0; box-shadow: none; }
+.rs-mid .rs-bar i { display: block; height: 100%; border-radius: 999px;
+  background: #8f2f2a; opacity: 0.55; }
+
+.rs-right { width: 130px; flex: 0 0 auto; display: flex; flex-direction: column;
+  align-items: flex-end; gap: 1px; text-align: right; }
+.rs-lead { font-size: 10px; font-weight: 700; color: #6b6560; }
+.rs-cd { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.rs-party { font-size: 10px; color: #6b6560; font-weight: 600; }
+.rs-go { display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px;
+  font-weight: 700; color: #8f2f2a; }
+
+[data-theme="dark"] .rs-sub, [data-theme="dark"] .rs-stat i,
+[data-theme="dark"] .rs-clock em, [data-theme="dark"] .rs-head-n,
+[data-theme="dark"] .rs-when, [data-theme="dark"] .rs-lead,
+[data-theme="dark"] .rs-party, [data-theme="dark"] .rs-weak-lbl { color: #b0a9a2; }
+[data-theme="dark"] .rs-head-live { background: rgba(63,107,46,0.25); color: #a7d18c; }
+[data-theme="dark"] .rs-mid .rs-bar { background: rgba(255,255,255,0.1); }
+
+@media (max-width: 767px) {
+  .rs-row { flex-wrap: wrap; }
+  .rs-right { width: auto; align-items: flex-start; text-align: left;
+    flex-direction: row; align-items: baseline; gap: 8px; margin-left: 78px; }
+  .rs-when { order: 9; flex-basis: 100%; }
+}
+@media (max-width: 479px) {
+  .rs-art { width: 46px; height: 46px; border-radius: 11px; }
+  .rs-art img { width: 40px; height: 40px; }
+  .rs-when { display: none; }
+  .rs-right { margin-left: 60px; }
+  .rs-weak .tp.rs-tp-xs:nth-of-type(n+4) { display: none; }
+}
+
+/* The art box is tinted by the boss's own first type, the same values the
+   pills use, so a row reads as one colour rather than two. */
+.rs-art[data-tint="grass"] { --tp-bg: #e3f0d6; }
+.rs-art[data-tint="fire"] { --tp-bg: #fbe0cf; }
+.rs-art[data-tint="water"] { --tp-bg: #d9e7f5; }
+.rs-art[data-tint="poison"] { --tp-bg: #eadff0; }
+.rs-art[data-tint="ground"] { --tp-bg: #eee2cf; }
+.rs-art[data-tint="bug"] { --tp-bg: #e8eecd; }
+.rs-art[data-tint="dragon"] { --tp-bg: #e4dcf3; }
+.rs-art[data-tint="fighting"] { --tp-bg: #f7dcd6; }
+.rs-art[data-tint="flying"] { --tp-bg: #e6e2f5; }
+.rs-art[data-tint="ice"] { --tp-bg: #dcedf2; }
+.rs-art[data-tint="electric"] { --tp-bg: #f7eecb; }
+.rs-art[data-tint="ghost"] { --tp-bg: #e4e0ec; }
+.rs-art[data-tint="fairy"] { --tp-bg: #f7dfe9; }
+.rs-art[data-tint="steel"] { --tp-bg: #e4e6ea; }
+.rs-art[data-tint="rock"] { --tp-bg: #e8e2d6; }
+.rs-art[data-tint="normal"] { --tp-bg: #f0eee6; }
+.rs-art[data-tint="psychic"] { --tp-bg: #e4e0ec; }
+.rs-art[data-tint="dark"] { --tp-bg: #e4e6ea; }

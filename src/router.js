@@ -19,6 +19,7 @@ export const VIEW_PATHS = {
   team:     "/team-builder",
   gotools:  "/go-tools",
   games:    "/games",
+  raids:    "/raid-schedule",
 };
 
 // Retired paths, kept so old links and bookmarks land somewhere sensible
