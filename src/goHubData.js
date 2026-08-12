@@ -99,6 +99,112 @@ export function cachedAt() {
 // Each card asks for exactly what it shows. Everything below tolerates null,
 // because a failed file must degrade one card rather than the page.
 
+// ─── Mega forms ─────────────────────────────────────────────────────────────
+//
+// matchPokemonId() reads the base dex number out of the LeekDuck filename —
+// "pm257.fMEGA.icon.png" is 257 — so a Mega boss was drawn as its plain form.
+// Mega Blaziken and Blaziken looked identical, which is exactly the difference
+// that matters in a raid list. PokeAPI keeps megas as separate varieties with
+// their own ids (blaziken-mega is 10050), and the sprite repo has them.
+
+const megaCache = new Map();   // `${baseId}:${variant}` -> id | null
+const megaInflight = new Map();
+
+/** "x" / "y" when the form is one of the split megas, else null. */
+function megaVariantOf(name = "", image = "") {
+  const src = `${name} ${image}`;
+  if (/mega[\s_-]*x\b/i.test(src)) return "x";
+  if (/mega[\s_-]*y\b/i.test(src)) return "y";
+  return null;
+}
+
+export function isMega(boss) {
+  return /\bmega\b/i.test(boss?.name ?? "") || /fMEGA/i.test(boss?.image ?? "");
+}
+
+// Regional forms are the same defect: "Alolan Marowak" was drawn as the
+// Kantonian one, and telling them apart is the whole point of naming them.
+const REGIONS = [
+  [/\balolan?\b/i,   "-alola"],
+  [/\bgalarian?\b/i, "-galar"],
+  [/\bhisuian?\b/i,  "-hisui"],
+  [/\bpaldean?\b/i,  "-paldea"],
+];
+
+/** The PokeAPI variety suffix this boss needs, or null for the base form. */
+export function formSuffix(boss) {
+  const name = boss?.name ?? "";
+  for (const [re, suffix] of REGIONS) if (re.test(name)) return suffix;
+  if (isMega(boss)) {
+    const v = megaVariantOf(name, boss?.image ?? "");
+    return v ? `-mega-${v}` : "-mega";
+  }
+  return null;
+}
+
+/**
+ * The PokeAPI id of a mega variety, or null when there is not one.
+ * Cached per base id, because a raid list repeats the same boss across tiers.
+ */
+export function variantFormId(baseId, suffix) {
+  if (!baseId || !suffix) return Promise.resolve(null);
+  const key = `${baseId}:${suffix}`;
+  if (megaCache.has(key)) return Promise.resolve(megaCache.get(key));
+  if (megaInflight.has(key)) return megaInflight.get(key);
+
+  const req = fetch(`https://pokeapi.co/api/v2/pokemon-species/${baseId}`)
+    .then(r => r.json())
+    .then(d => {
+      const names = (d.varieties ?? []).map(v => ({
+        name: v.pokemon.name,
+        id: Number(v.pokemon.url.split("/").filter(Boolean).pop()),
+      }));
+      // Exact suffix first; Charizard has -mega-x and -mega-y and no plain
+      // -mega, so an unqualified mega request falls back to either.
+      const hit = names.find(v => v.name.endsWith(suffix))
+        ?? (suffix === "-mega" ? names.find(v => /-mega(-[xy])?$/.test(v.name)) : null);
+      const id = hit?.id ?? null;
+      megaCache.set(key, id);
+      megaInflight.delete(key);
+      return id;
+    })
+    .catch(() => { megaCache.set(key, null); megaInflight.delete(key); return null; });
+
+  megaInflight.set(key, req);
+  return req;
+}
+
+/**
+ * Swaps mega ids in for a list of bosses once they resolve. Returns the list
+ * with `id` already corrected, so callers render base art for one frame at
+ * worst rather than an empty box.
+ */
+export function useMegaSprites(bosses) {
+  const [ids, setIds] = useState({});
+
+  const key = bosses?.map(b => `${b.id}${b.form ?? ""}`).join(",") ?? "";
+  useEffect(() => {
+    if (!bosses?.length) return;
+    const need = bosses.filter(b => b.form && b.id && !(`${b.id}${b.form}` in ids));
+    if (!need.length) return;
+    let live = true;
+    Promise.all(need.map(b =>
+      variantFormId(b.id, b.form).then(id => [`${b.id}${b.form}`, id])))
+      .then(pairs => {
+        if (!live) return;
+        setIds(prev => ({ ...prev, ...Object.fromEntries(pairs.filter(([, v]) => v)) }));
+      });
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  if (!bosses) return bosses;
+  return bosses.map(b => {
+    const hit = b.form ? ids[`${b.id}${b.form}`] : null;
+    return hit ? { ...b, id: hit } : b;
+  });
+}
+
 /** Active raid bosses, strongest tier first, with a resolved sprite id. */
 export function raidBosses(data, limit = 5) {
   const list = data?.raids;
@@ -115,6 +221,8 @@ export function raidBosses(data, limit = 5) {
       tier: tierOf(b.tier),
       shiny: !!b.canBeShiny,
       id: matchPokemonId(b),
+      mega: isMega(b),
+      form: formSuffix(b),
     }));
 }
 

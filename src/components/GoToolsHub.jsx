@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   useGoHubData, spriteUrl, raidBosses, raidCount, liveEvents,
-  eggHighlights, researchRewards, ROCKET_LEADERS,
+  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites,
 } from "../goHubData.js";
 import { useWeather } from "../useWeather.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
@@ -211,7 +211,7 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
     ? Math.round((1 - lead.st.ms / 3600000) * 100)
     : Math.max(0, Math.min(100, Math.round((1 - lead.st.ms / 86400000) * 100)));
 
-  const bosses = raidBosses(data, 6);
+  const bosses = useMegaSprites(raidBosses(data, 6));
   const total = raidCount(data);
   const running = liveEvents(data, 1)?.[0];
   const eggs = eggHighlights(data, 1);
@@ -412,6 +412,9 @@ function Sprite({ id, name, tint, badge, onGo, big }) {
 }
 
 function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0, go, big, onLocate, locating }) {
+  // Hooks run unconditionally; the slice is cheap and null for other kinds.
+  const megaList = useMegaSprites(
+    (kind === "raids" || kind === "counters") ? raidBosses(data, kind === "raids" ? 5 : 3) : null);
   // Grey boxes the size of the real sprites: a card that grows when its data
   // lands is worse than one that never had a preview.
   if (status === "loading" && kind !== "weather") {
@@ -425,7 +428,7 @@ function PreviewStrip({ kind, data, status, lang, weatherTypes, now = 0, go, big
   let cells = null, extra = null;
 
   if (kind === "raids" || kind === "counters") {
-    const list = raidBosses(data, kind === "raids" ? 5 : 3);
+    const list = megaList;
     if (list?.length) {
       cells = list.map((b, i) => (
         <Sprite key={i} id={b.id} name={b.name} big={big}
