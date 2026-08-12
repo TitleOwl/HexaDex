@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   useGoHubData, spriteUrl, raidBosses, raidCount, liveEvents,
-  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier, raidRotations, rotationState, useRotationTypes,
+  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier, raidRotations, rotationState, useRotationTypes, RAID_TIERS,
 } from "../goHubData.js";
 import { useWeather } from "../useWeather.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
@@ -284,7 +284,7 @@ function useSecondTick() {
   }, []);
 }
 
-function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, permissionState, requestLocation, dex, hideDone, setHideDone, cachedFetch }) {
+function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, permissionState, requestLocation, dex, hideDone, setHideDone, cachedFetch, collapsed, toggleTier }) {
   useSecondTick();
   const lbl = (o) => o[lang] ?? o.en;
   const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
@@ -336,6 +336,12 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
     return [...live, ...next, ...past];
   })();
   const rots = useRotationTypes(useMegaSprites(rotList), cachedFetch);
+
+  // Mega, then 5-star, then Shadow 5-star — the order of the eggs, not of the
+  // dates, because the tier is what a player picks a raid by.
+  const rotGroups = RAID_TIERS
+    .map(tier => ({ tier, rows: rots.filter(r => r.tier === tier.key) }))
+    .filter(g => g.rows.length > 0);
 
   const tiersRaw = raidsByTier(data);
   const allBosses = useMegaSprites((tiersRaw ?? []).flatMap(x => x.bosses));
@@ -406,10 +412,29 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
 
         {/* What is on, what is coming, what just ended — the question this
             tile exists to answer. */}
-        {rots && rots.map(r => (
-          <RotationRow key={r.key} r={r} state={rotationState(r, nowMs)}
-            nowMs={nowMs} lang={lang} go={go} />
-        ))}
+        {/* Grouped under the egg that hatches them. The rows answer what is
+            on and what is next; the egg answers which raid it is. */}
+        {rotGroups.map(g => {
+          const open = !collapsed.includes(g.tier.key);
+          const liveN = g.rows.filter(r => rotationState(r, nowMs) === "live").length;
+          return (
+            <div key={g.tier.key} className="gh-grp">
+              <button type="button" className="gh-grp-head" aria-expanded={open}
+                onClick={() => toggleTier(g.tier.key)}>
+                <RaidEgg tier={g.tier} size={20} />
+                <span className="gh-grp-lbl">{g.tier.label}</span>
+                {liveN > 0 && (
+                  <span className="gh-grp-n">{t(`${liveN} live`, `เปิดอยู่ ${liveN}`, `${liveN}開催中`)}</span>
+                )}
+                <span className={`gh-grp-caret${open ? " open" : ""}`} aria-hidden>&rsaquo;</span>
+              </button>
+              {open && g.rows.map(r => (
+                <RotationRow key={r.key} r={r} state={rotationState(r, nowMs)}
+                  nowMs={nowMs} lang={lang} go={go} />
+              ))}
+            </div>
+          );
+        })}
 
         {/* The rest as counts, so they are still reachable without taking the
             space of the tiers that matter. */}
@@ -766,6 +791,17 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
 
   // Some players only want what they can battle now; others want the whole
   // rotation to plan Mega Energy. Both are reasonable, so it is remembered.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("pkdx_go_collapsed") ?? "[]"); } catch { return []; }
+  });
+  const toggleTier = (key) => {
+    setCollapsed(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
+      try { localStorage.setItem("pkdx_go_collapsed", JSON.stringify(next)); } catch { /* private mode */ }
+      return next;
+    });
+  };
+
   const [hideDone, setHideDoneRaw] = useState(() => {
     try { return localStorage.getItem("pkdx_go_hide_done") === "1"; } catch { return false; }
   });
@@ -1084,7 +1120,8 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
         weather={weather} boostTypes={boostTypes} locating={locating}
         permissionState={permissionState} requestLocation={requestLocation}
         dex={allList.map(x => ({ name: x.name, id: Number(x.url.split("/").filter(Boolean).pop()) }))}
-        hideDone={hideDone} setHideDone={setHideDone} cachedFetch={cachedFetch} />
+        hideDone={hideDone} setHideDone={setHideDone} cachedFetch={cachedFetch}
+        collapsed={collapsed} toggleTier={toggleTier} />
 
 
       {/* ─── TODAY, IN ONE PLACE ───

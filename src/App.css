@@ -18340,3 +18340,37 @@ a.gh-rot:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border
 [data-theme="dark"] .gh-rot-weak-lbl { color: #b0a9a2; }
 .go-tools-hub .tp.gh-tp-s  { font-size: 9.5px !important; padding: 2px 7px !important; }
 .go-tools-hub .tp.gh-tp-xs { font-size: 9px !important; padding: 1px 6px !important; }
+
+/* ── Rotations, grouped by their egg ── */
+.gh-grp { margin-bottom: 4px; }
+.gh-grp-head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 0; border: 0; background: none; font: inherit; cursor: pointer;
+  border-top: 1px solid var(--border);
+}
+.gh-grp:first-of-type .gh-grp-head { border-top: 0; }
+.gh-grp-lbl { font-size: 12px; font-weight: 800; color: var(--text-primary); }
+.gh-grp-n {
+  padding: 2px 8px; border-radius: 999px;
+  background: #e4f0dc; color: #3f6b2e;
+  font-size: 10px; font-weight: 800;
+}
+.gh-grp-caret {
+  margin-left: auto; font-size: 16px; line-height: 1; color: #a09d95;
+  transition: transform 0.16s ease;
+}
+.gh-grp-caret.open { transform: rotate(90deg); }
+.gh-grp-head:hover .gh-grp-caret { color: #8f2f2a; }
+.gh-grp-head:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border-radius: 8px; }
+.gh-grp .gh-rot:last-of-type { border-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { .gh-grp-caret { transition: none; } }
+[data-theme="dark"] .gh-grp-n { background: rgba(63,107,46,0.25); color: #a7d18c; }
+
+/* The drawn egg gets its highlight; the Wiki image carries its own. */
+.gh-egg::before {
+  content: ""; position: absolute; inset: 14% 22% 52% 18%;
+  border-radius: 50%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.75), rgba(255,255,255,0) 70%);
+  transform: rotate(-18deg);
+  pointer-events: none;
+}
