@@ -299,8 +299,7 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
     let n = 0;
     return tiersRaw.map(t => ({ ...t, bosses: t.bosses.map(() => allBosses[n++]) }));
   })();
-  // Mega and both 5-star eggs lead; everything else becomes a count.
-  const featured = (tiers ?? []).filter(x => x.big);
+  // Rotations carry the headline tiers now; the rest stay as count chips.
   const rest = (tiers ?? []).filter(x => !x.big);
   const total = raidCount(data);
   const running = liveEvents(data, 1)?.[0];
