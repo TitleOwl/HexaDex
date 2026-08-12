@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   useGoHubData, spriteUrl, raidBosses, raidCount, liveEvents,
-  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier, raidRotations, rotationState, RAID_TIERS, useRotationTypes,
+  eggHighlights, researchRewards, ROCKET_LEADERS, useMegaSprites, raidsByTier, raidRotations, rotationState, useRotationTypes,
 } from "../goHubData.js";
 import { useWeather } from "../useWeather.js";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
