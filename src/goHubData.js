@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { matchPokemonId } from "./perfUtils.js";
+import { calcDefMatchups } from "./utils.js";
 
 const BASE = "https://raw.githubusercontent.com/bigfoott/ScrapedDuck/data";
 const FILES = {
@@ -283,6 +284,112 @@ export function raidsByTier(data) {
     .map(t => ({ ...t, bosses: buckets.get(t.key) ?? [] }))
     .filter(t => t.bosses.length > 0);
 }
+
+// ─── Rotations ──────────────────────────────────────────────────────────────
+//
+// raids.json says which bosses are open but carries no dates at all. The
+// windows live in events.json as eventType "raid-battles", with real start and
+// end timestamps. Joining the two is the only way to answer "how long is this
+// one up for", so the event is the row and the boss supplies its details.
+
+/** Rough party size per tier. Not from the API — a convention, labelled. */
+const PARTY = { mega: "2\u20134", "5": "2\u20134", s5: "3\u20135", "3": "1\u20133", s3: "2\u20133", "1": "1", s1: "1\u20132" };
+
+function tierFromTitle(title = "") {
+  if (/\bmega\b/i.test(title)) return "mega";
+  if (/shadow/i.test(title) && /5-?star/i.test(title)) return "s5";
+  if (/5-?star/i.test(title)) return "5";
+  if (/shadow/i.test(title) && /3-?star/i.test(title)) return "s3";
+  if (/3-?star/i.test(title)) return "3";
+  if (/shadow/i.test(title) && /1-?star/i.test(title)) return "s1";
+  if (/1-?star/i.test(title)) return "1";
+  return null;
+}
+
+/** The types this boss takes super-effective damage from. Computed here
+ *  because neither file carries weaknesses, and we already have the chart. */
+function weaknessesOf(types) {
+  if (!types?.length) return [];
+  return calcDefMatchups(types.map(t => ({ type: { name: t } })))
+    .filter(m => m.mult >= 2).sort((a, b) => b.mult - a.mult).map(m => m.type).slice(0, 6);
+}
+
+/**
+ * One row per raid window, newest-relevant first: live, then upcoming, then
+ * finished. Bosses whose name cannot be found in raids.json keep the window
+ * but carry no sprite — a guessed match would be worse than an honest gap.
+ */
+export function raidRotations(data, dex = []) {
+  const evs = data?.events, bosses = data?.raids;
+  if (!Array.isArray(evs)) return null;
+
+  const byName = new Map();
+  (bosses ?? []).forEach(b => byName.set((b.name ?? "").toLowerCase(), b));
+
+  // raids.json only lists what is open *now*, and lags events.json even for
+  // that — Groudon was live in events while raids still listed last week's
+  // trio. Identity therefore comes from our own dex, which has every species
+  // regardless of what is currently rotating.
+  const dexByName = new Map();
+  dex.forEach(p => dexByName.set(p.name.toLowerCase(), p.id));
+  const resolveId = (raw) => {
+    const base = raw.toLowerCase()
+      .replace(/^(mega|shadow)\s+/i, "")
+      .replace(/^(alolan|galarian|hisuian|paldean)\s+/i, "")
+      .replace(/\s*\(.*\)$/, "")
+      .trim();
+    return dexByName.get(base) ?? null;
+  };
+
+  const rows = [];
+  evs.filter(e => e.eventType === "raid-battles").forEach(e => {
+    const start = Date.parse(e.start), end = Date.parse(e.end);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+    const tier = tierFromTitle(e.name) ?? tierFromTitle(e.heading ?? "");
+
+    // "Uxie, Mesprit, and Azelf in 5-star Raid Battles" names three bosses in
+    // one window, so the title is split before matching rather than matched
+    // whole — otherwise a multi-boss rotation resolves to nothing.
+    const subject = (e.name ?? "").split(/\s+in\s+/i)[0];
+    // Splitting "Regirock, Regice, and Registeel" on commas first leaves an
+    // "and " glued to the last name, so it is stripped after the split.
+    const names = subject.split(/,\s*|\s+and\s+/i)
+      .map(x => x.trim().replace(/^and\s+/i, "")).filter(Boolean);
+
+    names.forEach(n => {
+      const b = byName.get(n.toLowerCase());
+      const types = b?.types?.map(t => t.name) ?? [];
+      const id = b ? matchPokemonId(b) : resolveId(n);
+      rows.push({
+        key: `${e.name}:${n}`,
+        name: b?.name ?? n,
+        tier: tier ?? (b ? tierKey(b) : null),
+        id,
+        form: b ? formSuffix(b) : formSuffix({ name: n }),
+        mega: b ? isMega(b) : /mega/i.test(n),
+        types,
+        weaknesses: weaknessesOf(types),
+        shiny: !!b?.canBeShiny,
+        matched: !!id,
+        detailed: !!b,
+        start, end,
+      });
+    });
+  });
+
+  const now = Date.now();
+  const rank = (r) => (now >= r.start && now <= r.end) ? 0 : (now < r.start ? 1 : 2);
+  return rows
+    .filter(r => r.tier)
+    .sort((a, b) => rank(a) - rank(b) || a.start - b.start);
+}
+
+export function rotationState(r, now = Date.now()) {
+  if (now >= r.start && now <= r.end) return "live";
+  return now < r.start ? "next" : "done";
+}
+
+export function partySize(tier) { return PARTY[tier] ?? null; }
 
 export function raidCount(data) {
   return Array.isArray(data?.raids) ? data.raids.length : null;
