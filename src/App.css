@@ -17951,7 +17951,7 @@ html[lang="th"] .gb, html[lang="th"] .gs, .gb:lang(th), .gb-facts:lang(th) {
   border-radius: 9px;
   background: var(--pv, var(--bg-muted));
 }
-.gh-pv-img { width: 36px; height: 36px; object-fit: contain; image-rendering: pixelated; }
+.gh-pv-img { width: 36px; height: 36px; object-fit: contain; }
 .gh-pv-txt { font-size: 9px; font-weight: 800; color: #6b6560; text-transform: capitalize; }
 .gh-pv-badge {
   position: absolute; right: -2px; bottom: -3px;

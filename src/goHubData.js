@@ -26,12 +26,13 @@ const TTL = 60 * 60 * 1000;
 let cache = null;      // { at, data }
 let inflight = null;
 
-/** Small sprite, not full artwork: this page renders 25+ of them at 40px. */
-export function spriteUrl(id) {
-  return id
-    ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
-    : null;
-}
+/**
+ * The same official artwork the Pokedex draws, via the shared helper — the
+ * 96px pixel sprites read as neither icon nor picture at 60px, and using a
+ * second art set here would mean the same Pokemon looked different on two
+ * pages of one app. It covers the mega and regional form ids too.
+ */
+export { artworkUrl as spriteUrl } from "./utils.js";
 
 /** "5-Star Raids" → 5, "Mega Raids" → "mega". Used for the star badges. */
 export function tierOf(raw = "") {
