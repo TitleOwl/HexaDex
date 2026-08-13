@@ -219,7 +219,6 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
   }, []);
-  const toRefresh = Math.ceil((3600000 - (now % 3600000)) / 60000);
 
   return (
     <main className="grid-wrap rs-page">
