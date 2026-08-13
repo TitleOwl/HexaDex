@@ -18542,3 +18542,109 @@ a.gh-rot:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border
 .rs-art[data-tint="normal"] { --tp-bg: #f0eee6; }
 .rs-art[data-tint="psychic"] { --tp-bg: #e4e0ec; }
 .rs-art[data-tint="dark"] { --tp-bg: #e4e6ea; }
+
+/* ── Raid schedule, second pass ──────────────────────────────────────────────
+   The page keeps the app's own ground; only the card work comes from the
+   mock. */
+
+.rs-page { max-width: 1000px; }
+.rs-bar { border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px 24px; }
+.rs-h1 { font-size: 26px; letter-spacing: -0.01em; }
+.rs-sub {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin-top: 5px; font-size: 13px; color: #6b6560; font-weight: 600;
+}
+.rs-sub-ico { color: #1f9d4f; flex: 0 0 auto; }
+.rs-sep { color: #c4beb6; }
+
+/* A filled pill, per the brief — the one dark control on the page. */
+.rs-refresh {
+  padding: 12px 22px; border-radius: 999px;
+  background: #252b2b; border: 1px solid #252b2b; color: #fff;
+  font-size: 13px; font-weight: 700; gap: 8px;
+}
+.rs-refresh:hover { background: #14191a; border-color: #14191a; color: #fff; }
+
+.rs-card { border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-bottom: 16px; }
+.rs-head { padding: 16px 22px; gap: 11px; }
+.rs-head-name { font-size: 18px; font-weight: 800; }
+.rs-head-live { background: #dcf0dc; color: #2d7a3e; font-size: 11px; padding: 3px 11px; }
+.rs-head-n { font-size: 13px; color: #9ca3af; font-weight: 600; }
+
+.rs-rows { border-top: 0; }
+.rs-row { padding: 16px 22px; gap: 16px; border-bottom: 1px solid #eeeeee; align-items: center; }
+.rs-row.ended { opacity: 1; }
+
+.rs-art {
+  width: 72px; height: 72px; border-radius: 14px;
+  background: #eaf3e4;
+}
+.rs-art img { width: 62px; height: 62px; }
+.rs-row.ended .rs-art { opacity: 0.55; }
+
+.rs-mid { gap: 5px; }
+.rs-title { gap: 7px; }
+.rs-name { font-size: 17px; font-weight: 800; }
+.rs-row.ended .rs-name { color: #9ca3af; }
+.rs-bolt { display: inline-flex; color: #f5c518; }
+.rs-row.ended .rs-bolt { display: none; }
+
+.rs-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 12.5px; }
+.rs-state { padding: 0; background: none !important; font-size: 12.5px; font-weight: 700; gap: 6px; }
+.rs-state.live { color: #1f9d4f; }
+.rs-state.upcoming { color: #e07a1f; }
+.rs-state.ended { color: #9ca3af; }
+.rs-dot { width: 7px; height: 7px; background: #1f9d4f; }
+.rs-when { font-size: 12.5px; color: #6b6560; font-weight: 500; }
+.rs-row.ended .rs-when { color: #9ca3af; }
+
+.rs-cd { font-size: 13.5px; font-weight: 700; }
+.rs-cd.live { color: #1f9d4f; }
+.rs-cd.upcoming { color: #e07a1f; }
+
+/* Solid pills with white text, per the brief's table. This is the one screen
+   in the app that does not use the pale system. */
+.rs-types { display: flex; flex-wrap: wrap; gap: 6px; flex: 0 0 auto; justify-content: flex-end; }
+.rs-pill {
+  padding: 6px 16px; border-radius: 999px;
+  background: #a8a878; color: #fff;
+  font-size: 12px; font-weight: 700; text-transform: capitalize;
+  white-space: nowrap;
+}
+.rs-pill[data-t="dragon"] { background: #7c3aed; }
+.rs-pill[data-t="ground"] { background: #d9c26e; }
+.rs-pill[data-t="water"] { background: #6b9ef0; }
+.rs-pill[data-t="dark"] { background: #4a3b35; }
+.rs-pill[data-t="fire"] { background: #f0803c; }
+.rs-pill[data-t="fighting"] { background: #c0392b; }
+.rs-pill[data-t="psychic"] { background: #f0508a; }
+.rs-pill[data-t="grass"] { background: #5cb85c; }
+.rs-pill[data-t="electric"] { background: #f5c518; }
+.rs-pill[data-t="ice"] { background: #6ec5d9; }
+.rs-pill[data-t="poison"] { background: #a855c7; }
+.rs-pill[data-t="flying"] { background: #8b9dd4; }
+.rs-pill[data-t="bug"] { background: #8fb830; }
+.rs-pill[data-t="rock"] { background: #b8a678; }
+.rs-pill[data-t="ghost"] { background: #6b5b95; }
+.rs-pill[data-t="steel"] { background: #8a99a8; }
+.rs-pill[data-t="fairy"] { background: #f08fb8; }
+.rs-pill[data-t="normal"] { background: #a8a878; }
+
+[data-theme="dark"] .rs-row { border-bottom-color: rgba(255,255,255,0.08); }
+[data-theme="dark"] .rs-art { background: rgba(255,255,255,0.06); }
+[data-theme="dark"] .rs-head-live { background: rgba(45,122,62,0.24); color: #a7d18c; }
+[data-theme="dark"] .rs-refresh { background: #f2f0ea; border-color: #f2f0ea; color: #17151a; }
+[data-theme="dark"] .rs-refresh:hover { background: #fff; border-color: #fff; color: #17151a; }
+
+@media (max-width: 767px) {
+  .rs-row { flex-wrap: wrap; }
+  /* The pills drop under the countdown rather than squeezing the name. */
+  .rs-types { flex-basis: 100%; justify-content: flex-start; margin-left: 88px; }
+}
+@media (max-width: 479px) {
+  .rs-art { width: 56px; height: 56px; border-radius: 12px; }
+  .rs-art img { width: 48px; height: 48px; }
+  .rs-types { margin-left: 72px; }
+  .rs-when { display: inline; }
+  .rs-h1 { font-size: 21px; }
+}

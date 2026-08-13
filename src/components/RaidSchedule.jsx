@@ -11,7 +11,7 @@
 // that would go stale every Wednesday.
 
 import { useEffect, useMemo, useState } from "react";
-import { RefreshCw, ChevronRight } from "lucide-react";
+import { RefreshCw, ChevronRight, Radio, Zap } from "lucide-react";
 import { TYPE_NAMES_TH, TYPE_NAMES_JA } from "../data.js";
 import {
   useGoHubData, spriteUrl, raidRotations, rotationState,
@@ -21,6 +21,22 @@ import {
 const COLLAPSE_KEY = "pkdx_raidsched_collapsed";
 
 const t = (lang, en, th, ja) => (lang === "th" ? th : lang === "ja" ? ja : en);
+
+const TIER_NAME = {
+  mega: "Mega", "5": "5\u2605 Legendary", s5: "Shadow",
+  "3": "3\u2605", s3: "Shadow 3\u2605", "1": "1\u2605", s1: "Shadow 1\u2605",
+};
+
+/** "Wed, Aug 12 at 07:00 AM" — the window in full, as the spec asks. */
+function stamp(ms, lang, short = false) {
+  const d = new Date(ms);
+  const loc = lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-US";
+  const day = d.toLocaleDateString(loc, short
+    ? { month: "short", day: "numeric" }
+    : { weekday: "short", month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit", hour12: true });
+  return short ? `${day}, ${time}` : `${day} at ${time}`;
+}
 
 /** Format by distance: seconds only matter when they are about to matter. */
 function fmt(ms) {
@@ -86,25 +102,15 @@ function Egg({ tier, size = 22 }) {
   );
 }
 
-function Row({ r, state, now, lang, onOpen }) {
+function Row({ r, state, now, lang, onOpen, narrow }) {
   const label = (tp) => lang === "th" ? (TYPE_NAMES_TH[tp] ?? tp)
     : lang === "ja" ? (TYPE_NAMES_JA[tp] ?? tp) : tp;
-  const date = (ms) => new Date(ms).toLocaleDateString(
-    lang === "th" ? "th-TH" : lang === "ja" ? "ja-JP" : "en-GB",
-    { day: "numeric", month: "short" });
 
   // Live counts to the end, upcoming to the start. Two different questions,
-  // so each carries its own label — a bare number gets read as whichever the
-  // reader assumed.
+  // so each says which one it is answering.
   const target = state === "live" ? r.end : r.start;
-  const lead = state === "live" ? t(lang, "ends in", "จบในอีก", "終了まで")
-    : state === "upcoming" ? t(lang, "starts in", "เริ่มในอีก", "開始まで") : null;
-
-  const pct = state === "live"
-    ? Math.min(100, Math.max(0, Math.round(((now - r.start) / (r.end - r.start)) * 100)))
-    : null;
-
-  const tint = r.types?.[0] ?? "normal";
+  const lead = state === "live" ? t(lang, "Ends in", "จบในอีก", "終了まで")
+    : state === "upcoming" ? t(lang, "Starts in", "เริ่มในอีก", "開始まで") : null;
 
   return (
     <a className={`rs-row ${state}`} href="#counters"
@@ -112,54 +118,48 @@ function Row({ r, state, now, lang, onOpen }) {
         : state === "upcoming" ? t(lang, "upcoming", "ถัดไป", "予定") : t(lang, "ended", "จบแล้ว", "終了")}`}
       onClick={(e) => { if (e.metaKey || e.ctrlKey || e.button !== 0) return; e.preventDefault(); onOpen?.(r); }}>
 
-      <span className="rs-art" data-tint={tint}>
+      <span className="rs-art">
         {r.id && <img src={spriteUrl(r.id)} alt="" loading="lazy" decoding="async" />}
-        {r.shiny && state !== "ended" && (
-          <span className="rs-star" aria-label={t(lang, "Shiny possible", "มีโอกาสได้ shiny", "色違いあり")}>✦</span>
-        )}
       </span>
 
       <span className="rs-mid">
         <span className="rs-title">
           <b className="rs-name">{r.name}</b>
-          {/* The state is a word first; the colour and the dimming sit on top
-              of it rather than instead of it. */}
+          {r.shiny && (
+            <span className="rs-bolt" aria-label={t(lang, "Shiny available", "มีโอกาสได้ shiny", "色違いあり")}>
+              <Zap size={15} strokeWidth={2.4} fill="currentColor" />
+            </span>
+          )}
+        </span>
+
+        {/* The state is a word before it is a colour. */}
+        <span className="rs-meta">
           <span className={`rs-state ${state}`}>
             {state === "live" && <i className="rs-dot" aria-hidden />}
             {state === "live" ? t(lang, "Live now", "กำลังเปิด", "開催中")
               : state === "upcoming" ? t(lang, "Upcoming", "ถัดไป", "予定")
               : t(lang, "Ended", "จบแล้ว", "終了")}
           </span>
+          <span className="rs-sep" aria-hidden>·</span>
+          <span className="rs-when">
+            {stamp(r.start, lang, narrow)} – {stamp(r.end, lang, narrow)}
+          </span>
         </span>
 
-        {r.types?.length > 0 && (
-          <span className="rs-types">
-            {r.types.map(tp => <span key={tp} className="tp rs-tp" data-type={tp}>{label(tp)}</span>)}
+        {lead && (
+          <span className={`rs-cd ${state}`}>
+            {lead} <b className="num">{fmt(target - now)}</b>
           </span>
         )}
-
-        {r.weaknesses?.length > 0 && state !== "ended" && (
-          <span className="rs-weak">
-            <span className="rs-weak-lbl">{t(lang, "Weak to", "อ่อนแอต่อ", "弱点")}</span>
-            {r.weaknesses.slice(0, 4).map(tp =>
-              <span key={tp} className="tp rs-tp-xs" data-type={tp}>{label(tp)}</span>)}
-            {r.weaknesses.length > 4 && <span className="rs-weak-more">+{r.weaknesses.length - 4}</span>}
-          </span>
-        )}
-
-        <span className="rs-when">{date(r.start)} – {date(r.end)}</span>
-
-        {pct != null && <span className="rs-bar"><i style={{ width: `${pct}%` }} /></span>}
       </span>
 
-      <span className="rs-right">
-        {lead && <>
-          <span className="rs-lead">{lead}</span>
-          <b className="rs-cd num">{fmt(target - now)}</b>
-        </>}
-        {r.party && <span className="rs-party">{t(lang, `${r.party} players`, `ใช้ ${r.party} คน`, `${r.party}人`)}</span>}
-        <span className="rs-go">{t(lang, "Counters", "ตัวเคาน์เตอร์", "対策")} <ChevronRight size={12} strokeWidth={2.6} /></span>
-      </span>
+      {r.types?.length > 0 && (
+        <span className="rs-types">
+          {r.types.map(tp => (
+            <span key={tp} className="rs-pill" data-t={tp}>{label(tp)}</span>
+          ))}
+        </span>
+      )}
     </a>
   );
 }
@@ -207,40 +207,43 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
   const [spoken, setSpoken] = useState(coarse);
   if (spoken !== coarse) setSpoken(coarse);
 
-  const clock = new Date(now).toLocaleTimeString("en-GB",
-    { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const clock = new Date(now).toLocaleTimeString("en-US",
+    { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+
+  // Below 480px the full "Wed, Aug 12 at 07:00 AM" cannot fit, so the range
+  // shortens rather than wrapping into four lines.
+  const [narrow, setNarrow] = useState(() => window.matchMedia("(max-width: 479px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 479px)");
+    const on = (e) => setNarrow(e.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
   const toRefresh = Math.ceil((3600000 - (now % 3600000)) / 60000);
 
   return (
     <main className="grid-wrap rs-page">
       <header className="rs-bar">
         <div className="rs-bar-left">
-          <h1 className="rs-h1">{t(lang, "Raid schedule", "ตารางรอบเรด", "レイドスケジュール")}</h1>
+          <h1 className="rs-h1">
+            {t(lang, "Pokémon GO Raid Schedule", "ตารางรอบเรด Pokémon GO", "ポケモンGO レイドスケジュール")}
+          </h1>
           <p className="rs-sub">
-            {t(lang,
-              `Live data from LeekDuck · Thai time (ICT) · refreshes in ${toRefresh} min`,
-              `ข้อมูลสดจาก LeekDuck · เวลาไทย (ICT) · อัปเดตอัตโนมัติอีก ${toRefresh} นาที`,
-              `LeekDuckのライブデータ · タイ時間 (ICT) · ${toRefresh}分後に更新`)}
+            <Radio size={15} strokeWidth={2.4} className="rs-sub-ico" aria-hidden />
+            {t(lang, `${liveCount} live now`, `กำลังเปิด ${liveCount} รอบ`, `${liveCount}件 開催中`)}
+            <span className="rs-sep" aria-hidden>·</span>
+            <span className="num">{clock}</span>
+            <span className="rs-sep" aria-hidden>·</span>
+            {t(lang, `next rotation ${fmtCoarse(rotMs)}`,
+              `รอบถัดไปอีก ${fmtCoarse(rotMs)}`, `次のローテーション ${fmtCoarse(rotMs)}`)}
+            <span className="sr-only" aria-live="polite">{spoken}</span>
           </p>
         </div>
 
-        <div className="rs-bar-right">
-          <span className="rs-stat">
-            <i>{t(lang, "Live now", "กำลังเปิด", "開催中")}</i>
-            <b>{liveCount}</b>
-          </span>
-          {/* The most valuable number here: every tier turns over at once. */}
-          <span className="rs-stat rs-stat-rot">
-            <i>{t(lang, "Next rotation", "รอบถัดไปเปลี่ยนใน", "次のローテーション")}</i>
-            <b className="num">{fmt(rotMs)}</b>
-            <span className="sr-only" aria-live="polite">{spoken}</span>
-          </span>
-          <span className="rs-clock num">{clock}<em>ICT</em></span>
-          <button type="button" className="rs-refresh" onClick={() => window.location.reload()}>
-            <RefreshCw size={14} strokeWidth={2.4} />
-            {t(lang, "Refresh", "รีเฟรช", "更新")}
-          </button>
-        </div>
+        <button type="button" className="rs-refresh" onClick={() => window.location.reload()}>
+          <RefreshCw size={15} strokeWidth={2.4} />
+          {t(lang, "Refresh", "รีเฟรช", "更新")}
+        </button>
       </header>
 
       {go.status === "loading" && (
@@ -259,11 +262,11 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
           <section key={g.tier.key} className="rs-card">
             <button type="button" className="rs-head" aria-expanded={open} onClick={() => toggle(g.tier.key)}>
               <Egg tier={g.tier} />
-              <span className="rs-head-name">{g.tier.label}</span>
+              <span className="rs-head-name">{TIER_NAME[g.tier.key] ?? g.tier.label}</span>
               {live > 0 && (
                 <span className="rs-head-live">{t(lang, `${live} live`, `เปิดอยู่ ${live}`, `${live}開催中`)}</span>
               )}
-              <span className="rs-head-n">{t(lang, `${g.rows.length} windows`, `${g.rows.length} รอบ`, `${g.rows.length}回`)}</span>
+              <span className="rs-head-n">{t(lang, `${g.rows.length} bosses`, `${g.rows.length} ตัว`, `${g.rows.length}体`)}</span>
               <span className={`rs-caret${open ? " open" : ""}`} aria-hidden>
                 <ChevronRight size={16} strokeWidth={2.4} />
               </span>
@@ -271,7 +274,8 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
             {open && (
               <div className="rs-rows">
                 {g.rows.map(r => (
-                  <Row key={r.key} r={r} state={stateOf(r)} now={now} lang={lang} onOpen={onOpenCounters} />
+                  <Row key={r.key} r={r} state={stateOf(r)} now={now} lang={lang}
+                    onOpen={onOpenCounters} narrow={narrow} />
                 ))}
               </div>
             )}
