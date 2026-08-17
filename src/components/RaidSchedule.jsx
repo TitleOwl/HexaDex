@@ -103,6 +103,7 @@ function Egg({ tier, size = 22 }) {
 }
 
 function Row({ r, state, now, lang, onOpen, narrow }) {
+  const [open, setOpen] = useState(false);
   const label = (tp) => lang === "th" ? (TYPE_NAMES_TH[tp] ?? tp)
     : lang === "ja" ? (TYPE_NAMES_JA[tp] ?? tp) : tp;
 
@@ -113,10 +114,12 @@ function Row({ r, state, now, lang, onOpen, narrow }) {
     : state === "upcoming" ? t(lang, "Starts in", "เริ่มในอีก", "開始まで") : null;
 
   return (
-    <a className={`rs-row ${state}`} href="#counters"
+    <div className={`rs-row ${state}${open ? " open" : ""}`} role="button" tabIndex={0}
+      aria-expanded={open}
       aria-label={`${r.name} — ${state === "live" ? t(lang, "live now", "กำลังเปิด", "開催中")
         : state === "upcoming" ? t(lang, "upcoming", "ถัดไป", "予定") : t(lang, "ended", "จบแล้ว", "終了")}`}
-      onClick={(e) => { if (e.metaKey || e.ctrlKey || e.button !== 0) return; e.preventDefault(); onOpen?.(r); }}>
+      onClick={() => setOpen(o => !o)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(o => !o); } }}>
 
       <span className="rs-art">
         {r.id && <img src={spriteUrl(r.id)} alt="" loading="lazy" decoding="async" />}
@@ -160,12 +163,45 @@ function Row({ r, state, now, lang, onOpen, narrow }) {
           ))}
         </span>
       )}
-    </a>
+
+      {/* Everything a row needed but could not hold in three lines. Folded
+          away rather than dropped: the mock reads well because each row is
+          three lines, and packing four back in undoes exactly that. */}
+      {open && (
+        <div className="rs-more" onClick={(e) => e.stopPropagation()}>
+          {r.weaknesses?.length > 0 && (
+            <div className="rs-more-weak">
+              <span className="rs-more-lbl">{t(lang, "Weak to", "อ่อนแอต่อ", "弱点")}</span>
+              {r.weaknesses.map(tp => (
+                <span key={tp} className="rs-pill rs-pill-s" data-t={tp}>{label(tp)}</span>
+              ))}
+            </div>
+          )}
+          <div className="rs-more-foot">
+            {r.party && (
+              <span className="rs-more-party">
+                {t(lang, `Needs ${r.party} players`, `ใช้ ${r.party} คน`, `${r.party}人必要`)}
+              </span>
+            )}
+            <button type="button" className="rs-more-btn"
+              onClick={(e) => { e.stopPropagation(); onOpen?.(r); }}>
+              {t(lang, "See counters", "ดูตัวเคาน์เตอร์", "対策を見る")}
+              <ChevronRight size={13} strokeWidth={2.6} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
-export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, onOpenCounters }) {
-  const now = useTick();
+/**
+ * The tier accordions. Exported because the GO Tools hub shows the same list
+ * full-width — one implementation, not a second copy that drifts.
+ */
+export function RaidTierList({ lang = "en", allList = [], cachedFetch, onOpenCounters, now }) {
+  const tick = useTick();
+  const at = now ?? tick;
   const go = useGoHubData();
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -186,7 +222,7 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
   // State before date. Sorting by date alone puts finished windows on top.
   const ORDER = { live: 0, upcoming: 1, ended: 2 };
   const stateOf = (r) => {
-    const s = rotationState(r, now);
+    const s = rotationState(r, at);
     return s === "next" ? "upcoming" : s === "done" ? "ended" : "live";
   };
 
@@ -221,30 +257,7 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
   }, []);
 
   return (
-    <main className="grid-wrap rs-page">
-      <header className="rs-bar">
-        <div className="rs-bar-left">
-          <h1 className="rs-h1">
-            {t(lang, "Pokémon GO Raid Schedule", "ตารางรอบเรด Pokémon GO", "ポケモンGO レイドスケジュール")}
-          </h1>
-          <p className="rs-sub">
-            <Radio size={15} strokeWidth={2.4} className="rs-sub-ico" aria-hidden />
-            {t(lang, `${liveCount} live now`, `กำลังเปิด ${liveCount} รอบ`, `${liveCount}件 開催中`)}
-            <span className="rs-sep" aria-hidden>·</span>
-            <span className="num">{clock}</span>
-            <span className="rs-sep" aria-hidden>·</span>
-            {t(lang, `next rotation ${fmtCoarse(rotMs)}`,
-              `รอบถัดไปอีก ${fmtCoarse(rotMs)}`, `次のローテーション ${fmtCoarse(rotMs)}`)}
-            <span className="sr-only" aria-live="polite">{spoken}</span>
-          </p>
-        </div>
-
-        <button type="button" className="rs-refresh" onClick={() => window.location.reload()}>
-          <RefreshCw size={15} strokeWidth={2.4} />
-          {t(lang, "Refresh", "รีเฟรช", "更新")}
-        </button>
-      </header>
-
+    <>
       {go.status === "loading" && (
         <div className="rs-card rs-loading">{t(lang, "Loading…", "กำลังโหลด…", "読み込み中…")}</div>
       )}
@@ -273,7 +286,7 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
             {open && (
               <div className="rs-rows">
                 {g.rows.map(r => (
-                  <Row key={r.key} r={r} state={stateOf(r)} now={now} lang={lang}
+                  <Row key={r.key} r={r} state={stateOf(r)} now={at} lang={lang}
                     onOpen={onOpenCounters} narrow={narrow} />
                 ))}
               </div>
@@ -287,6 +300,47 @@ export default function RaidSchedule({ lang = "en", allList = [], cachedFetch, o
           {t(lang, "No raid windows published right now", "ยังไม่มีรอบเรดประกาศออกมา", "現在公開中のレイドはありません")}
         </div>
       )}
+    </>
+  );
+}
+
+/** The standalone page: the header, then the same list. */
+export default function RaidSchedule(props) {
+  const now = useTick();
+  const go = useGoHubData();
+  const rows = useRotationTypes(
+    useMegaSprites(raidRotations(go.data, (props.allList ?? []).map(p => ({
+      name: p.name, id: Number(p.url.split("/").filter(Boolean).pop()),
+    }))) ?? []), props.cachedFetch);
+  const liveCount = rows.filter(r => rotationState(r, now) === "live").length;
+  const rotMs = nextRotation(now) - now;
+  const lang = props.lang ?? "en";
+  const clock = new Date(now).toLocaleTimeString("en-US",
+    { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+
+  return (
+    <main className="grid-wrap rs-page">
+      <header className="rs-bar">
+        <div className="rs-bar-left">
+          <h1 className="rs-h1">
+            {t(lang, "Pokémon GO Raid Schedule", "ตารางรอบเรด Pokémon GO", "ポケモンGO レイドスケジュール")}
+          </h1>
+          <p className="rs-sub">
+            <Radio size={15} strokeWidth={2.4} className="rs-sub-ico" aria-hidden />
+            {t(lang, `${liveCount} live now`, `กำลังเปิด ${liveCount} รอบ`, `${liveCount}件 開催中`)}
+            <span className="rs-sep" aria-hidden>·</span>
+            <span className="num">{clock}</span>
+            <span className="rs-sep" aria-hidden>·</span>
+            {t(lang, `next rotation ${fmtCoarse(rotMs)}`,
+              `รอบถัดไปอีก ${fmtCoarse(rotMs)}`, `次のローテーション ${fmtCoarse(rotMs)}`)}
+          </p>
+        </div>
+        <button type="button" className="rs-refresh" onClick={() => window.location.reload()}>
+          <RefreshCw size={15} strokeWidth={2.4} />
+          {t(lang, "Refresh", "รีเฟรช", "更新")}
+        </button>
+      </header>
+      <RaidTierList {...props} now={now} />
     </main>
   );
 }

@@ -14,6 +14,7 @@ import LiveEvents        from "./LiveEvents.jsx";
 import EggPool           from "./EggPool.jsx";
 import FieldResearch     from "./FieldResearch.jsx";
 import { findPokemonInList } from "../perfUtils.js";
+import { RaidTierList } from "./RaidSchedule.jsx";
 import {
   Swords, Globe, BarChart3, Shield, Rocket, CalendarDays, Egg, ClipboardList,
   CloudSun, Zap, ArrowRight, Sparkles, Sun, Cloud, CloudRain, CloudSnow, CloudFog, RefreshCw,
@@ -384,87 +385,6 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
           </div>
 
           <div className="gh-hero-bar"><span style={{ width: `${pct}%` }} /></div>
-        </div>
-      </section>
-
-      {/* ── Everything raids, in one place ── */}
-      <section className="gh-b gh-b-raid">
-        <div className="gh-b-head">
-          <b>{t("Raids", "เรด", "レイド")}</b>
-          <span className="go-hub-live"><span className="go-hub-live-dot" aria-hidden />LIVE</span>
-          {total && <span className="gh-b-lbl">{t(`${total} bosses`, `${total} ตัว`, `${total}体`)}</span>}
-          <label className="gh-switch" title={t("Hide rotations that have ended", "ซ่อนรอบที่จบแล้ว", "終了した回を隠す")}>
-            <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} />
-            <span className="gh-switch-track" aria-hidden />
-            <span className="gh-switch-txt">{t("Hide ended", "ซ่อนที่จบแล้ว", "終了を隠す")}</span>
-          </label>
-          <span className="gh-head-div" aria-hidden />
-          <button type="button" className="gh-b-link" onClick={() => go("raidguide")}>
-            {t("See all", "ดูทั้งหมด", "すべて")}<span aria-hidden>&rsaquo;</span>
-          </button>
-        </div>
-
-        {status === "loading" && (
-          <div className="gh-rail">
-            {[0,1,2,3].map(i => <span key={i} className="gh-pv-cell big gh-pv-skel" />)}
-          </div>
-        )}
-
-        {/* What is on, what is coming, what just ended — the question this
-            tile exists to answer. */}
-        {/* Grouped under the egg that hatches them. The rows answer what is
-            on and what is next; the egg answers which raid it is. */}
-        {rotGroups.map(g => {
-          const open = !collapsed.includes(g.tier.key);
-          const liveN = g.rows.filter(r => rotationState(r, nowMs) === "live").length;
-          return (
-            <div key={g.tier.key} className="gh-grp">
-              <button type="button" className="gh-grp-head" aria-expanded={open}
-                onClick={() => toggleTier(g.tier.key)}>
-                <RaidEgg tier={g.tier} size={20} />
-                <span className="gh-grp-lbl">{g.tier.label}</span>
-                {liveN > 0 && (
-                  <span className="gh-grp-n">{t(`${liveN} live`, `เปิดอยู่ ${liveN}`, `${liveN}開催中`)}</span>
-                )}
-                <span className={`gh-grp-caret${open ? " open" : ""}`} aria-hidden>&rsaquo;</span>
-              </button>
-              {open && g.rows.map(r => (
-                <RotationRow key={r.key} r={r} state={rotationState(r, nowMs)}
-                  nowMs={nowMs} lang={lang} go={go} />
-              ))}
-            </div>
-          );
-        })}
-
-        {/* The rest as counts, so they are still reachable without taking the
-            space of the tiers that matter. */}
-        {rest.length > 0 && (
-          <div className="gh-rest">
-            {rest.map(tier => (
-              <button key={tier.key} type="button" className="gh-rest-chip"
-                onClick={() => go("raidguide")}
-                title={t(`${tier.bosses.length} ${tier.label} bosses`,
-                  `${tier.label} ${tier.bosses.length} ตัว`, `${tier.label} ${tier.bosses.length}体`)}>
-                <RaidEgg tier={tier} size={18} />
-                <span>{tier.label} · {t(`${tier.bosses.length}`, `${tier.bosses.length} ตัว`, `${tier.bosses.length}体`)}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="gh-sched">
-          {raidHours.map(ev => (
-            <div key={ev.key} className={`gh-sched-row${ev.st.live ? " live" : ""}`}>
-              <span className="gh-sched-ico" style={{ "--ev": ev.color }}>
-                <ev.Icon size={15} strokeWidth={2.3} aria-hidden />
-              </span>
-              <span className="gh-sched-copy">
-                <span className="gh-sched-name">{lbl(ev.label)}</span>
-                <span className="gh-sched-when">{when(ev)}</span>
-              </span>
-              <span className="gh-sched-cd num">{fmtNear(ev.st.ms)}</span>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -1123,6 +1043,16 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
         hideDone={hideDone} setHideDone={setHideDone} cachedFetch={cachedFetch}
         collapsed={collapsed} toggleTier={toggleTier} />
 
+
+      {/* Raids get the whole width. In the two-column grid every row was
+          cramped while the other column ran 500px of empty. */}
+      <section className="gh-raids">
+        <h2 className="gh-raids-h">
+          {lang === "th" ? "เรด" : lang === "ja" ? "レイド" : "Raids"}
+        </h2>
+        <RaidTierList lang={lang} allList={allList} cachedFetch={cachedFetch}
+          onOpenCounters={() => setActive("raid")} />
+      </section>
 
       {/* ─── TODAY, IN ONE PLACE ───
           It was a tile in the same grid as the tools it summarises. Being the
