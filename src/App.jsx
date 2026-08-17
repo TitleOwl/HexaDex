@@ -309,15 +309,25 @@ export default function App() {
   const loadMore = useCallback(async () => {
     if (loading || offset >= allList.length) return;
     setLoading(true);
-    const next = allList.slice(offset, offset + PAGE_SIZE);
-    const fetched = await Promise.all(next.map(p => cachedFetch(p.url)));
-    setLoaded(prev => [...prev, ...fetched]);
-    setOffset(o => o + PAGE_SIZE);
-    setLoading(false);
+    try {
+      const next = allList.slice(offset, offset + PAGE_SIZE);
+      // allSettled, not all: one failed request used to reject the whole
+      // batch, so setLoading(false) never ran and `loading` stayed true for
+      // the rest of the session — every later call returned at the guard on
+      // the first line and scrolling silently stopped loading anything.
+      const got = await Promise.allSettled(next.map(p => cachedFetch(p.url)));
+      const fetched = got.filter(r => r.status === "fulfilled").map(r => r.value);
+      if (fetched.length) setLoaded(prev => [...prev, ...fetched]);
+      // The offset advances past the whole page even when part of it failed;
+      // otherwise a single dead entry parks the list on it forever.
+      setOffset(o => o + PAGE_SIZE);
 
-    const all = {};
-    detailCache.current.forEach((v, k) => { all[k] = v; });
-    cache.set(CACHE_KEY, all);
+      const all = {};
+      detailCache.current.forEach((v, k) => { all[k] = v; });
+      cache.set(CACHE_KEY, all);
+    } finally {
+      setLoading(false);
+    }
   }, [loading, offset, allList, cachedFetch]);
 
 
@@ -383,8 +393,7 @@ export default function App() {
           });
         }
       }
-      if (live) setFilling(false);
-    })();
+    })().finally(() => { if (live) setFilling(false); });
     return () => { live = false; };
     // `loaded` is deliberately absent: it changes as this effect fills, and
     // depending on it would restart the fetch on every batch.
