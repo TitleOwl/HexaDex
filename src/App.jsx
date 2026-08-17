@@ -342,7 +342,7 @@ export default function App() {
 
     const wanted = allList.filter(p => {
       const id = Number(p.url.split("/").filter(Boolean).pop());
-      if (!id || id > 1025) return false;
+      if (!id) return false;
       if (id < gen.min || id > gen.max) return false;
       if (!q) return true;
       // Localised names live in the same arrays the list rendering uses, so a
@@ -440,9 +440,12 @@ export default function App() {
   // as the dex still being counted rather than still being drawn.
   const viewTotal = useMemo(() => {
     const gen = GENERATIONS[genIdx];
+    // No 1025 cap: the grid lists every entry the API returns, alternate
+    // forms included, so a total that stopped at the last base species was
+    // describing a different list than the one on screen.
     return allList.reduce((n, p) => {
       const id = Number(p.url.split("/").filter(Boolean).pop());
-      return (id && id <= 1025 && id >= gen.min && id <= gen.max) ? n + 1 : n;
+      return (id && id >= gen.min && id <= gen.max) ? n + 1 : n;
     }, 0);
   }, [allList, genIdx]);
 
