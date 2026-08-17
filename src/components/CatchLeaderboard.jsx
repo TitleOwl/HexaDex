@@ -42,7 +42,7 @@ export default function CatchLeaderboard({ lang = "en", onClose }) {
             {data.top.map((row, i) => (
               <li key={row.username} className={`auth-lb-row${data.me && row.username === data.me.username ? " me" : ""}`}>
                 <span className="auth-lb-rank">{i + 1}</span>
-                <span className="auth-lb-avatar">{row.username.charAt(0).toUpperCase()}</span>
+                <span className="auth-lb-avatar">{(row.username || "?").charAt(0).toUpperCase()}</span>
                 <span className="auth-lb-name">{row.username}</span>
                 <span className="auth-lb-count"><Target size={12} strokeWidth={2.4} />{row.count}</span>
               </li>
@@ -54,7 +54,7 @@ export default function CatchLeaderboard({ lang = "en", onClose }) {
           <ol className="auth-lb-list auth-lb-you">
             <li className="auth-lb-row me">
               <span className="auth-lb-rank">#{data.me.rank}</span>
-              <span className="auth-lb-avatar">{data.me.username.charAt(0).toUpperCase()}</span>
+              <span className="auth-lb-avatar">{(data.me.username || "?").charAt(0).toUpperCase()}</span>
               <span className="auth-lb-name">{t(lang, "You", "คุณ", "あなた")}</span>
               <span className="auth-lb-count"><Target size={12} strokeWidth={2.4} />{data.me.count}</span>
             </li>

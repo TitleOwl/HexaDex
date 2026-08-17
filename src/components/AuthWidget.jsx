@@ -384,7 +384,7 @@ export default function AuthWidget({ lang = "en", theme, toggleTheme, autoMode, 
               <span className="auth-avatar">
                 {user.starter
                   ? <img src={artworkUrl(user.starter)} alt="" />
-                  : user.username.charAt(0).toUpperCase()}
+                  : (user.username || "?").charAt(0).toUpperCase()}
               </span>
             )
             : <LogIn size={17} strokeWidth={2.2} />}
@@ -444,7 +444,7 @@ export default function AuthWidget({ lang = "en", theme, toggleTheme, autoMode, 
                   ) : (
                     <div className="auth-profile">
                       <div className="auth-profile-avatar">
-                        {user.starter ? <img src={artworkUrl(user.starter)} alt="" /> : user.username.charAt(0).toUpperCase()}
+                        {user.starter ? <img src={artworkUrl(user.starter)} alt="" /> : (user.username || "?").charAt(0).toUpperCase()}
                       </div>
                       <div className="auth-profile-name">{user.username}</div>
                       <div className="auth-profile-id-badge">
