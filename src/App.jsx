@@ -156,6 +156,9 @@ export default function App() {
   // Read by setView, which must not take genIdx as a dependency: it would be
   // rebuilt on every filter change and re-render the whole header with it.
   const genIdxRef = useRef(genIdx);
+  // The observer callback is created once; refs let it read the current view
+  // without tearing the observer down on every keystroke.
+  const searchRef = useRef("");
   useEffect(() => { genIdxRef.current = genIdx; }, [genIdx]);
 
   // Back / forward, and any other address change: the URL leads, state follows.
@@ -311,23 +314,10 @@ export default function App() {
     cache.set(CACHE_KEY, all);
   }, [loading, offset, allList, cachedFetch]);
 
-  // Loading on scroll rather than on a click: the sentinel sits below the
-  // grid with a margin, so the next 20 are already arriving by the time the
-  // last row is on screen. The button stays for keyboard and for anyone who
-  // would rather ask for it.
-  const sentinelRef = useRef(null);
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) loadMore(); },
-      { rootMargin: "600px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [loadMore]);
 
   // ─── Search & Filter ───────────────────────────────────────
   const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE);
+  searchRef.current = debouncedSearch;
   const localName = useCallback(
     (p) => getLocalName(p.id, lang, thaiArr, jpArr),
     [lang, thaiArr, jpArr]
@@ -341,6 +331,9 @@ export default function App() {
   // list has every id and name from the first request, so it can say which
   // entries a filter wants; this fetches exactly those and nothing else.
   const [filling, setFilling] = useState(false);
+  // How far into a narrowed view we have fetched. Reset whenever the view
+  // changes, grown by the same sentinel that pages the full list.
+  const [narrowOffset, setNarrowOffset] = useState(PAGE_SIZE);
   useEffect(() => {
     const q = debouncedSearch.toLowerCase().trim();
     const gen = GENERATIONS[genIdx];
@@ -361,7 +354,7 @@ export default function App() {
     });
 
     const have = new Set(loaded.map(p => p.id));
-    const missing = wanted.filter(p =>
+    const missing = wanted.slice(0, narrowOffset).filter(p =>
       !have.has(Number(p.url.split("/").filter(Boolean).pop())));
     if (!missing.length) { setFilling(false); return; }
 
@@ -370,7 +363,9 @@ export default function App() {
     (async () => {
       // Capped: a type filter across the whole dex would otherwise be the
       // 1,351-request stampede this series just removed.
-      for (let i = 0; i < Math.min(missing.length, 400) && live; i += 20) {
+      // Only as far as the reader has actually got. A region used to pull its
+      // whole range the moment its chip was pressed.
+      for (let i = 0; i < missing.length && live; i += PAGE_SIZE) {
         const slice = missing.slice(i, i + 20);
         const got = await Promise.allSettled(slice.map(p => cachedFetch(p.url)));
         if (!live) return;
@@ -388,7 +383,31 @@ export default function App() {
     // `loaded` is deliberately absent: it changes as this effect fills, and
     // depending on it would restart the fetch on every batch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genIdx, debouncedSearch, allList, cachedFetch, thaiArr, jpArr]);
+  }, [genIdx, debouncedSearch, allList, cachedFetch, thaiArr, jpArr, narrowOffset]);
+
+  // A new region or query starts again from the first page.
+  useEffect(() => { setNarrowOffset(PAGE_SIZE); }, [genIdx, debouncedSearch, typeFilter]);
+
+  // Loading on scroll rather than on a click: the sentinel sits below the
+  // grid with a margin, so the next 20 are already arriving by the time the
+  // last row is on screen. The button stays for keyboard and for anyone who
+  // would rather ask for it.
+  const sentinelRef = useRef(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        if (genIdxRef.current > 0 || searchRef.current) setNarrowOffset(o => o + PAGE_SIZE);
+        else loadMore();
+      },
+      { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+    // Switching region or typing swaps the sentinel for a different element,
+    // and an observer still watching the old node never fires again.
+  }, [loadMore, genIdx, debouncedSearch, typeFilter]);
 
   const filtered = useMemo(() => {
     if (showFavsOnly) {
@@ -415,9 +434,25 @@ export default function App() {
   // Title plus a quieter sub-line. The dex range and species count used to be
   // the reason the generations hub existed; with that page gone they live here,
   // where they describe the list you are actually looking at.
+  // How many the current view HAS, not how many have been fetched. The light
+  // list knows every id from the first request, so this is settled before any
+  // detail arrives — the count used to tick upward as you scrolled, which read
+  // as the dex still being counted rather than still being drawn.
+  const viewTotal = useMemo(() => {
+    const gen = GENERATIONS[genIdx];
+    return allList.reduce((n, p) => {
+      const id = Number(p.url.split("/").filter(Boolean).pop());
+      return (id && id <= 1025 && id >= gen.min && id <= gen.max) ? n + 1 : n;
+    }, 0);
+  }, [allList, genIdx]);
+
   const sectionHeading = useMemo(() => {
     const st = STRINGS[lang];
-    const n = filtered.length.toLocaleString();
+    // A search or a type filter has no knowable total until the matches are
+    // in, so those keep counting what is actually on screen.
+    const n = (debouncedSearch || typeFilter !== "all")
+      ? filtered.length.toLocaleString()
+      : viewTotal.toLocaleString();
     if (debouncedSearch) return { title: st.resultsFor(debouncedSearch), sub: `${n}` };
     if (typeFilter !== "all") {
       const tName = lang === "th" ? (TYPE_NAMES_TH[typeFilter] ?? typeFilter)
@@ -433,10 +468,10 @@ export default function App() {
       };
     }
     const range = `#${String(gen.min).padStart(3, "0")}–${String(gen.max).padStart(3, "0")}`;
-    const total = gen.max - gen.min + 1;
+    const total = viewTotal;
     const unit = lang === "th" ? "ตัว" : lang === "ja" ? "匹" : "Pokémon";
     return { title: gen[lang] ?? gen.en, sub: `${range} · ${total} ${unit}` };
-  }, [lang, debouncedSearch, typeFilter, genIdx, filtered.length]);
+  }, [lang, debouncedSearch, typeFilter, genIdx, filtered.length, viewTotal]);
 
   // ─── Helpers ───────────────────────────────────────────────
   const handleSelect = useCallback((p) => {
@@ -626,6 +661,15 @@ export default function App() {
                 ))}
                 {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
               </div>
+              {(genIdx > 0 || debouncedSearch) && narrowOffset < viewTotal && (
+                <div className="load-more-wrap" ref={sentinelRef}>
+                  <button className="load-more-btn" disabled={filling}
+                    onClick={() => setNarrowOffset(o => o + PAGE_SIZE)}>
+                    {filling ? <><div className="load-more-spinner" />{s.loading}</>
+                      : s.loadMoreBtn(viewTotal - narrowOffset)}
+                  </button>
+                </div>
+              )}
               {!debouncedSearch && typeFilter === "all" && genIdx === 0 && offset < allList.length && (
                 <div className="load-more-wrap" ref={sentinelRef}>
                   <button className="load-more-btn" onClick={loadMore} disabled={loading}>
