@@ -25,7 +25,7 @@ export const GLB_URL = {
 // At 1350 against a list of 1351 the app loaded all but one and then offered a
 // "Load More" button to fetch that single straggler, while the heading read
 // 1,350 — a number that matched neither the total nor anything the user did.
-export const PAGE_SIZE       = 2000;
+export const PAGE_SIZE       = 20;
 export const SEARCH_DEBOUNCE = 1350;
 
 // ─── Generations / Regions ────────────────────────────────────────────────────

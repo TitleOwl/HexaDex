@@ -255,35 +255,15 @@ export default function App() {
       const cachedDetails = cache.get(CACHE_KEY) ?? {};
       Object.values(cachedDetails).forEach(p => { detailCache.current.set(p.id, p); });
 
-      // First paint waits on one screenful, not on the whole dex. This used to
-      // slice PAGE_SIZE (2000), so opening the site fired ~1,350 detail
-      // requests at once and held the screen blank until every one of them
-      // resolved — which is also what exhausted the browser's connection pool.
-      const FIRST_PAINT = 30;
+      // One screenful, then stop. This used to slice PAGE_SIZE when that was
+      // 2000, so opening the site fired ~1,350 detail requests at once and
+      // held the screen blank until the last one resolved.
       const first = await Promise.all(
-        list.slice(0, FIRST_PAINT).map(p => cachedFetch(p.url)));
+        list.slice(0, PAGE_SIZE).map(p => cachedFetch(p.url)));
       if (cancelled) return;
       setLoaded(first);
-      setOffset(FIRST_PAINT);
+      setOffset(PAGE_SIZE);
       setInitializing(false);
-
-      // The rest arrives in the background, in batches. Search and the filters
-      // read `loaded`, so coverage has to reach the full dex — it just does not
-      // have to happen before anything is on screen.
-      (async () => {
-        const BATCH = 30;
-        for (let i = FIRST_PAINT; i < list.length; i += BATCH) {
-          if (cancelled) return;
-          const slice = list.slice(i, i + BATCH);
-          const got = await Promise.allSettled(slice.map(p => cachedFetch(p.url)));
-          if (cancelled) return;
-          const ok = got.filter(r => r.status === "fulfilled").map(r => r.value);
-          if (ok.length) {
-            setLoaded(prev => [...prev, ...ok]);
-            setOffset(prev => prev + slice.length);
-          }
-        }
-      })();
 
       setTimeout(() => {
         const all = {};
@@ -330,6 +310,21 @@ export default function App() {
     detailCache.current.forEach((v, k) => { all[k] = v; });
     cache.set(CACHE_KEY, all);
   }, [loading, offset, allList, cachedFetch]);
+
+  // Loading on scroll rather than on a click: the sentinel sits below the
+  // grid with a margin, so the next 20 are already arriving by the time the
+  // last row is on screen. The button stays for keyboard and for anyone who
+  // would rather ask for it.
+  const sentinelRef = useRef(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: "600px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore]);
 
   // ─── Search & Filter ───────────────────────────────────────
   const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE);
@@ -568,7 +563,7 @@ export default function App() {
                 {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
               </div>
               {!debouncedSearch && typeFilter === "all" && genIdx === 0 && offset < allList.length && (
-                <div className="load-more-wrap">
+                <div className="load-more-wrap" ref={sentinelRef}>
                   <button className="load-more-btn" onClick={loadMore} disabled={loading}>
                     {loading
                       ? <><div className="load-more-spinner" />{s.loading}</>
