@@ -333,6 +333,63 @@ export default function App() {
     [lang, thaiArr, jpArr]
   );
 
+  // ─── Filters need the whole dex, not the scrolled part ────────────────────
+  //
+  // Lazy loading traded away something the filters depended on: they read
+  // `loaded`, so picking Unova on a fresh page matched nothing at all — the
+  // #494-649 range had simply not been fetched yet. The light 1,351-entry
+  // list has every id and name from the first request, so it can say which
+  // entries a filter wants; this fetches exactly those and nothing else.
+  const [filling, setFilling] = useState(false);
+  useEffect(() => {
+    const q = debouncedSearch.toLowerCase().trim();
+    const gen = GENERATIONS[genIdx];
+    const narrowed = genIdx > 0 || !!q;
+    if (!narrowed || !allList.length) return;
+
+    const wanted = allList.filter(p => {
+      const id = Number(p.url.split("/").filter(Boolean).pop());
+      if (!id || id > 1025) return false;
+      if (id < gen.min || id > gen.max) return false;
+      if (!q) return true;
+      // Localised names live in the same arrays the list rendering uses, so a
+      // Thai or Japanese query matches here too.
+      const th = (getLocalName(id, "th", thaiArr, jpArr) ?? "").toLowerCase();
+      const ja = (getLocalName(id, "ja", thaiArr, jpArr) ?? "").toLowerCase();
+      return p.name.toLowerCase().includes(q) || th.includes(q)
+        || ja.includes(q) || String(id).includes(q);
+    });
+
+    const have = new Set(loaded.map(p => p.id));
+    const missing = wanted.filter(p =>
+      !have.has(Number(p.url.split("/").filter(Boolean).pop())));
+    if (!missing.length) { setFilling(false); return; }
+
+    let live = true;
+    setFilling(true);
+    (async () => {
+      // Capped: a type filter across the whole dex would otherwise be the
+      // 1,351-request stampede this series just removed.
+      for (let i = 0; i < Math.min(missing.length, 400) && live; i += 20) {
+        const slice = missing.slice(i, i + 20);
+        const got = await Promise.allSettled(slice.map(p => cachedFetch(p.url)));
+        if (!live) return;
+        const ok = got.filter(r => r.status === "fulfilled").map(r => r.value);
+        if (ok.length) {
+          setLoaded(prev => {
+            const seen = new Set(prev.map(x => x.id));
+            return [...prev, ...ok.filter(x => !seen.has(x.id))];
+          });
+        }
+      }
+      if (live) setFilling(false);
+    })();
+    return () => { live = false; };
+    // `loaded` is deliberately absent: it changes as this effect fills, and
+    // depending on it would restart the fetch on every batch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genIdx, debouncedSearch, allList, cachedFetch, thaiArr, jpArr]);
+
   const filtered = useMemo(() => {
     if (showFavsOnly) {
       return loaded.filter(p => favorites.includes(p.id));
@@ -351,6 +408,9 @@ export default function App() {
       return true;
     });
   }, [loaded, genIdx, typeFilter, debouncedSearch, localName, showFavsOnly, favorites]);
+
+  // An empty grid while the fill is still running is not "nothing matched".
+  const stillFilling = filling && filtered.length === 0;
 
   // Title plus a quieter sub-line. The dex range and species count used to be
   // the reason the generations hub existed; with that page gone they live here,
@@ -521,6 +581,10 @@ export default function App() {
               <div className="fav-empty-heart">♡</div>
               <div className="fav-empty-title">{s.favEmpty}</div>
               <div className="fav-empty-sub">{s.favEmptySub}</div>
+            </div>
+          ) : stillFilling ? (
+            <div className="grid">
+              {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={`fill-${i}`} />)}
             </div>
           ) : filtered.length === 0 ? (
             <div className="empty-state">
