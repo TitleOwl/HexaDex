@@ -255,12 +255,35 @@ export default function App() {
       const cachedDetails = cache.get(CACHE_KEY) ?? {};
       Object.values(cachedDetails).forEach(p => { detailCache.current.set(p.id, p); });
 
-      const initial = list.slice(0, PAGE_SIZE);
-      const fetched = await Promise.all(initial.map(p => cachedFetch(p.url)));
+      // First paint waits on one screenful, not on the whole dex. This used to
+      // slice PAGE_SIZE (2000), so opening the site fired ~1,350 detail
+      // requests at once and held the screen blank until every one of them
+      // resolved — which is also what exhausted the browser's connection pool.
+      const FIRST_PAINT = 60;
+      const first = await Promise.all(
+        list.slice(0, FIRST_PAINT).map(p => cachedFetch(p.url)));
       if (cancelled) return;
-      setLoaded(fetched);
-      setOffset(PAGE_SIZE);
+      setLoaded(first);
+      setOffset(FIRST_PAINT);
       setInitializing(false);
+
+      // The rest arrives in the background, in batches. Search and the filters
+      // read `loaded`, so coverage has to reach the full dex — it just does not
+      // have to happen before anything is on screen.
+      (async () => {
+        const BATCH = 50;
+        for (let i = FIRST_PAINT; i < list.length; i += BATCH) {
+          if (cancelled) return;
+          const slice = list.slice(i, i + BATCH);
+          const got = await Promise.allSettled(slice.map(p => cachedFetch(p.url)));
+          if (cancelled) return;
+          const ok = got.filter(r => r.status === "fulfilled").map(r => r.value);
+          if (ok.length) {
+            setLoaded(prev => [...prev, ...ok]);
+            setOffset(prev => prev + slice.length);
+          }
+        }
+      })();
 
       setTimeout(() => {
         const all = {};
