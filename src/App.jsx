@@ -159,6 +159,12 @@ export default function App() {
   // The observer callback is created once; refs let it read the current view
   // without tearing the observer down on every keystroke.
   const searchRef = useRef("");
+  // How many the grid is actually showing. narrowOffset only counts what this
+  // view asked for, but `loaded` is shared — other pages and the background
+  // fill put entries in it too, so a region can already be showing more than
+  // it ever requested. Counting from the request was what left "60 left" under
+  // a complete Johto.
+  const shownRef = useRef(0);
   useEffect(() => { genIdxRef.current = genIdx; }, [genIdx]);
 
   // Back / forward, and any other address change: the URL leads, state follows.
@@ -399,7 +405,9 @@ export default function App() {
     const io = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting) return;
-        if (genIdxRef.current > 0 || searchRef.current) setNarrowOffset(o => o + PAGE_SIZE);
+        if (genIdxRef.current > 0 || searchRef.current) {
+          setNarrowOffset(o => Math.max(o, shownRef.current) + PAGE_SIZE);
+        }
         else loadMore();
       },
       { rootMargin: "600px" });
@@ -407,7 +415,12 @@ export default function App() {
     return () => io.disconnect();
     // Switching region or typing swaps the sentinel for a different element,
     // and an observer still watching the old node never fires again.
-  }, [loadMore, genIdx, debouncedSearch, typeFilter]);
+    //
+    // `filling` matters more than it looks: while a narrowed view is fetching
+    // its first page the grid renders skeletons and the sentinel is not in the
+    // tree at all, so this effect found null and gave up. Re-running when the
+    // fill ends is what lets a region scroll like the full list.
+  }, [loadMore, genIdx, debouncedSearch, typeFilter, filling, narrowOffset]);
 
   const filtered = useMemo(() => {
     if (showFavsOnly) {
@@ -427,6 +440,7 @@ export default function App() {
       return true;
     });
   }, [loaded, genIdx, typeFilter, debouncedSearch, localName, showFavsOnly, favorites]);
+  shownRef.current = filtered.length;
 
   // An empty grid while the fill is still running is not "nothing matched".
   const stillFilling = filling && filtered.length === 0;
@@ -664,12 +678,12 @@ export default function App() {
                 ))}
                 {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={`sk-${i}`} />)}
               </div>
-              {(genIdx > 0 || debouncedSearch) && narrowOffset < viewTotal && (
+              {(genIdx > 0 || debouncedSearch) && filtered.length < viewTotal && (
                 <div className="load-more-wrap" ref={sentinelRef}>
                   <button className="load-more-btn" disabled={filling}
-                    onClick={() => setNarrowOffset(o => o + PAGE_SIZE)}>
+                    onClick={() => setNarrowOffset(o => Math.max(o, filtered.length) + PAGE_SIZE)}>
                     {filling ? <><div className="load-more-spinner" />{s.loading}</>
-                      : s.loadMoreBtn(viewTotal - narrowOffset)}
+                      : s.loadMoreBtn(viewTotal - filtered.length)}
                   </button>
                 </div>
               )}
