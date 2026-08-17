@@ -259,7 +259,7 @@ export default function App() {
       // slice PAGE_SIZE (2000), so opening the site fired ~1,350 detail
       // requests at once and held the screen blank until every one of them
       // resolved — which is also what exhausted the browser's connection pool.
-      const FIRST_PAINT = 60;
+      const FIRST_PAINT = 30;
       const first = await Promise.all(
         list.slice(0, FIRST_PAINT).map(p => cachedFetch(p.url)));
       if (cancelled) return;
@@ -271,7 +271,7 @@ export default function App() {
       // read `loaded`, so coverage has to reach the full dex — it just does not
       // have to happen before anything is on screen.
       (async () => {
-        const BATCH = 50;
+        const BATCH = 30;
         for (let i = FIRST_PAINT; i < list.length; i += BATCH) {
           if (cancelled) return;
           const slice = list.slice(i, i + BATCH);
