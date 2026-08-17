@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 
-// Auto theme based on time of day
-// 6:00-18:00 = light, 18:00-6:00 = dark
+// Auto theme based on time of day: 6:00-18:00 light, 18:00-6:00 dark.
+//
+// It is no longer the default. Following the clock meant the site changed
+// appearance on its own between visits, which reads as a bug rather than a
+// feature — light is the design the app was built and reviewed in, so that is
+// what a first visit gets. Auto is still available; it just has to be asked
+// for, and once asked for it is remembered.
 function getAutoTheme() {
   const hour = new Date().getHours();
   return hour >= 6 && hour < 18 ? "light" : "dark";
@@ -12,12 +17,14 @@ export function useTheme() {
     try {
       const saved = localStorage.getItem("pkdx_theme");
       if (saved === "light" || saved === "dark") return saved;
-      return getAutoTheme();
+      // Auto only decides the opening theme for someone who turned it on.
+      if (localStorage.getItem("pkdx_theme_auto") === "true") return getAutoTheme();
+      return "light";
     } catch { return "light"; }
   });
 
   const [autoMode, setAutoMode] = useState(() => {
-    try { return localStorage.getItem("pkdx_theme_auto") !== "false"; } catch { return true; }
+    try { return localStorage.getItem("pkdx_theme_auto") === "true"; } catch { return false; }
   });
 
   // Apply theme to document
