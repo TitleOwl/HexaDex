@@ -41,7 +41,7 @@ function CompareSlotPicker({ allWithMeta, thaiArr, jpArr, lang, onPick, onClose,
           <div className="team-add-grid">
             {results.map(p => {
               const name = getLocalName(p.id, lang, thaiArr, jpArr) ?? p.name;
-              const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+              const imgUrl = `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${p.id}.png`;
               return (
                 <button key={p.id} className="team-add-card" onClick={() => onPick(p)}
                   title={`#${String(p.id).padStart(4,"0")} ${name}`}>

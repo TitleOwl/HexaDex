@@ -170,7 +170,7 @@ export function useModalLifecycle(onClose) {
 // (browser caches it once → big bandwidth savings)
 export function pokeApiArtwork(id) {
   if (!id) return null;
-  return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+  return `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
 }
 
 // ─── Match raid/egg/research Pokémon name → ID from allList ─

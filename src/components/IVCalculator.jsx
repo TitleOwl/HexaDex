@@ -166,7 +166,7 @@ export default function IVCalculator({ allList, thaiArr, jpArr, lang, cachedFetc
             <div className="team-add-grid">
               {results.map(p => {
                 const name = getLocalName(p.id, lang, thaiArr, jpArr) ?? p.name;
-                const img = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+                const img = `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${p.id}.png`;
                 return (
                   <button key={p.id} className="team-add-card" onClick={() => handlePick(p)}>
                     <img src={img} alt={name} className="team-add-img" loading="lazy" />

@@ -3,7 +3,7 @@ import { Images, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const t = (lang, en, th, ja) => (lang === "th" ? th : lang === "ja" ? ja : en);
 
-const BASE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+const BASE = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon";
 
 /**
  * One entry per game era, oldest first — the row IS a time axis, so the order

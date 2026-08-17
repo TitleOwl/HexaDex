@@ -255,7 +255,7 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
   if (!target) return null;
   const isCorrect = picked?.id === target.id;
   const targetLabel = getLabel(target);
-  const imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${target.id}.png`;
+  const imgUrl = `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${target.id}.png`;
 
   return (
     <div className="game-overlay">
@@ -291,7 +291,7 @@ export default function WhosThatGame({ allList, thaiArr, jpArr, lang, onClose, c
             className={`game-silhouette ${revealed ? "revealed" : ""}`}
             style={{ width: difficulty.silSize - 20, height: difficulty.silSize - 20 }}
             onError={(e) => {
-              const fb = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${target.id}.png`;
+              const fb = `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${target.id}.png`;
               if (e.currentTarget.src !== fb) e.currentTarget.src = fb;
             }} />
           <div className="game-silhouette-ring" />

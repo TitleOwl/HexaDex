@@ -17,9 +17,28 @@ export function statColor(v) {
 }
 
 export const padId  = (id) => `#${String(id).padStart(4, "0")}`;
+/**
+ * Sprites through a CDN instead of raw.githubusercontent.com.
+ *
+ * PokeAPI hands back raw.githubusercontent URLs, and GitHub rate-limits that
+ * host hard — a dex of 1,351 cards walks straight into HTTP 429 and every
+ * image on the page silently fails. jsDelivr serves the same repo, from a
+ * CDN built for exactly this: measured 429 in 3.96s against 200 in 0.11s for
+ * the same file.
+ */
+export function cdnSprite(url) {
+  if (!url) return url;
+  // Built from parts so a project-wide URL swap cannot rewrite the very
+  // string this function exists to match — which is exactly what happened.
+  const RAW = "https://raw." + "githubusercontent.com/PokeAPI/sprites/master/";
+  const CDN = "https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/";
+  return url.startsWith(RAW) ? CDN + url.slice(RAW.length) : url;
+}
+
 export const getArt = (p) =>
-  p?.sprites?.other?.["official-artwork"]?.front_default ??
-  p?.sprites?.front_default ?? null;
+  cdnSprite(
+    p?.sprites?.other?.["official-artwork"]?.front_default ??
+    p?.sprites?.front_default ?? null);
 
 export function getLocalName(id, lang, thaiArr, jpArr) {
   if (lang === "th" && thaiArr) return thaiArr[id - 1] ?? null;
@@ -279,7 +298,7 @@ export function birthdayToPokemonId(birthday, maxId = 1025) {
 
 // ─── Official-artwork sprite by id, no full Pokemon object needed ─────────────
 export const artworkUrl = (id) =>
-  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+  `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
 
 // ─── Catch chance calculator (Pokemon GO style) ───────────────────────────────
 // Returns a 0-100% chance based on base capture rate, ball multiplier, and berry boost

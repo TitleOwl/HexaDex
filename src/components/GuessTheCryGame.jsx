@@ -15,7 +15,7 @@ const BEST_KEY = "pkdx_guess_cry_best";
 const STREAK_KEY = "pkdx_guess_cry_streak";
 
 const artwork = (id) =>
-  `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+  `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
 
 function getCryUrl(id, name) {
   if (name) {

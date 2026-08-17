@@ -20,7 +20,7 @@ const TYPE_COLORS = {
   steel: "#B8B8D0", fairy: "#EE99AC",
 };
 
-const artById = (id) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+const artById = (id) => `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
 const dexIdFromImage = (url) => { const m = /pm(\d+)/i.exec(url || ""); return m ? parseInt(m[1], 10) : null; };
 
 function charImage(entry) {

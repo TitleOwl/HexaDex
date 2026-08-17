@@ -1137,7 +1137,7 @@ function ResultView({ t, result, lang, thaiArr, jpArr, onPick, onRetry }) {
     const localName = getLocalName(pokemon, lang, thaiArr, jpArr);
     const imgSrc = pokemon?.sprites?.other?.["official-artwork"]?.front_default
       || pokemon?.sprites?.front_default
-      || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
+      || `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
 
     // 4 key stats in fixed order
     const STAT_KEYS = ["hp", "attack", "defense", "speed"];

@@ -38,7 +38,7 @@ import {
   bumpLife, setLifeMax, trackGame, readHall, addToHall,
 } from "./petQuests.js";
 
-const ITEM_SPRITE = (slug) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${slug}.png`;
+const ITEM_SPRITE = (slug) => `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/items/${slug}.png`;
 
 export const SAVE_KEY = "pkdx_pet_v1";
 export const ROAM_KEY = "pkdx_buddy_roaming";
@@ -67,8 +67,8 @@ export const emitPetUpdate = () => {
 };
 
 // Animated gen-5 pixel sprite → static pixel fallback
-export const animSprite  = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${id}.gif`;
-export const pixelSprite = id => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+export const animSprite  = id => `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/versions/generation-v/black-white/animated/${id}.gif`;
+export const pixelSprite = id => `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`;
 
 // ─── Roster: base id, evolution chain, generation, english name ───
 const ROSTER = [
@@ -878,7 +878,7 @@ export default function PetCareGame({ thaiArr, jpArr, lang, onClose }) {
       c.fillStyle = "rgba(255,255,255,0.05)"; rr(60, 60, W - 120, H - 120, R); c.fill();
       // hero artwork
       try {
-        const art = await loadImg(`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${curId}.png`);
+        const art = await loadImg(`https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${curId}.png`);
         const s = 560; c.drawImage(art, (W - s) / 2, 180, s, s);
       } catch {}
       c.textAlign = "center";

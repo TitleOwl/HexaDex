@@ -470,7 +470,7 @@ function PokemonPicker({
           <div className="team-add-grid tb-picker-grid">
             {results.map(p => {
               const name = getLocalName(p.id, lang, thaiArr, jpArr) ?? p.name;
-              const img = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+              const img = `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${p.id}.png`;
               const inTeam = excludeIds.includes(p.id);
               const d = details[p.id];
               const bst = bstOf(d);

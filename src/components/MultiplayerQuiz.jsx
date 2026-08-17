@@ -519,8 +519,8 @@ export default function MultiplayerQuiz({ allList, thaiArr, jpArr, lang, onClose
     const q = questions[currentQ];
     const isC = picked?.id === q.target.id;
     const label = getLocalName(q.target.id, lang, thaiArr, jpArr) ?? q.target.name;
-    const art = (id) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
-    const imgFallback = (e, id) => { const fb = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`; if (e.currentTarget.src !== fb) e.currentTarget.src = fb; };
+    const art = (id) => `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/other/official-artwork/${id}.png`;
+    const imgFallback = (e, id) => { const fb = `https://cdn.jsdelivr.net/gh/PokeAPI/sprites@master/sprites/pokemon/${id}.png`; if (e.currentTarget.src !== fb) e.currentTarget.src = fb; };
     const progress = ((currentQ + 1) / questions.length) * 100;
     return (
       <div className="game-overlay">
