@@ -60,14 +60,17 @@ function fmtCoarse(ms) {
 }
 
 /**
- * The next rotation boundary: Wednesday 07:00 ICT, which is Tuesday 17:00 UTC.
- * Computed in UTC on purpose — deriving it from the viewer's local midnight
- * would land half a day out for anyone outside Thailand.
+ * The next rotation boundary: Wednesday 06:00 ICT.
+ *
+ * ICT is UTC+7, so that is Tuesday 23:00 UTC. The previous constant here was
+ * Tuesday 17:00 UTC, which lands on Wednesday 00:00 ICT — six hours early,
+ * every week. Computed in UTC on purpose: deriving it from the viewer's own
+ * midnight would put it a whole day out for anyone west of Thailand.
  */
 function nextRotation(now = Date.now()) {
   const d = new Date(now);
   const target = new Date(Date.UTC(
-    d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 17, 0, 0, 0));
+    d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 0, 0, 0));
   // Tuesday is 2 in getUTCDay().
   const delta = (2 - target.getUTCDay() + 7) % 7;
   target.setUTCDate(target.getUTCDate() + delta);
