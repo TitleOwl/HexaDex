@@ -127,6 +127,11 @@ export const CONDITION_ROW = {
   thunderstorm: "rain", snow: "snow",
 };
 
-/** §8 — LeekDuck's cropped icons, the small art the tables call for. */
-export const leekIcon = (dex) =>
-  `https://cdn.leekduck.com/assets/img/pokemon_icons_crop/pm${dex}.icon.png`;
+/**
+ * The same official artwork the Pokédex draws, through the shared helper.
+ *
+ * LeekDuck's cropped icons were the brief's source, but they have no crop for
+ * several regional forms — three of them fell back to initials — and using a
+ * second art set means one Pokémon looks different on two pages of one app.
+ */
+export { artworkUrl as leekIcon } from "./utils.js";
