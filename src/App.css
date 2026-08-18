@@ -19019,3 +19019,15 @@ body:has(.gd-page) { background: #efece6; }
 .gd-rowlabel { overflow: hidden; }
 .gd-rowlabel > span { overflow: hidden; text-overflow: ellipsis; }
 .gd-random em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Rocket needs the whole width: five columns, none of them droppable. */
+.gd-leader { min-width: 150px; }
+.gd-table th.gd-leader { width: 170px; }
+.gd-leader-name { font-size: 12.5px; font-weight: 800; color: #2a2521;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gd-reward { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.gd-random em { white-space: normal; }
+
+/* A shared window draws its bosses side by side rather than as repeats. */
+.gd-raid-arts { display: flex; gap: 6px; flex: 0 0 auto; }
+@media (max-width: 640px) { .gd-raid-arts .gd-raid-art:nth-child(n+3) { display: none; } }

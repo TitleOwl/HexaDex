@@ -104,13 +104,17 @@ function RaidRow({ r, now, lang }) {
 
   return (
     <div className={`gd-raid ${state}`}>
-      <span className="gd-raid-art">
-        {r.id && <img src={leekIcon(r.id)} alt="" loading="lazy" decoding="async" />}
+      <span className="gd-raid-arts">
+        {(r.group ?? [r]).map(m => (
+          <span key={m.key} className="gd-raid-art">
+            {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
+          </span>
+        ))}
       </span>
 
       <span className="gd-raid-mid">
         <span className="gd-raid-top">
-          <b>{r.name}</b>
+          <b>{(r.group ?? [r]).map(m => m.name).join(", ")}</b>
           {r.shiny && (
             <Zap size={14} strokeWidth={2.6} className="gd-shiny"
               aria-label={t(lang, "Shiny available", "มีโอกาสได้ shiny")} />
@@ -135,7 +139,8 @@ function RaidRow({ r, now, lang }) {
       </span>
 
       <span className="gd-raid-types">
-        {(r.types ?? []).slice(0, 2).map(tp => <TypeBadge key={tp} type={tp} />)}
+        {[...new Set((r.group ?? [r]).flatMap(m => m.types ?? []))]
+          .slice(0, 2).map(tp => <TypeBadge key={tp} type={tp} />)}
       </span>
     </div>
   );
@@ -155,8 +160,19 @@ function RaidSection({ lang, rows, status, now }) {
   const groups = TIER_ORDER
     .map(label => ({
       label,
-      rows: rows.filter(r => TIER_LABEL[r.tier] === label)
-        .sort((a, b) => rank(a) - rank(b) || a.start - b.start),
+      // Regirock, Regice and Registeel share one window; three identical
+      // rows said the same thing three times. One row, three sprites.
+      rows: (() => {
+        const mine = rows.filter(r => TIER_LABEL[r.tier] === label)
+          .sort((a, b) => rank(a) - rank(b) || a.start - b.start);
+        const byWindow = new Map();
+        mine.forEach(r => {
+          const k = `${r.start}:${r.end}`;
+          if (!byWindow.has(k)) byWindow.set(k, { ...r, group: [] });
+          byWindow.get(k).group.push(r);
+        });
+        return [...byWindow.values()];
+      })(),
     }))
     .filter(g => g.rows.length > 0);
 
@@ -291,15 +307,13 @@ function RocketSection({ lang }) {
           <tbody>
             {ROCKET_LINEUPS.map(l => (
               <tr key={l.leader}>
-                <th scope="row" className="gd-rowlabel gd-leader">
+                <th scope="row" className="gd-rowlabel gd-leader"
+                  title={l.sub ? t(lang, l.subEn, l.sub) : undefined}>
                   <span className="gd-leader-face">
                     <img src={LEADER_IMG[l.leader]} alt="" aria-hidden
                       loading="lazy" decoding="async" />
                   </span>
-                  <span className="gd-leader-text">
-                    <span>{l.leader}</span>
-                    {l.sub && <em>{t(lang, l.subEn, l.sub)}</em>}
-                  </span>
+                  <span className="gd-leader-name">{l.leader}</span>
                 </th>
                 {l.slots.map((slot, i) => (
                   <td key={i}>
@@ -400,10 +414,10 @@ export default function GoToolsHub({ allList = [], lang = "en", cachedFetch }) {
 
       <RaidSection lang={lang} rows={rows} status={go.status} now={now} />
 
-      <div className="gd-two">
-        <EggSection lang={lang} />
-        <RocketSection lang={lang} />
-      </div>
+      {/* Full width each: Rocket has five columns and none of them is a
+          week, so it cannot shed one to fit half the page. */}
+      <EggSection lang={lang} />
+      <RocketSection lang={lang} />
 
       <WeatherSection lang={lang} weather={weather}
         locating={locating} requestLocation={requestLocation} />
