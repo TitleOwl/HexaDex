@@ -14,7 +14,7 @@ import { useGoHubData } from "../goHubData.js";
 import { useRaidRows } from "./RaidSchedule.jsx";
 import {
   TYPE_COLOR, TIER_ORDER, TIER_LABEL, EGG_COLORS, EGG_ROTATION,
-  ROCKET_LINEUPS, WEATHER_TABLE, CONDITION_ROW, leekIcon, EGG_IMG,
+  ROCKET_LINEUPS, WEATHER_TABLE, CONDITION_ROW, leekIcon, EGG_IMG, LEADER_IMG,
 } from "../goDashboardData.js";
 import { useWeather } from "../useWeather.js";
 
@@ -291,8 +291,14 @@ function RocketSection({ lang }) {
             {ROCKET_LINEUPS.map(l => (
               <tr key={l.leader}>
                 <th scope="row" className="gd-rowlabel gd-leader">
-                  <span>{l.leader}</span>
-                  {l.sub && <em>{t(lang, l.subEn, l.sub)}</em>}
+                  <span className="gd-leader-face">
+                    <img src={LEADER_IMG[l.leader]} alt="" aria-hidden
+                      loading="lazy" decoding="async" />
+                  </span>
+                  <span className="gd-leader-text">
+                    <span>{l.leader}</span>
+                    {l.sub && <em>{t(lang, l.subEn, l.sub)}</em>}
+                  </span>
                 </th>
                 {l.slots.map((slot, i) => (
                   <td key={i}>

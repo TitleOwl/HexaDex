@@ -18970,3 +18970,18 @@ body:has(.gd-page) { background: #A3C1AD; }
 }
 .gd-mon-fallback { font-size: 11px; font-weight: 800; color: #7a776f; }
 .gd-egg-img { flex: 0 0 auto; object-fit: contain; }
+
+/* Leader portraits: the row symbol for the Rocket table, so it is told apart
+   from the egg and weather tables at a glance. */
+.gd-leader { flex-direction: row !important; align-items: center !important; gap: 10px !important; }
+.gd-leader-face {
+  width: 46px; height: 46px; border-radius: 12px; flex: 0 0 auto;
+  display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+  background: #f2efe9;
+}
+.gd-leader-face img { width: 44px; height: 44px; object-fit: contain; object-position: bottom; }
+.gd-leader-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+@media (max-width: 767px) {
+  .gd-leader-face { width: 38px; height: 38px; }
+  .gd-leader-face img { width: 36px; height: 36px; }
+}

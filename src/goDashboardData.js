@@ -75,6 +75,18 @@ export const EGG_ROTATION = [
   ] },
 ];
 
+/**
+ * Leader portraits — the same LeekDuck files RocketLineups.jsx already uses,
+ * so a leader looks the same wherever they appear.
+ */
+const ROCKET_CHAR = "https://cdn.leekduck.com/assets/img/rocket/";
+export const LEADER_IMG = {
+  Giovanni: `${ROCKET_CHAR}boss-giovanni.png`,
+  Sierra:   `${ROCKET_CHAR}leader-sierra.png`,
+  Arlo:     `${ROCKET_CHAR}leader-arlo.png`,
+  Cliff:    `${ROCKET_CHAR}leader-cliff.png`,
+};
+
 /** §4 — Rocket line-ups. `random: true` means one of the three appears. */
 export const ROCKET_LINEUPS = [
   {
