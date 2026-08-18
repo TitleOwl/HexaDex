@@ -18794,3 +18794,34 @@ a.gh-rot:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border
 @media (max-width: 1200px) {
   .go-tools-hub .gh-row .gh-pv-cell:nth-of-type(n+4) { display: none; }
 }
+
+/* ── Weather bonuses ────────────────────────────────────────────────────────
+   Same table language as the rotation grid, different row symbol: a weather
+   glyph rather than an egg, so the two are told apart at a glance. */
+.go-tools-hub .gh-weather { margin: 40px 0 20px; }
+.gh-wt td { padding: 12px 14px; }
+.gh-wt .rt-tier { min-height: 0; gap: 10px; }
+.gh-wt-ico {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 9px; flex: 0 0 auto;
+  background: var(--bg-muted); color: var(--text-secondary);
+}
+.gh-wt tr.is-now .gh-wt-ico { background: #dcf0dc; color: #2d7a3e; }
+.gh-wt-now {
+  display: inline-flex; align-items: center; gap: 5px; margin-left: 8px;
+  padding: 1px 8px; border-radius: 999px;
+  background: #dcf0dc; color: #2d7a3e;
+  font-size: 9.5px; font-weight: 800;
+}
+.gh-wt-now i { width: 6px; height: 6px; border-radius: 50%; background: #2d7a3e; }
+.gh-wt tr.is-now th, .gh-wt td.is-now { background: #f4faf1; }
+.gh-wt-types { display: flex; flex-wrap: wrap; gap: 5px; }
+.go-tools-hub .gh-wt .rt-corner { width: 210px; }
+[data-theme="dark"] .gh-wt tr.is-now th,
+[data-theme="dark"] .gh-wt td.is-now { background: rgba(63,107,46,0.14); }
+[data-theme="dark"] .gh-wt-now,
+[data-theme="dark"] .gh-wt tr.is-now .gh-wt-ico { background: rgba(45,122,62,0.26); color: #a7d18c; }
+@media (max-width: 640px) {
+  .go-tools-hub .gh-wt .rt-corner { width: 140px; }
+  .gh-wt .rt-tier span { font-size: 12px; }
+}

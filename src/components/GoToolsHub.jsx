@@ -73,6 +73,26 @@ const CONDITION_BOOST = {
   "snow":          { Icon: CloudSnow, types: ["ice", "steel"] },
 };
 
+// The seven weather states the game actually distinguishes, in the order the
+// reference tables use. Static: this never changes, so it needs no request —
+// the only live part is which row is highlighted.
+const WEATHER_ROWS = [
+  { key: "clear",         Icon: Sun,       en: "Sunny / Clear",  th: "แดดจัด / แจ่มใส", ja: "晴れ",     types: ["grass", "fire", "ground"] },
+  { key: "partly-cloudy", Icon: CloudSun,  en: "Partly cloudy",  th: "มีเมฆบางส่วน",    ja: "薄曇り",   types: ["normal", "rock"] },
+  { key: "cloudy",        Icon: Cloud,     en: "Cloudy",         th: "มีเมฆ",           ja: "曇り",     types: ["fairy", "fighting", "poison"] },
+  { key: "rain",          Icon: CloudRain, en: "Rain",           th: "ฝนตก",            ja: "雨",       types: ["water", "electric", "bug"] },
+  { key: "windy",         Icon: Zap,       en: "Windy",          th: "ลมแรง",           ja: "強風",     types: ["dragon", "flying", "psychic"] },
+  { key: "snow",          Icon: CloudSnow, en: "Snow",           th: "หิมะ",            ja: "雪",       types: ["ice", "steel"] },
+  { key: "fog",           Icon: CloudFog,  en: "Fog",            th: "หมอก",            ja: "霧",       types: ["dark", "ghost"] },
+];
+
+/** Which row the live condition maps to. Several API states share one row. */
+const CONDITION_ROW = {
+  "clear": "clear", "mostly-clear": "clear", "partly-cloudy": "partly-cloudy",
+  "cloudy": "cloudy", "fog": "fog", "drizzle": "rain", "rain": "rain",
+  "thunderstorm": "rain", "snow": "snow",
+};
+
 const WORLD_ZONES = [
   { tz: "Asia/Bangkok",    label: "ICT" },
   { tz: "Asia/Tokyo",      label: "JST" },
@@ -253,6 +273,82 @@ function RotationRow({ r, state, nowMs, lang, go }) {
         <span className="gh-rot-go">{t("Counters", "ตัวเคาน์เตอร์", "対策")} &rsaquo;</span>
       </div>
     </a>
+  );
+}
+
+/**
+ * The weather reference, as a table in the same language as the rotation grid.
+ *
+ * Nothing here is fetched — the pairings are fixed by the game. The only live
+ * part is which row is marked, and when location is off no row is marked at
+ * all rather than one being guessed.
+ */
+function WeatherTable({ lang, weather, locating, requestLocation }) {
+  const t = (en, th, ja) => lang === "th" ? th : lang === "ja" ? ja : en;
+  const activeKey = weather ? CONDITION_ROW[weather.condition] : null;
+  const typeLabel = (tp) => lang === "th" ? (TYPE_NAMES_TH[tp] ?? tp)
+    : lang === "ja" ? (TYPE_NAMES_JA[tp] ?? tp) : tp;
+
+  return (
+    <section className="gh-weather">
+      <div className="gh-raids-head">
+        <div>
+          <h2 className="gh-raids-h">
+            {t("Weather bonuses", "โบนัสจากสภาพอากาศ", "天候ブースト")}
+          </h2>
+          <p className="gh-raids-sub">
+            {t("Which types the game boosts in each condition",
+               "ธาตุที่ได้โบนัสในแต่ละสภาพอากาศ", "天候ごとにブーストされるタイプ")}
+          </p>
+        </div>
+        {!weather && (
+          <button type="button" className="gh-bar-btn" disabled={locating}
+            onClick={requestLocation} style={{ marginLeft: "auto" }}>
+            {locating ? t("Locating…", "กำลังขอ…", "取得中…")
+              : t("Enable location", "เปิดใช้ตำแหน่ง", "位置情報を許可")}
+          </button>
+        )}
+      </div>
+
+      <div className="rs-card">
+        <div className="rt-wrap">
+          <table className="rt gh-wt">
+            <thead>
+              <tr>
+                <th scope="col" className="rt-corner">{t("Weather", "สภาพอากาศ", "天候")}</th>
+                <th scope="col">{t("Boosted types", "ธาตุที่ได้โบนัส", "ブーストされるタイプ")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {WEATHER_ROWS.map(row => {
+                const on = row.key === activeKey;
+                return (
+                  <tr key={row.key} className={on ? "is-now" : undefined}>
+                    <th scope="row" className="rt-tier">
+                      <span className="gh-wt-ico"><row.Icon size={17} strokeWidth={2.2} /></span>
+                      <span>{t(row.en, row.th, row.ja)}</span>
+                      {/* The tint is not the only thing saying which row is now. */}
+                      {on && (
+                        <span className="gh-wt-now">
+                          <i aria-hidden />{t("now", "ตอนนี้", "現在")}
+                        </span>
+                      )}
+                    </th>
+                    <td className={on ? "is-now" : undefined}>
+                      <span className="gh-wt-types">
+                        {row.types.map(tp => (
+                          <span key={tp} className="tp" data-type={tp}>{typeLabel(tp)}</span>
+                        ))}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1111,6 +1207,9 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
             onOpenCounters={() => setActive("raid")} />
         )}
       </section>
+
+      <WeatherTable lang={lang} weather={weather} locating={locating}
+        requestLocation={requestLocation} />
 
       {TOOL_CATEGORIES.map((cat, catIdx) => (
         <div key={cat.id} data-cat={cat.id} className="go-category">
