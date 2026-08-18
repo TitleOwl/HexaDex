@@ -202,6 +202,14 @@ function Row({ r, state, now, lang, onOpen, narrow }) {
  * The tier accordions. Exported because the GO Tools hub shows the same list
  * full-width — one implementation, not a second copy that drifts.
  */
+export function useRaidRows({ allList = [], cachedFetch }) {
+  const dex = useMemo(() => allList.map(p => ({
+    name: p.name, id: Number(p.url.split("/").filter(Boolean).pop()),
+  })), [allList]);
+  const go = useGoHubData();
+  return { go, rows: useRotationTypes(useMegaSprites(raidRotations(go.data, dex) ?? []), cachedFetch) };
+}
+
 export function RaidTierList({ lang = "en", allList = [], cachedFetch, onOpenCounters, now }) {
   const tick = useTick();
   const at = now ?? tick;
@@ -304,6 +312,93 @@ export function RaidTierList({ lang = "en", allList = [], cachedFetch, onOpenCou
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * The rotation grid: tiers down the side, weeks across the top.
+ *
+ * A real <table>. The columns are a time axis and the rows are a category —
+ * that is what a table is for, and it means a screen reader can say "Mega,
+ * this week" instead of reading a wall of divs.
+ */
+export function RotationTable({ lang = "en", rows, now, onOpen }) {
+  const label = (en, th, ja) => t(lang, en, th, ja);
+
+  // The week columns hang off the real boundary, not off midnight: rotations
+  // turn over Wednesday 06:00 ICT, so a week here runs 06:00 to 06:00.
+  const thisEnd = nextRotation(now);
+  const WEEK = 7 * 86400000;
+  const cols = [
+    { key: "last", from: thisEnd - 2 * WEEK, to: thisEnd - WEEK,
+      head: label("Last week", "สัปดาห์ที่แล้ว", "先週") },
+    { key: "now",  from: thisEnd - WEEK,     to: thisEnd,
+      head: label("This week", "สัปดาห์นี้", "今週") },
+    { key: "next", from: thisEnd,            to: thisEnd + WEEK,
+      head: label("Next week", "สัปดาห์หน้า", "来週") },
+  ];
+
+  const tiers = RAID_TIERS.filter(x => x.big || x.key === "3");
+  const cell = (tier, col) =>
+    rows.filter(r => r.tier === tier.key && r.start < col.to && r.end > col.from);
+
+  return (
+    <div className="rt-wrap">
+      <table className="rt">
+        <colgroup>
+          <col className="rt-rowhead" />
+          {cols.map(c => <col key={c.key} className={c.key === "now" ? "nowcol" : undefined} />)}
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col" className="rt-corner">
+              {label("Tier", "ระดับ", "ランク")}
+            </th>
+            {cols.map(c => (
+              <th key={c.key} scope="col" className={c.key === "now" ? "is-now" : undefined}>
+                {c.head}
+                {/* The tint is not the only thing saying which column is now. */}
+                {c.key === "now" && <em className="rt-nowtag">{label("now", "ตอนนี้", "現在")}</em>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tiers.map(tier => (
+            <tr key={tier.key}>
+              <th scope="row" className="rt-tier">
+                <Egg tier={tier} size={20} />
+                <span>{TIER_NAME[tier.key] ?? tier.label}</span>
+              </th>
+              {cols.map(col => {
+                const found = cell(tier, col);
+                return (
+                  <td key={col.key} className={`${col.key === "now" ? "is-now" : ""} ${col.key === "last" ? "is-past" : ""}`}>
+                    {found.length === 0 ? (
+                      <span className="rt-none" aria-label={label("no data", "ไม่มีข้อมูล", "データなし")}>—</span>
+                    ) : found.map(r => (
+                      <a key={r.key} className="rt-cell" href="#counters"
+                        onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); onOpen?.(r); }}>
+                        <span className="rt-art">
+                          {r.id && <img src={spriteUrl(r.id)} alt="" loading="lazy" decoding="async" />}
+                        </span>
+                        <span className="rt-name">{r.name}</span>
+                        {col.key === "now" && (
+                          <span className="rt-cd live num">{label("ends", "จบ", "終了")} {fmt(r.end - now)}</span>
+                        )}
+                        {col.key === "next" && (
+                          <span className="rt-cd next num">{label("starts", "เริ่ม", "開始")} {fmt(r.start - now)}</span>
+                        )}
+                      </a>
+                    ))}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

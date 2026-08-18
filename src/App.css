@@ -18696,3 +18696,78 @@ a.gh-rot:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border
 .rs-more-btn:hover { border-color: #8f2f2a; color: #8f2f2a; }
 [data-theme="dark"] .rs-more-lbl, [data-theme="dark"] .rs-more-party { color: #b0a9a2; }
 @media (max-width: 479px) { .rs-more { margin-left: 72px; } }
+
+/* ── Rotation grid ──────────────────────────────────────────────────────────
+   A real table: the columns are a time axis and the rows are a category, so a
+   screen reader can say "Mega, this week" instead of reading a wall of divs. */
+.rt-wrap { overflow-x: auto; scrollbar-width: thin; }
+.rt { width: 100%; border-collapse: collapse; }
+.rt col.nowcol { background: #f4faf1; }
+.rt th, .rt td { padding: 12px 14px; text-align: left; vertical-align: middle; }
+.rt thead th {
+  font-size: 11.5px; font-weight: 800; color: #7a776f;
+  border-bottom: 1px solid #f4f1eb; white-space: nowrap;
+}
+.rt thead th.is-now { color: #2d7a3e; }
+.rt-nowtag {
+  display: inline-block; margin-left: 6px; padding: 1px 7px;
+  border-radius: 999px; background: #dcf0dc; color: #2d7a3e;
+  font-style: normal; font-size: 9.5px; font-weight: 800;
+}
+.rt-corner { width: 150px; }
+.rt tbody tr + tr th, .rt tbody tr + tr td { border-top: 1px solid #f4f1eb; }
+.rt-tier {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 12.5px; font-weight: 800; color: var(--text-primary);
+  min-height: 60px;
+}
+.rt td.is-past { opacity: 0.42; }
+.rt-none { color: #a09d95; font-size: 14px; }
+
+.rt-cell {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 4px;
+  margin: 0 10px 6px 0; text-decoration: none; color: inherit;
+  max-width: 110px;
+}
+.rt-cell:hover .rt-name { color: #8f2f2a; }
+.rt-cell:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 3px; border-radius: 10px; }
+.rt-art {
+  display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 48px; border-radius: 12px; background: #eaf3e4;
+}
+.rt-art img { width: 42px; height: 42px; object-fit: contain; }
+.rt-name {
+  font-size: 11px; font-weight: 700; text-align: center; line-height: 1.3;
+  max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rt-cd { font-size: 10px; font-weight: 800; }
+.rt-cd.live { color: #1f9d4f; }
+.rt-cd.next { color: #e07a1f; }
+
+[data-theme="dark"] .rt col.nowcol { background: rgba(63,107,46,0.14); }
+[data-theme="dark"] .rt th, [data-theme="dark"] .rt td { border-color: rgba(255,255,255,0.08); }
+[data-theme="dark"] .rt-art { background: rgba(255,255,255,0.06); }
+
+.gh-raids-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+.gh-raids-sub { margin: 2px 0 0; font-size: 12.5px; color: #7a776f; font-weight: 600; }
+.gh-view-seg {
+  display: inline-flex; gap: 2px; padding: 3px; margin-left: auto;
+  border-radius: 999px; background: #f2f0ec; flex: 0 0 auto;
+}
+.gh-view-btn {
+  padding: 6px 14px; border: 0; border-radius: 999px; background: transparent;
+  color: #6b6560; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.gh-view-btn.on { background: #fff; color: #8f2f2a; box-shadow: 0 1px 3px rgba(0,0,0,0.10); }
+[data-theme="dark"] .gh-view-seg { background: rgba(255,255,255,0.07); }
+[data-theme="dark"] .gh-view-btn.on { background: #2a262c; color: #ff9d96; }
+
+/* Under 1024 the grid scrolls sideways with the tier column pinned. */
+@media (max-width: 1023px) {
+  .rt-corner, .rt-tier { position: sticky; left: 0; z-index: 1; background: var(--bg-card); }
+  .rt { min-width: 640px; }
+}
+@media (max-width: 479px) {
+  .rt-art { width: 40px; height: 40px; }
+  .rt-art img { width: 36px; height: 36px; }
+}

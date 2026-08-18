@@ -14,7 +14,7 @@ import LiveEvents        from "./LiveEvents.jsx";
 import EggPool           from "./EggPool.jsx";
 import FieldResearch     from "./FieldResearch.jsx";
 import { findPokemonInList } from "../perfUtils.js";
-import { RaidTierList } from "./RaidSchedule.jsx";
+import { RaidTierList, RotationTable, useRaidRows } from "./RaidSchedule.jsx";
 import {
   Swords, Globe, BarChart3, Shield, Rocket, CalendarDays, Egg, ClipboardList,
   CloudSun, Zap, ArrowRight, Sparkles, Sun, Cloud, CloudRain, CloudSnow, CloudFog, RefreshCw,
@@ -709,6 +709,16 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
   // the destination should open with (a boss, an egg distance).
   const goTo = (toolId) => setActive(toolId);
 
+  const raidData = useRaidRows({ allList, cachedFetch });
+  const [raidView, setRaidViewRaw] = useState(() => {
+    try { return localStorage.getItem("pkdx_raid_view") === "list" ? "list" : "grid"; }
+    catch { return "grid"; }
+  });
+  const setRaidView = (v) => {
+    setRaidViewRaw(v);
+    try { localStorage.setItem("pkdx_raid_view", v); } catch { /* private mode */ }
+  };
+
   // Some players only want what they can battle now; others want the whole
   // rotation to plan Mega Energy. Both are reasonable, so it is remembered.
   const [collapsed, setCollapsed] = useState(() => {
@@ -1047,11 +1057,49 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
       {/* Raids get the whole width. In the two-column grid every row was
           cramped while the other column ran 500px of empty. */}
       <section className="gh-raids">
-        <h2 className="gh-raids-h">
-          {lang === "th" ? "เรด" : lang === "ja" ? "レイド" : "Raids"}
-        </h2>
-        <RaidTierList lang={lang} allList={allList} cachedFetch={cachedFetch}
-          onOpenCounters={() => setActive("raid")} />
+        <div className="gh-raids-head">
+          <div>
+            <h2 className="gh-raids-h">
+              {lang === "th" ? "รอบหมุนบอสเรด" : lang === "ja" ? "レイドローテーション" : "Raid rotation"}
+            </h2>
+            <p className="gh-raids-sub">
+              {lang === "th" ? "เปลี่ยนทุกพุธ 06:00"
+                : lang === "ja" ? "毎週水曜 06:00 に切り替え" : "Changes every Wednesday, 06:00"}
+            </p>
+          </div>
+          {/* The grid answers "what week"; the list answers "what do I bring".
+              Different questions, so both stay and the choice is remembered. */}
+          <div className="gh-view-seg" role="group">
+            <button type="button" className={`gh-view-btn${raidView === "grid" ? " on" : ""}`}
+              aria-pressed={raidView === "grid"} onClick={() => setRaidView("grid")}>
+              {lang === "th" ? "สรุป" : lang === "ja" ? "概要" : "Summary"}
+            </button>
+            <button type="button" className={`gh-view-btn${raidView === "list" ? " on" : ""}`}
+              aria-pressed={raidView === "list"} onClick={() => setRaidView("list")}>
+              {lang === "th" ? "ละเอียด" : lang === "ja" ? "詳細" : "Detail"}
+            </button>
+          </div>
+        </div>
+
+        {raidView === "grid" ? (
+          raidData.go.status === "loading"
+            ? <div className="rs-card rs-loading">{lang === "th" ? "กำลังโหลด…" : "Loading…"}</div>
+            : raidData.go.status === "error"
+            ? <div className="rs-card rs-loading">
+                {lang === "th" ? "โหลดไม่สำเร็จ" : "Could not load"}
+                <button type="button" className="gh-bar-btn" style={{ marginLeft: 10 }}
+                  onClick={() => window.location.reload()}>
+                  {lang === "th" ? "ลองใหม่" : "Retry"}
+                </button>
+              </div>
+            : <div className="rs-card">
+                <RotationTable lang={lang} rows={raidData.rows} now={nowMs}
+                  onOpen={() => setActive("raid")} />
+              </div>
+        ) : (
+          <RaidTierList lang={lang} allList={allList} cachedFetch={cachedFetch}
+            onOpenCounters={() => setActive("raid")} />
+        )}
       </section>
 
       {/* ─── TODAY, IN ONE PLACE ───
