@@ -85,7 +85,7 @@ const WORLD_ZONES = [
 // Was a black banner carrying two floating hexagons, a clock with a stray
 // pointer, and three chips that looked pressable but were not. One white row.
 
-function HubHeader({ lang }) {
+function HubHeader({ lang, onSaveImage }) {
   const [zones, setZones] = useState(false);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -122,6 +122,10 @@ function HubHeader({ lang }) {
           </span>
           <em>ICT</em>
         </span>
+        <button type="button" className="gh-bar-btn" onClick={onSaveImage}>
+          <Camera size={14} strokeWidth={2.4} />
+          {lang === "th" ? "บันทึกเป็นรูป" : lang === "ja" ? "画像で保存" : "Save as image"}
+        </button>
         <button type="button" className="gh-bar-btn" onClick={() => window.location.reload()}>
           <RefreshCw size={14} strokeWidth={2.4} />
           {lang === "th" ? "รีเฟรช" : lang === "ja" ? "更新" : "Refresh"}
@@ -1044,7 +1048,7 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
       `}</style>
 
       {/* ─── HEADER ─── */}
-      <HubHeader lang={lang} />
+      <HubHeader lang={lang} onSaveImage={() => setActive("summary")} />
 
       <Bento lang={lang} go={goTo} data={go.data} status={go.status} nowMs={nowMs}
         weather={weather} boostTypes={boostTypes} locating={locating}
@@ -1101,49 +1105,6 @@ export default function GoToolsHub({ allList, loaded, thaiArr, jpArr, lang, cach
             onOpenCounters={() => setActive("raid")} />
         )}
       </section>
-
-      {/* ─── TODAY, IN ONE PLACE ───
-          It was a tile in the same grid as the tools it summarises. Being the
-          sum of the others is exactly why it does not belong among them. */}
-      {summaryTool && (
-        <section className="gh-sum">
-          <div className="gh-sum-head">
-            <h3 className="gh-sum-title">
-              {lang === "th" ? "สรุปกิจกรรมวันนี้" : lang === "ja" ? "今日のまとめ" : "Today at a glance"}
-            </h3>
-            <span className="go-hub-live gh-sum-live">
-              <span className="go-hub-live-dot" aria-hidden />LIVE
-            </span>
-            {/* The reason this feature exists is the export, so it is the
-                button, not a control hidden inside the overlay. */}
-            <button type="button" className="gh-sum-save" onClick={() => setActive("summary")}>
-              <Camera size={15} strokeWidth={2.4} />
-              {lang === "th" ? "บันทึกเป็นรูป" : lang === "ja" ? "画像で保存" : "Save as image"}
-            </button>
-          </div>
-
-          <div className="gh-sum-body">
-            <SumBlock onGo={() => setActive("raidguide")}
-              label={lang === "th" ? "บอสเรดวันนี้" : lang === "ja" ? "本日のレイド" : "Raid bosses"}>
-              <PreviewStrip kind="raids" data={go.data} status={go.status} lang={lang} big go={goTo} />
-            </SumBlock>
-            <SumBlock onGo={() => setActive("events")}
-              label={lang === "th" ? "อีเวนต์ที่กำลังจัด" : lang === "ja" ? "開催中" : "Running now"}>
-              <PreviewStrip kind="events" data={go.data} status={go.status} lang={lang} now={nowMs} big go={goTo} />
-            </SumBlock>
-            <SumBlock onGo={() => setActive("eggs")}
-              label={lang === "th" ? "ไข่ที่ฟักได้" : lang === "ja" ? "タマゴ" : "Hatching now"}>
-              <PreviewStrip kind="eggs" data={go.data} status={go.status} lang={lang} big go={goTo} />
-            </SumBlock>
-            <SumBlock onGo={() => setActive("weather")}
-              label={lang === "th" ? "ธาตุที่ได้โบนัส" : lang === "ja" ? "天候ブースト" : "Weather boost"}>
-              <PreviewStrip kind="weather" data={go.data} status={go.status}
-                lang={lang} weatherTypes={boostTypes} now={nowMs} big
-                onLocate={requestLocation} locating={locating} />
-            </SumBlock>
-          </div>
-        </section>
-      )}
 
       {TOOL_CATEGORIES.map((cat, catIdx) => (
         <div key={cat.id} data-cat={cat.id} className="go-category">

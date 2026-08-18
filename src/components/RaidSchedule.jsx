@@ -202,12 +202,27 @@ function Row({ r, state, now, lang, onOpen, narrow }) {
  * The tier accordions. Exported because the GO Tools hub shows the same list
  * full-width — one implementation, not a second copy that drifts.
  */
+/**
+ * Snap a window's end to the boundary that opens the next one.
+ *
+ * LeekDuck publishes windows that end at 22:00 while the next starts at 06:00
+ * the following morning, so the grid showed "ends in 8h" beside "starts in
+ * 16h" — an eight-hour hole in a rotation that is actually continuous. Both
+ * edges now come from nextRotation(), so one window's end is the next one's
+ * start by construction rather than by coincidence.
+ */
+function snapWindow(r) {
+  const end = nextRotation(r.end - 1);
+  return end === r.end ? r : { ...r, end };
+}
+
 export function useRaidRows({ allList = [], cachedFetch }) {
   const dex = useMemo(() => allList.map(p => ({
     name: p.name, id: Number(p.url.split("/").filter(Boolean).pop()),
   })), [allList]);
   const go = useGoHubData();
-  return { go, rows: useRotationTypes(useMegaSprites(raidRotations(go.data, dex) ?? []), cachedFetch) };
+  const rows = useRotationTypes(useMegaSprites(raidRotations(go.data, dex) ?? []), cachedFetch);
+  return { go, rows: rows.map(snapWindow) };
 }
 
 export function RaidTierList({ lang = "en", allList = [], cachedFetch, onOpenCounters, now }) {
@@ -228,7 +243,8 @@ export function RaidTierList({ lang = "en", allList = [], cachedFetch, onOpenCou
     name: p.name, id: Number(p.url.split("/").filter(Boolean).pop()),
   })), [allList]);
 
-  const rows = useRotationTypes(useMegaSprites(raidRotations(go.data, dex) ?? []), cachedFetch);
+  const rows = useRotationTypes(useMegaSprites(raidRotations(go.data, dex) ?? []), cachedFetch)
+    .map(snapWindow);
 
   // State before date. Sorting by date alone puts finished windows on top.
   const ORDER = { live: 0, upcoming: 1, ended: 2 };
@@ -338,9 +354,14 @@ export function RotationTable({ lang = "en", rows, now, onOpen }) {
       head: label("Next week", "สัปดาห์หน้า", "来週") },
   ];
 
-  const tiers = RAID_TIERS.filter(x => x.big || x.key === "3");
   const cell = (tier, col) =>
     rows.filter(r => r.tier === tier.key && r.start < col.to && r.end > col.from);
+
+  // An empty row is a row that says nothing. ScrapedDuck only names Mega and
+  // 5-star rotations, so Shadow and 3-star were three dashes and a label.
+  const tiers = RAID_TIERS
+    .filter(x => x.big || x.key === "3")
+    .filter(tier => cols.some(col => cell(tier, col).length > 0));
 
   return (
     <div className="rt-wrap">
