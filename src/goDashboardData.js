@@ -24,7 +24,22 @@ export const TIER_LABEL = {
   "3": "3★ Rare", s3: "Shadow 3★", "1": "1★ Common", s1: "Shadow 1★",
 };
 
-/** §3.4 — egg shell gradients by distance. */
+/**
+ * The real egg art, the same files EggPool.jsx already hotlinks from the
+ * Pokémon GO Wiki — one egg means one picture across the app. The gradients
+ * below stay as the onError fallback, because these are third-party hotlinks
+ * and a row with a hole in it is worse than a shape.
+ */
+const WIKIA = "https://static.wikia.nocookie.net/pokemongo/images";
+export const EGG_IMG = {
+  2:  `${WIKIA}/f/f2/Egg_2k.png/revision/latest?cb=20211208153113`,
+  5:  `${WIKIA}/3/33/Egg_5k.png/revision/latest?cb=20211208153322`,
+  7:  `${WIKIA}/f/f5/Egg_7k.png/revision/latest?cb=20211208153329`,
+  10: `${WIKIA}/f/f6/Egg_10k.png/revision/latest?cb=20211208153343`,
+  12: `${WIKIA}/e/ee/Egg_12k.png/revision/latest?cb=20211208153349`,
+};
+
+/** §3.4 — egg shell gradients by distance, used only when an image fails. */
 export const EGG_COLORS = {
   2:  ["#f0d8dc", "#d9a8b0"],
   5:  ["#c8d8f0", "#8fa8d9"],

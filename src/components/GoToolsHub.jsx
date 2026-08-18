@@ -14,7 +14,7 @@ import { useGoHubData } from "../goHubData.js";
 import { useRaidRows } from "./RaidSchedule.jsx";
 import {
   TYPE_COLOR, TIER_ORDER, TIER_LABEL, EGG_COLORS, EGG_ROTATION,
-  ROCKET_LINEUPS, WEATHER_TABLE, CONDITION_ROW, leekIcon,
+  ROCKET_LINEUPS, WEATHER_TABLE, CONDITION_ROW, leekIcon, EGG_IMG,
 } from "../goDashboardData.js";
 import { useWeather } from "../useWeather.js";
 
@@ -56,11 +56,22 @@ function TypeBadge({ type }) {
 }
 
 /** §3.2 — the egg that leads a distance row. */
-function EggIcon({ km, size = 26 }) {
+function EggIcon({ km, size = 30 }) {
+  const [failed, setFailed] = useState(false);
+  const src = EGG_IMG[km];
+  if (src && !failed) {
+    // Fandom refuses hotlinks by Referer — sending none is what makes these
+    // load at all, the same fix the raid eggs needed.
+    return (
+      <img className="gd-egg-img" src={src} alt="" aria-hidden
+        referrerPolicy="no-referrer" width={size} height={size}
+        loading="lazy" decoding="async" onError={() => setFailed(true)} />
+    );
+  }
   const [from, to] = EGG_COLORS[km] ?? ["#e6e2da", "#c4beb6"];
   return (
     <span className="gd-egg" aria-hidden
-      style={{ width: size, height: size * 1.2, background: `linear-gradient(160deg, ${from}, ${to})` }} />
+      style={{ width: size * 0.85, height: size, background: `linear-gradient(160deg, ${from}, ${to})` }} />
   );
 }
 
