@@ -3,13 +3,30 @@
 // Eggs, Rocket line-ups and weather pairings are fixed by the game rather than
 // published as a feed, so they live here as data instead of as a request.
 
-/** §7 — the saturated type palette the dashboard badges use. */
+/**
+ * Pale ground, dark ink of the same hue — the system the Pokédex and Team
+ * already use. The dashboard briefly carried a saturated set of its own,
+ * which made this the one page in the app with different pills.
+ */
 export const TYPE_COLOR = {
-  normal: "#A8A878", fire: "#F08030", water: "#6890F0", electric: "#F8D030",
-  grass: "#78C850", ice: "#98D8D8", fighting: "#C03028", poison: "#A040A0",
-  ground: "#E0C068", flying: "#A890F0", psychic: "#F85888", bug: "#A8B820",
-  rock: "#B8A038", ghost: "#705898", dragon: "#7038F8", dark: "#705848",
-  steel: "#B8B8D0", fairy: "#F0B6BC",
+  dragon:   { bg: "#e4dcf3", fg: "#5a4a8f" },
+  ground:   { bg: "#eee2cf", fg: "#8a6524" },
+  water:    { bg: "#d9e7f5", fg: "#3a6294" },
+  dark:     { bg: "#e4e6ea", fg: "#5c646e" },
+  fire:     { bg: "#fbe0cf", fg: "#a8541f" },
+  fighting: { bg: "#f7dcd6", fg: "#9e4432" },
+  psychic:  { bg: "#e4e0ec", fg: "#5c5280" },
+  grass:    { bg: "#e3f0d6", fg: "#4d7a2e" },
+  electric: { bg: "#f7eecb", fg: "#8a7020" },
+  ice:      { bg: "#dcedf2", fg: "#3d7285" },
+  poison:   { bg: "#eadff0", fg: "#7a4d8f" },
+  flying:   { bg: "#e6e2f5", fg: "#4f4a8a" },
+  bug:      { bg: "#e8eecd", fg: "#6b7a2e" },
+  rock:     { bg: "#e8e2d6", fg: "#7a6a4a" },
+  ghost:    { bg: "#e4e0ec", fg: "#5c5280" },
+  steel:    { bg: "#e4e6ea", fg: "#5c646e" },
+  fairy:    { bg: "#f7dfe9", fg: "#9e4370" },
+  normal:   { bg: "#f0eee6", fg: "#7a756a" },
 };
 
 /** §5.4 — tier order, strongest first. */
@@ -53,25 +70,21 @@ export const EGG_ROTATION = [
     [{ dex: 218, name: "Slugma" }, { dex: 447, name: "Riolu" }],
     [{ dex: 194, name: "Wooper" }, { dex: 458, name: "Mantyke" }],
     [{ dex: 175, name: "Togepi" }, { dex: 231, name: "Phanpy" }],
-    [{ dex: 172, name: "Pichu" }],
   ] },
   { km: 5,  weeks: [
     [{ dex: 246, name: "Larvitar" }, { dex: 371, name: "Bagon" }],
     [{ dex: 374, name: "Beldum" }, { dex: 443, name: "Gible" }],
     [{ dex: 633, name: "Deino" }, { dex: 610, name: "Axew" }],
-    [{ dex: 599, name: "Klink" }],
   ] },
   { km: 7,  weeks: [
     [{ dex: 27,  name: "Alolan Sandshrew" }, { dex: 37, name: "Alolan Vulpix" }],
     [{ dex: 52,  name: "Galarian Meowth" }, { dex: 83, name: "Galarian Farfetch'd" }],
     [{ dex: 122, name: "Galarian Mr. Mime" }],
-    [{ dex: 222, name: "Galarian Corsola" }],
   ] },
   { km: 10, weeks: [
     [{ dex: 447, name: "Riolu" }, { dex: 633, name: "Deino" }],
     [{ dex: 782, name: "Jangmo-o" }, { dex: 885, name: "Dreepy" }],
     [{ dex: 610, name: "Axew" }, { dex: 704, name: "Goomy" }],
-    [{ dex: 246, name: "Larvitar" }],
   ] },
 ];
 

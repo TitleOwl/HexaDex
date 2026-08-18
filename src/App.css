@@ -18985,3 +18985,37 @@ body:has(.gd-page) { background: #A3C1AD; }
   .gd-leader-face { width: 38px; height: 38px; }
   .gd-leader-face img { width: 36px; height: 36px; }
 }
+
+/* ── Set 1: bring the dashboard back into the app's own skin ──────────────── */
+
+/* 1. The mint ground read as a different application next to a white navbar. */
+body:has(.gd-page) { background: #efece6; }
+.gd-page {
+  background:
+    radial-gradient(60% 50% at 15% 0%, rgba(255,255,255,0.45), transparent 70%),
+    radial-gradient(50% 45% at 90% 20%, rgba(255,255,255,0.3), transparent 70%);
+}
+
+/* 3. There is no other black button in the app. */
+.gd-refresh {
+  background: #fff; border: 0.5px solid #ddd8cf; color: #5c5a55;
+}
+.gd-refresh:hover:not(:disabled) { background: #fff; border-color: #8f2f2a; color: #8f2f2a; }
+
+/* 4. */
+.gd-tz { font-style: normal; font-size: 10px; font-weight: 700; color: #a09d95; }
+
+/* 5. Pale ground, dark ink — the pill system the rest of the app uses. */
+.gd-type, .gd-reward { color: inherit; }
+
+/* 6. Fixed layout with real ellipsis, so a long name cannot widen a column
+      until the table runs off its own card. */
+.gd-table { table-layout: fixed; }
+.gd-table th, .gd-table td { overflow: hidden; }
+.gd-mon-name {
+  display: block; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gd-rowlabel { overflow: hidden; }
+.gd-rowlabel > span { overflow: hidden; text-overflow: ellipsis; }
+.gd-random em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

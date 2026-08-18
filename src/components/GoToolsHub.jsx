@@ -48,8 +48,9 @@ function useClock() {
 
 /** §6.4 / §7 — a solid type badge. */
 function TypeBadge({ type }) {
+  const c = TYPE_COLOR[type] ?? TYPE_COLOR.normal;
   return (
-    <span className="gd-type" style={{ background: TYPE_COLOR[type] ?? "#A8A878" }}>
+    <span className="gd-type" style={{ background: c.bg, color: c.fg }}>
       {type}
     </span>
   );
@@ -163,12 +164,13 @@ function RaidSection({ lang, rows, status, now }) {
     <section className="gd-card">
       <header className="gd-head">
         <div>
-          <h2 className="gd-h2">3 · {t(lang, "Raid Boss Schedule", "ตารางบอสเรด")}</h2>
+          <h2 className="gd-h2">{t(lang, "Raid Boss Schedule", "ตารางบอสเรด")}</h2>
           <p className="gd-live">
             <Radio size={14} strokeWidth={2.4} className="gd-live-ico" aria-hidden />
             {t(lang, `${liveCount} live now`, `กำลังเปิด ${liveCount}`)}
             <span className="gd-dot" aria-hidden>·</span>
             <span className="gd-num">{clock}</span>
+            <em className="gd-tz">ICT</em>
           </p>
         </div>
         <button type="button" className="gd-refresh" onClick={() => window.location.reload()}>
@@ -217,13 +219,12 @@ function EggSection({ lang }) {
     t(lang, "Last week", "สัปดาห์ที่แล้ว"),
     t(lang, "This week", "สัปดาห์นี้"),
     t(lang, "Next week", "สัปดาห์หน้า"),
-    t(lang, "In 2 weeks", "อีก 2 สัปดาห์"),
   ];
   return (
     <section className="gd-card">
       <header className="gd-head">
         <div>
-          <h2 className="gd-h2">1 · {t(lang, "Egg rotation", "รอบหมุนไข่")}</h2>
+          <h2 className="gd-h2">{t(lang, "Egg rotation", "รอบหมุนไข่")}</h2>
           <p className="gd-sub">{t(lang, "What hatches from each distance", "ตัวที่ฟักได้จากไข่แต่ละระยะ")}</p>
         </div>
       </header>
@@ -272,7 +273,7 @@ function RocketSection({ lang }) {
     <section className="gd-card">
       <header className="gd-head">
         <div>
-          <h2 className="gd-h2">2 · Team GO Rocket</h2>
+          <h2 className="gd-h2">Team GO Rocket</h2>
           <p className="gd-sub">{t(lang, "Line-ups to counter before you fight", "ทีมที่ต้องเจอ เอาไว้จัดตัวเคาน์เตอร์")}</p>
         </div>
       </header>
@@ -315,7 +316,9 @@ function RocketSection({ lang }) {
                   </td>
                 ))}
                 <td>
-                  <span className="gd-reward" style={{ background: TYPE_COLOR[l.reward.type] }}>
+                  <span className="gd-reward" style={{
+                    background: (TYPE_COLOR[l.reward.type] ?? TYPE_COLOR.normal).bg,
+                    color: (TYPE_COLOR[l.reward.type] ?? TYPE_COLOR.normal).fg }}>
                     {l.reward.name}
                   </span>
                 </td>
@@ -336,7 +339,7 @@ function WeatherSection({ lang, weather, locating, requestLocation }) {
     <section className="gd-card">
       <header className="gd-head">
         <div>
-          <h2 className="gd-h2">4 · {t(lang, "Weather bonuses", "โบนัสจากสภาพอากาศ")}</h2>
+          <h2 className="gd-h2">{t(lang, "Weather bonuses", "โบนัสจากสภาพอากาศ")}</h2>
           <p className="gd-sub">{t(lang, "Types boosted in each condition", "ธาตุที่ได้โบนัสในแต่ละสภาพอากาศ")}</p>
         </div>
         {!weather && (
