@@ -14,7 +14,7 @@ import LiveEvents        from "./LiveEvents.jsx";
 import EggPool           from "./EggPool.jsx";
 import FieldResearch     from "./FieldResearch.jsx";
 import { findPokemonInList } from "../perfUtils.js";
-import { RaidTierList, RotationTable, useRaidRows } from "./RaidSchedule.jsx";
+import { RaidTierList, RotationTable, useRaidRows, nextRotation } from "./RaidSchedule.jsx";
 import {
   Swords, Globe, BarChart3, Shield, Rocket, CalendarDays, Egg, ClipboardList,
   CloudSun, Zap, ArrowRight, Sparkles, Sun, Cloud, CloudRain, CloudSnow, CloudFog, RefreshCw,
@@ -358,7 +358,13 @@ function Bento({ lang, go, data, status, nowMs, weather, boostTypes, locating, p
   // Rotations carry the headline tiers now; the rest stay as count chips.
   const rest = (tiers ?? []).filter(x => !x.big);
   const total = raidCount(data);
-  const running = liveEvents(data, 1)?.[0];
+  // The same snap the grid applies. Without it this card read the raw 22:00
+  // end while the grid read the 06:00 boundary — one Groudon, two answers
+  // eight hours apart.
+  const runningRaw = liveEvents(data, 1)?.[0];
+  const running = runningRaw
+    ? { ...runningRaw, end: nextRotation(runningRaw.end - 1) }
+    : null;
   const eggs = eggHighlights(data, 1);
 
   return (

@@ -18771,3 +18771,26 @@ a.gh-rot:focus-visible { outline: 2px solid #8f2f2a; outline-offset: 2px; border
   .rt-art { width: 40px; height: 40px; }
   .rt-art img { width: 36px; height: 36px; }
 }
+
+/* ── Preview rails must not spill ───────────────────────────────────────────
+   The sprite badges sit at -2px/-3px so they overhang their cell, and the
+   rail is nowrap — without a clip on the row itself the last sprite and its
+   badge escape the card. The +N chip is what says there is more. */
+.go-tools-hub .gh-row { overflow: hidden; }
+.go-tools-hub .gh-row .gh-pv {
+  overflow: hidden;
+  flex-wrap: nowrap;
+  min-width: 0;
+  max-width: 100%;
+}
+.go-tools-hub .gh-row .gh-pv-cell { flex: 0 0 auto; }
+/* Room for the badge to overhang inside the clip rather than against it. */
+.go-tools-hub .gh-row .gh-pv { padding-right: 4px; padding-bottom: 4px; }
+
+/* Clipping only hid the symptom — the cells were still laid out past the
+   card's edge. In a two-column row four sprites plus the chip is what fits,
+   so the rest are not rendered and the +N carries them. */
+.go-tools-hub .gh-row .gh-pv-cell:nth-of-type(n+5) { display: none; }
+@media (max-width: 1200px) {
+  .go-tools-hub .gh-row .gh-pv-cell:nth-of-type(n+4) { display: none; }
+}

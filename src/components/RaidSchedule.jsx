@@ -67,7 +67,7 @@ function fmtCoarse(ms) {
  * every week. Computed in UTC on purpose: deriving it from the viewer's own
  * midnight would put it a whole day out for anyone west of Thailand.
  */
-function nextRotation(now = Date.now()) {
+export function nextRotation(now = Date.now()) {
   const d = new Date(now);
   const target = new Date(Date.UTC(
     d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 0, 0, 0));
@@ -211,7 +211,7 @@ function Row({ r, state, now, lang, onOpen, narrow }) {
  * edges now come from nextRotation(), so one window's end is the next one's
  * start by construction rather than by coincidence.
  */
-function snapWindow(r) {
+export function snapWindow(r) {
   const end = nextRotation(r.end - 1);
   return end === r.end ? r : { ...r, end };
 }
