@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { Radio, RefreshCw, Zap, ChevronRight, Loader2 } from "lucide-react";
-import { useGoHubData } from "../goHubData.js";
+import { useGoHubData, RAID_TIERS } from "../goHubData.js";
 import { useRaidRows, nextRotation } from "./RaidSchedule.jsx";
 import {
   TYPE_COLOR, TIER_ORDER, TIER_LABEL, EGG_COLORS, EGG_ROTATION,
@@ -146,7 +146,11 @@ function RaidRow({ r, now, lang }) {
   );
 }
 
-/** §3 — raid egg colours, matching the tier they hatch. */
+/** The real raid egg for a tier label, from the table RaidGuide already uses. */
+const tierEggImg = (label) =>
+  RAID_TIERS.find(x => TIER_LABEL[x.key] === label)?.img ?? null;
+
+/** Drawn fallback, in case a hotlinked egg ever fails. */
 const TIER_EGG = {
   Mega:            ["#e88a6a", "#c9563c"],
   "5★ Legendary":  ["#4a4560", "#2b2838"],
@@ -162,6 +166,26 @@ const TIER_EGG = {
  * showing one as a table and the other as a vertical list made a reader
  * re-learn the page every time they switched. Same table, same columns.
  */
+/** The egg that leads a tier row: the Wiki art, with the gradient behind it. */
+function TierEgg({ label }) {
+  const [failed, setFailed] = useState(false);
+  const src = tierEggImg(label);
+  if (src && !failed) {
+    // Fandom refuses hotlinks by Referer; sending none is what makes these
+    // load at all — the same fix the egg-distance art needed.
+    return (
+      <img className="gd-egg-img" src={src} alt="" aria-hidden
+        referrerPolicy="no-referrer" width={24} height={29}
+        loading="lazy" decoding="async" onError={() => setFailed(true)} />
+    );
+  }
+  const [from, to] = TIER_EGG[label] ?? ["#e6e2da", "#c4beb6"];
+  return (
+    <span className="gd-egg" aria-hidden
+      style={{ width: 24, height: 29, background: `linear-gradient(160deg, ${from}, ${to})` }} />
+  );
+}
+
 function RaidSection({ lang, rows, status, now }) {
   const thisEnd = nextRotation(now);
   const WEEK = 7 * 86400000;
@@ -215,12 +239,10 @@ function RaidSection({ lang, rows, status, now }) {
         </thead>
         <tbody>
           {tiers.map(label => {
-            const [from, to] = TIER_EGG[label] ?? ["#e6e2da", "#c4beb6"];
             return (
               <tr key={label}>
                 <th scope="row" className="gd-rowlabel">
-                  <span className="gd-egg" aria-hidden
-                    style={{ width: 24, height: 29, background: `linear-gradient(160deg, ${from}, ${to})` }} />
+                  <TierEgg label={label} />
                   <span>{label}</span>
                 </th>
                 {cols.map(col => {
