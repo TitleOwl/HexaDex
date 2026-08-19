@@ -19091,3 +19091,31 @@ body:has(.gd-page) { background: #efece6; }
 .gd-rcell-cd { font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .gd-rcell-cd.live { color: #2d7a3e; }
 .gd-rcell-cd.next { color: #a8722f; }
+
+/* ── Bigger art: at 36-42px these read as coloured smudges, not Pokémon ──── */
+.gd-rcell-art { width: 62px; height: 62px; border-radius: 14px; }
+.gd-rcell-art img { width: 56px; height: 56px; }
+.gd-rcell-name { font-size: 11.5px; }
+.gd-raidtable .gd-rowhead { width: 175px; }
+
+.gd-mon-box { width: 62px; height: 62px; border-radius: 14px; }
+.gd-mon-box img { width: 56px; height: 56px; }
+.gd-mon.sm .gd-mon-box { width: 50px; height: 50px; border-radius: 12px; }
+.gd-mon.sm .gd-mon-box img { width: 45px; height: 45px; }
+.gd-mon-name { font-size: 11.5px; max-width: 88px; }
+
+.gd-leader-face { width: 58px; height: 58px; border-radius: 14px; }
+.gd-leader-face img { width: 56px; height: 56px; }
+.gd-table th.gd-leader { width: 190px; }
+.gd-leader { min-width: 170px; }
+
+/* Eggs grow with them, so a row label still balances its cells. */
+.gd-egg-img, .gd-egg { width: 34px !important; height: 40px !important; }
+.gd-raidtable .gd-egg-img, .gd-raidtable .gd-egg { width: 32px !important; height: 38px !important; }
+
+@media (max-width: 767px) {
+  .gd-mon-box, .gd-rcell-art { width: 48px; height: 48px; }
+  .gd-mon-box img, .gd-rcell-art img { width: 42px; height: 42px; }
+  .gd-mon.sm .gd-mon-box { width: 40px; height: 40px; }
+  .gd-mon.sm .gd-mon-box img { width: 36px; height: 36px; }
+}

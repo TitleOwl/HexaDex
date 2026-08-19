@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { Radio, RefreshCw, Zap, ChevronRight, Loader2 } from "lucide-react";
-import { useGoHubData, RAID_TIERS } from "../goHubData.js";
+import { useGoHubData, RAID_TIERS, raidsByTier } from "../goHubData.js";
 import { useRaidRows, nextRotation } from "./RaidSchedule.jsx";
 import {
   TYPE_COLOR, TIER_ORDER, TIER_LABEL, EGG_COLORS, EGG_ROTATION,
@@ -186,7 +186,7 @@ function TierEgg({ label }) {
   );
 }
 
-function RaidSection({ lang, rows, status, now }) {
+function RaidSection({ lang, rows, status, now, data }) {
   const thisEnd = nextRotation(now);
   const WEEK = 7 * 86400000;
   const cols = [
@@ -207,7 +207,18 @@ function RaidSection({ lang, rows, status, now }) {
     return [...byWindow.values()];
   };
 
-  const tiers = TIER_ORDER.filter(label => cols.some(c => cell(label, c).length > 0));
+  // raids.json lists every tier that is open right now but carries no dates;
+  // events.json carries the dates but only names Mega and 5-star. Neither
+  // file alone can fill this table, so the rotation supplies what it knows
+  // and the current roster fills the "this week" column for the rest.
+  const current = raidsByTier(data) ?? [];
+  const currentFor = (label) => {
+    const t = current.find(x => TIER_LABEL[x.key] === label);
+    return t ? [t.bosses.map(b => ({ ...b, key: `${label}:${b.name}`, start: 0, end: 0 }))] : [];
+  };
+
+  const tiers = TIER_ORDER.filter(label =>
+    cols.some(c => cell(label, c).length > 0) || currentFor(label).length > 0);
 
   if (status === "loading") {
     return <div className="gd-state-box"><Loader2 size={32} strokeWidth={2.2} className="gd-spin" /></div>;
@@ -246,7 +257,10 @@ function RaidSection({ lang, rows, status, now }) {
                   <span>{label}</span>
                 </th>
                 {cols.map(col => {
-                  const groups = cell(label, col);
+                  // Fall back to the live roster only in the current column —
+                  // it says what is open, not when it opened.
+                  let groups = cell(label, col);
+                  if (groups.length === 0 && col.key === "now") groups = currentFor(label);
                   return (
                     <td key={col.key}
                       className={`${col.key === "now" ? "is-now" : ""}${col.key === "last" ? " is-past" : ""}`}>
@@ -264,7 +278,7 @@ function RaidSection({ lang, rows, status, now }) {
                             {[...new Set(g.flatMap(m => m.types ?? []))].slice(0, 2)
                               .map(tp => <TypeBadge key={tp} type={tp} />)}
                           </span>
-                          {col.key === "now" && (
+                          {col.key === "now" && g[0].end > 0 && (
                             <span className="gd-rcell-cd live">
                               {t(lang, "Ends in", "จบใน")} {fmt(g[0].end - now)}
                             </span>
@@ -518,7 +532,8 @@ export default function GoToolsHub({ allList = [], lang = "en", cachedFetch }) {
         </div>
 
         <div className="gd-panel">
-          {tab === "raids"   && <RaidSection lang={lang} rows={rows} status={go.status} now={now} />}
+          {tab === "raids"   && <RaidSection lang={lang} rows={rows} status={go.status}
+                                  now={now} data={go.data} />}
           {tab === "eggs"    && <EggSection lang={lang} />}
           {tab === "rocket"  && <RocketSection lang={lang} />}
           {tab === "weather" && (
