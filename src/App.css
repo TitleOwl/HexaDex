@@ -19031,3 +19031,63 @@ body:has(.gd-page) { background: #efece6; }
 /* A shared window draws its bosses side by side rather than as repeats. */
 .gd-raid-arts { display: flex; gap: 6px; flex: 0 0 auto; }
 @media (max-width: 640px) { .gd-raid-arts .gd-raid-art:nth-child(n+3) { display: none; } }
+
+/* ── Set 2: one card, four tabs ───────────────────────────────────────────── */
+.gd-shell { padding: 0; overflow: hidden; }
+.gd-shell-head { display: flex; align-items: flex-start; gap: 16px; padding: 18px 22px; }
+.gd-shell-left { flex: 1 1 auto; min-width: 0; }
+.gd-shell-head h1 { margin: 0; font-size: 19px; font-weight: 800; color: #2a2521; }
+.gd-shell-head .gd-live { flex-wrap: wrap; }
+.gd-livedot { width: 8px; height: 8px; border-radius: 50%; background: #1f9d4f; flex: 0 0 auto;
+  animation: gd-pulse 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .gd-livedot { animation: none; } }
+
+.gd-tabs { display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid #f4f1eb; }
+.gd-tab {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 11px 16px 12px; border: 0;
+  border-radius: 11px 11px 0 0;
+  background: transparent; color: #8a857c;
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  position: relative;
+}
+.gd-tab-dot { width: 8px; height: 8px; border-radius: 3px; background: var(--tabc); flex: 0 0 auto; }
+.gd-tab:hover { color: #2a2521; }
+.gd-tab.on { background: #faf8f4; color: #2a2521; }
+/* The underline is the tab's own colour, so the section keeps its identity
+   once its heading scrolls away. */
+.gd-tab.on::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 2.5px; background: var(--tabc);
+}
+.gd-tab:focus-visible { outline: 2px solid var(--tabc); outline-offset: -3px; }
+.gd-panel { padding: 18px 22px 22px; }
+.gd-head-sub { margin-bottom: 12px; }
+
+@media (max-width: 640px) {
+  .gd-tabs { overflow-x: auto; scrollbar-width: none; }
+  .gd-tabs::-webkit-scrollbar { display: none; }
+  .gd-tab { white-space: nowrap; }
+  .gd-shell-head { flex-wrap: wrap; }
+}
+
+/* ── Set 3: raids as a rotation table ─────────────────────────────────────── */
+.gd-raidtable .gd-rowhead { width: 160px; }
+.gd-rcell { display: inline-flex; flex-direction: column; gap: 4px; max-width: 100%;
+  margin-bottom: 8px; }
+.gd-rcell:last-child { margin-bottom: 0; }
+.gd-rcell-arts { display: flex; gap: 4px; }
+.gd-rcell-art {
+  width: 42px; height: 42px; border-radius: 11px; background: #f2efe8;
+  display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+}
+.gd-rcell-art img { width: 36px; height: 36px; object-fit: contain; }
+.gd-rcell-name {
+  font-size: 10.5px; font-weight: 700; color: #2a2521;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+.gd-rcell-types { display: flex; flex-wrap: wrap; gap: 3px; }
+.gd-rcell-types .gd-type { font-size: 9px; padding: 2px 7px; }
+.gd-rcell-cd { font-size: 10px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.gd-rcell-cd.live { color: #2d7a3e; }
+.gd-rcell-cd.next { color: #a8722f; }

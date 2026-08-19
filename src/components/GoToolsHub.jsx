@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { Radio, RefreshCw, Zap, ChevronRight, Loader2 } from "lucide-react";
 import { useGoHubData } from "../goHubData.js";
-import { useRaidRows } from "./RaidSchedule.jsx";
+import { useRaidRows, nextRotation } from "./RaidSchedule.jsx";
 import {
   TYPE_COLOR, TIER_ORDER, TIER_LABEL, EGG_COLORS, EGG_ROTATION,
   ROCKET_LINEUPS, WEATHER_TABLE, CONDITION_ROW, leekIcon, EGG_IMG, LEADER_IMG,
@@ -146,85 +146,123 @@ function RaidRow({ r, now, lang }) {
   );
 }
 
+/** §3 — raid egg colours, matching the tier they hatch. */
+const TIER_EGG = {
+  Mega:            ["#e88a6a", "#c9563c"],
+  "5★ Legendary":  ["#4a4560", "#2b2838"],
+  "Shadow 5★":     ["#8f6ac4", "#5b3f8a"],
+  "3★ Rare":       ["#e8cf6a", "#c9a83c"],
+  "1★ Common":     ["#e8a0b8", "#c96a8a"],
+};
+
+/**
+ * Raids as a rotation table.
+ *
+ * Eggs and raids are the same shape of fact — a category against a week — and
+ * showing one as a table and the other as a vertical list made a reader
+ * re-learn the page every time they switched. Same table, same columns.
+ */
 function RaidSection({ lang, rows, status, now }) {
-  const [closed, setClosed] = useState([]);
-  const toggle = (k) => setClosed(p => p.includes(k) ? p.filter(x => x !== k) : [...p, k]);
+  const thisEnd = nextRotation(now);
+  const WEEK = 7 * 86400000;
+  const cols = [
+    { key: "last", from: thisEnd - 2 * WEEK, to: thisEnd - WEEK, head: t(lang, "Last week", "สัปดาห์ที่แล้ว") },
+    { key: "now",  from: thisEnd - WEEK,     to: thisEnd,        head: t(lang, "This week", "สัปดาห์นี้") },
+    { key: "next", from: thisEnd,            to: thisEnd + WEEK, head: t(lang, "Next week", "สัปดาห์หน้า") },
+  ];
 
-  const liveCount = rows.filter(r => now >= r.start && now <= r.end).length;
-  const clock = new Date(now).toLocaleTimeString("en-GB",
-    { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const cell = (label, col) => {
+    const found = rows.filter(r => TIER_LABEL[r.tier] === label && r.start < col.to && r.end > col.from);
+    // One window, one entry: the Regis share a slot and should share a cell.
+    const byWindow = new Map();
+    found.forEach(r => {
+      const k = `${r.start}:${r.end}`;
+      if (!byWindow.has(k)) byWindow.set(k, []);
+      byWindow.get(k).push(r);
+    });
+    return [...byWindow.values()];
+  };
 
-  // §5.4 — group by tier in TIER_ORDER, and inside a tier live before
-  // upcoming before ended.
-  const rank = (r) => (now >= r.start && now <= r.end) ? 0 : (now < r.start ? 1 : 2);
-  const groups = TIER_ORDER
-    .map(label => ({
-      label,
-      // Regirock, Regice and Registeel share one window; three identical
-      // rows said the same thing three times. One row, three sprites.
-      rows: (() => {
-        const mine = rows.filter(r => TIER_LABEL[r.tier] === label)
-          .sort((a, b) => rank(a) - rank(b) || a.start - b.start);
-        const byWindow = new Map();
-        mine.forEach(r => {
-          const k = `${r.start}:${r.end}`;
-          if (!byWindow.has(k)) byWindow.set(k, { ...r, group: [] });
-          byWindow.get(k).group.push(r);
-        });
-        return [...byWindow.values()];
-      })(),
-    }))
-    .filter(g => g.rows.length > 0);
+  const tiers = TIER_ORDER.filter(label => cols.some(c => cell(label, c).length > 0));
+
+  if (status === "loading") {
+    return <div className="gd-state-box"><Loader2 size={32} strokeWidth={2.2} className="gd-spin" /></div>;
+  }
+  if (status === "error") {
+    return <div className="gd-error">{t(lang, "Could not load raid data", "โหลดข้อมูลเรดไม่สำเร็จ")}</div>;
+  }
+  if (tiers.length === 0) {
+    return <div className="gd-empty">{t(lang, "No data yet", "ยังไม่มีข้อมูล")}</div>;
+  }
 
   return (
-    <section className="gd-card">
-      <header className="gd-head">
-        <div>
-          <h2 className="gd-h2">{t(lang, "Raid Boss Schedule", "ตารางบอสเรด")}</h2>
-          <p className="gd-live">
-            <Radio size={14} strokeWidth={2.4} className="gd-live-ico" aria-hidden />
-            {t(lang, `${liveCount} live now`, `กำลังเปิด ${liveCount}`)}
-            <span className="gd-dot" aria-hidden>·</span>
-            <span className="gd-num">{clock}</span>
-            <em className="gd-tz">ICT</em>
-          </p>
-        </div>
-        <button type="button" className="gd-refresh" onClick={() => window.location.reload()}>
-          <RefreshCw size={14} strokeWidth={2.4} className={status === "loading" ? "gd-spin" : undefined} />
-          {t(lang, "Refresh", "รีเฟรช")}
-        </button>
-      </header>
-
-      {status === "loading" && (
-        <div className="gd-state-box"><Loader2 size={32} strokeWidth={2.2} className="gd-spin" /></div>
-      )}
-      {status === "error" && (
-        <div className="gd-error">{t(lang, "Could not load raid data", "โหลดข้อมูลเรดไม่สำเร็จ")}</div>
-      )}
-      {status === "ready" && groups.length === 0 && (
-        <div className="gd-empty">{t(lang, "No data yet", "ยังไม่มีข้อมูล")}</div>
-      )}
-
-      {groups.map(g => {
-        const open = !closed.includes(g.label);
-        const live = g.rows.filter(r => rank(r) === 0).length;
-        return (
-          <div key={g.label} className="gd-tier">
-            <button type="button" className="gd-tier-head" aria-expanded={open}
-              onClick={() => toggle(g.label)}>
-              <span className="gd-tier-name">{g.label}</span>
-              {live > 0 && <span className="gd-chip">{live} live</span>}
-              <span className="gd-tier-n">
-                {g.rows.length} {t(lang, "bosses", "ตัว")}
-              </span>
-              <ChevronRight size={16} strokeWidth={2.4}
-                className={`gd-caret${open ? " open" : ""}`} aria-hidden />
-            </button>
-            {open && g.rows.map(r => <RaidRow key={r.key} r={r} now={now} lang={lang} />)}
-          </div>
-        );
-      })}
-    </section>
+    <div className="gd-scroll">
+      <table className="gd-table gd-raidtable">
+        <colgroup>
+          <col className="gd-rowhead" />
+          {cols.map(c => <col key={c.key} className={c.key === "now" ? "gd-nowcol" : undefined} />)}
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">{t(lang, "Tier", "ระดับ")}</th>
+            {cols.map(c => (
+              <th key={c.key} scope="col" className={c.key === "now" ? "is-now" : undefined}>
+                {c.head}
+                {c.key === "now" && <em className="gd-nowtag">{t(lang, "now", "ตอนนี้")}</em>}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tiers.map(label => {
+            const [from, to] = TIER_EGG[label] ?? ["#e6e2da", "#c4beb6"];
+            return (
+              <tr key={label}>
+                <th scope="row" className="gd-rowlabel">
+                  <span className="gd-egg" aria-hidden
+                    style={{ width: 24, height: 29, background: `linear-gradient(160deg, ${from}, ${to})` }} />
+                  <span>{label}</span>
+                </th>
+                {cols.map(col => {
+                  const groups = cell(label, col);
+                  return (
+                    <td key={col.key}
+                      className={`${col.key === "now" ? "is-now" : ""}${col.key === "last" ? " is-past" : ""}`}>
+                      {groups.length === 0 ? <span className="gd-none">—</span> : groups.map((g, i) => (
+                        <span key={i} className="gd-rcell">
+                          <span className="gd-rcell-arts">
+                            {g.map(m => (
+                              <span key={m.key} className="gd-rcell-art">
+                                {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
+                              </span>
+                            ))}
+                          </span>
+                          <span className="gd-rcell-name">{g.map(m => m.name).join(", ")}</span>
+                          <span className="gd-rcell-types">
+                            {[...new Set(g.flatMap(m => m.types ?? []))].slice(0, 2)
+                              .map(tp => <TypeBadge key={tp} type={tp} />)}
+                          </span>
+                          {col.key === "now" && (
+                            <span className="gd-rcell-cd live">
+                              {t(lang, "Ends in", "จบใน")} {fmt(g[0].end - now)}
+                            </span>
+                          )}
+                          {col.key === "next" && (
+                            <span className="gd-rcell-cd next">
+                              {t(lang, "Starts in", "เริ่มใน")} {fmt(g[0].start - now)}
+                            </span>
+                          )}
+                        </span>
+                      ))}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -237,8 +275,8 @@ function EggSection({ lang }) {
     t(lang, "Next week", "สัปดาห์หน้า"),
   ];
   return (
-    <section className="gd-card">
-      <header className="gd-head">
+    <>
+      <header className="gd-head gd-head-sub">
         <div>
           <h2 className="gd-h2">{t(lang, "Egg rotation", "รอบหมุนไข่")}</h2>
           <p className="gd-sub">{t(lang, "What hatches from each distance", "ตัวที่ฟักได้จากไข่แต่ละระยะ")}</p>
@@ -278,7 +316,7 @@ function EggSection({ lang }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </>
   );
 }
 
@@ -286,8 +324,8 @@ function EggSection({ lang }) {
 
 function RocketSection({ lang }) {
   return (
-    <section className="gd-card">
-      <header className="gd-head">
+    <>
+      <header className="gd-head gd-head-sub">
         <div>
           <h2 className="gd-h2">Team GO Rocket</h2>
           <p className="gd-sub">{t(lang, "Line-ups to counter before you fight", "ทีมที่ต้องเจอ เอาไว้จัดตัวเคาน์เตอร์")}</p>
@@ -341,7 +379,7 @@ function RocketSection({ lang }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </>
   );
 }
 
@@ -350,8 +388,8 @@ function RocketSection({ lang }) {
 function WeatherSection({ lang, weather, locating, requestLocation }) {
   const activeKey = weather ? CONDITION_ROW[weather.condition] : null;
   return (
-    <section className="gd-card">
-      <header className="gd-head">
+    <>
+      <header className="gd-head gd-head-sub">
         <div>
           <h2 className="gd-h2">{t(lang, "Weather bonuses", "โบนัสจากสภาพอากาศ")}</h2>
           <p className="gd-sub">{t(lang, "Types boosted in each condition", "ธาตุที่ได้โบนัสในแต่ละสภาพอากาศ")}</p>
@@ -391,36 +429,82 @@ function WeatherSection({ lang, weather, locating, requestLocation }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </>
   );
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
+const TABS = [
+  { key: "raids",   color: "#8f2f2a", en: "Raid bosses",    th: "บอสเรด" },
+  { key: "eggs",    color: "#b58aa8", en: "Egg rotation",   th: "รอบหมุนไข่" },
+  { key: "rocket",  color: "#4a3b35", en: "Team Rocket",    th: "ทีม Rocket" },
+  { key: "weather", color: "#6b9ef0", en: "Weather",        th: "โบนัสอากาศ" },
+];
+
 export default function GoToolsHub({ allList = [], lang = "en", cachedFetch }) {
   const now = useClock();
   const { weather, loading: locating, requestLocation } = useWeather();
   const { go, rows } = useRaidRows({ allList, cachedFetch });
-  useGoHubData();
+
+  // Four tables stacked is a long scroll for someone who came for one of
+  // them, so only the chosen one is drawn — and the choice is remembered.
+  const [tab, setTabRaw] = useState(() => {
+    try { return TABS.some(x => x.key === localStorage.getItem("pkdx_gd_tab"))
+      ? localStorage.getItem("pkdx_gd_tab") : "raids"; } catch { return "raids"; }
+  });
+  const setTab = (k) => {
+    setTabRaw(k);
+    try { localStorage.setItem("pkdx_gd_tab", k); } catch { /* private mode */ }
+  };
+
+  const liveCount = rows.filter(r => now >= r.start && now <= r.end).length;
+  const clock = new Date(now).toLocaleTimeString("en-GB",
+    { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
   return (
     <main className="gd-page">
-      <header className="gd-card gd-title">
-        <h1>Pokémon GO Dashboard</h1>
-        <p>{t(lang,
-          "Raids, eggs, Rocket line-ups and weather bonuses — everything in one page.",
-          "เรด ไข่ ทีม Rocket และโบนัสอากาศ — ครบในหน้าเดียว")}</p>
-      </header>
+      <section className="gd-card gd-shell">
+        <header className="gd-shell-head">
+          <div className="gd-shell-left">
+            <h1>Pokémon GO Dashboard</h1>
+            <p className="gd-live">
+              <span className="gd-livedot" aria-hidden />
+              {t(lang, `${liveCount} live now`, `กำลังเปิด ${liveCount} ตัว`)}
+              <span className="gd-dot" aria-hidden>·</span>
+              <span className="gd-num">{clock}</span><em className="gd-tz">ICT</em>
+              <span className="gd-dot" aria-hidden>·</span>
+              {t(lang, "rotation changes Wed 06:00", "รอบเปลี่ยนทุกพุธ 06:00")}
+            </p>
+          </div>
+          <button type="button" className="gd-refresh" onClick={() => window.location.reload()}>
+            <RefreshCw size={14} strokeWidth={2.4}
+              className={go.status === "loading" ? "gd-spin" : undefined} />
+            {t(lang, "Refresh", "รีเฟรช")}
+          </button>
+        </header>
 
-      <RaidSection lang={lang} rows={rows} status={go.status} now={now} />
+        <div className="gd-tabs" role="tablist">
+          {TABS.map(x => (
+            <button key={x.key} type="button" role="tab" aria-selected={tab === x.key}
+              className={`gd-tab${tab === x.key ? " on" : ""}`}
+              style={{ "--tabc": x.color }} onClick={() => setTab(x.key)}>
+              <span className="gd-tab-dot" aria-hidden />
+              {t(lang, x.en, x.th)}
+            </button>
+          ))}
+        </div>
 
-      {/* Full width each: Rocket has five columns and none of them is a
-          week, so it cannot shed one to fit half the page. */}
-      <EggSection lang={lang} />
-      <RocketSection lang={lang} />
-
-      <WeatherSection lang={lang} weather={weather}
-        locating={locating} requestLocation={requestLocation} />
+        <div className="gd-panel">
+          {tab === "raids"   && <RaidSection lang={lang} rows={rows} status={go.status} now={now} />}
+          {tab === "eggs"    && <EggSection lang={lang} />}
+          {tab === "rocket"  && <RocketSection lang={lang} />}
+          {tab === "weather" && (
+            <WeatherSection lang={lang} weather={weather}
+              locating={locating} requestLocation={requestLocation} />
+          )}
+        </div>
+      </section>
     </main>
   );
 }
