@@ -19119,3 +19119,40 @@ body:has(.gd-page) { background: #efece6; }
   .gd-mon.sm .gd-mon-box { width: 40px; height: 40px; }
   .gd-mon.sm .gd-mon-box img { width: 36px; height: 36px; }
 }
+
+/* Bigger again — the last step still read as thumbnails rather than art. */
+.gd-rcell-art { width: 84px; height: 84px; border-radius: 18px; }
+.gd-rcell-art img { width: 78px; height: 78px; }
+.gd-rcell-name { font-size: 12px; }
+.gd-raidtable .gd-rowhead { width: 200px; }
+
+.gd-mon-box { width: 84px; height: 84px; border-radius: 18px; }
+.gd-mon-box img { width: 78px; height: 78px; }
+.gd-mon.sm .gd-mon-box { width: 64px; height: 64px; border-radius: 15px; }
+.gd-mon.sm .gd-mon-box img { width: 58px; height: 58px; }
+.gd-mon-name { font-size: 12px; max-width: 104px; }
+
+.gd-leader-face { width: 76px; height: 76px; border-radius: 18px; }
+.gd-leader-face img { width: 74px; height: 74px; }
+.gd-table th.gd-leader { width: 210px; }
+.gd-leader { min-width: 190px; }
+
+/* The eggs lead the row, so they grow with it rather than shrinking beside it. */
+.gd-egg-img, .gd-egg { width: 50px !important; height: 60px !important; }
+.gd-raidtable .gd-egg-img, .gd-raidtable .gd-egg { width: 46px !important; height: 55px !important; }
+
+@media (max-width: 767px) {
+  .gd-mon-box, .gd-rcell-art { width: 60px; height: 60px; }
+  .gd-mon-box img, .gd-rcell-art img { width: 54px; height: 54px; }
+  .gd-mon.sm .gd-mon-box { width: 48px; height: 48px; }
+  .gd-mon.sm .gd-mon-box img { width: 44px; height: 44px; }
+  .gd-leader-face { width: 56px; height: 56px; }
+  .gd-leader-face img { width: 54px; height: 54px; }
+  .gd-egg-img, .gd-egg { width: 40px !important; height: 48px !important; }
+}
+
+/* Three 84px sprites do not fit one line of a shared cell, so the row wraps
+   instead of pushing past its own column. */
+.gd-rcell-arts, .gd-random-row { flex-wrap: wrap; }
+.gd-rcell, .gd-random { max-width: 100%; }
+.gd-mon { max-width: 100%; }
