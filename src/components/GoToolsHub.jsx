@@ -384,7 +384,9 @@ function RaidSection({ lang, rows, status, now, data }) {
 
 // ─── §3 · Egg rotation ───────────────────────────────────────────────────────
 
-function EggSection({ lang }) {
+function EggSection({ lang, now }) {
+  const thisEnd = nextRotation(now);
+  const WEEK = 7 * 86400000;
   const cols = [
     t(lang, "Last week", "สัปดาห์ที่แล้ว"),
     t(lang, "This week", "สัปดาห์นี้"),
@@ -423,8 +425,60 @@ function EggSection({ lang }) {
                 </th>
                 {row.weeks.map((week, i) => (
                   <td key={i} className={`${i === 1 ? "is-now" : ""}${i === 0 ? " is-past" : ""}`}>
-                    {week.length === 0 ? <span className="gd-none">—</span>
-                      : week.map(m => <Mon key={m.dex + m.name} dex={m.dex} name={m.name} />)}
+                    {week.length === 0 ? (
+                      <span className="gd-none">
+                        {row.note
+                          ? t(lang, "Beat a Rocket leader to get one",
+                               "ต้องชนะหัวหน้า Rocket ก่อนถึงจะได้")
+                          : i === 0 ? t(lang, "No history", "ไม่มีข้อมูลย้อนหลัง")
+                          : i === 2 ? t(lang, "Not announced", "ยังไม่ประกาศ")
+                          : t(lang, "No data", "ไม่มีข้อมูล")}
+                      </span>
+                    ) : (
+                      // Same cell as the raid table: one line of sprites sized
+                      // to the count, text pushed to the floor so names align
+                      // across the row.
+                      <span className="gd-rcell" data-n={Math.min(week.length, 3)}>
+                        <span className="gd-rcell-arts">
+                          {week.slice(0, 3).map(m => (
+                            <span key={m.dex + m.name} className="gd-rcell-art">
+                              <img src={leekIcon(m.dex)} alt="" loading="lazy" decoding="async" />
+                            </span>
+                          ))}
+                          {week.length > 3 && <span className="gd-rcell-more">+{week.length - 3}</span>}
+                        </span>
+                        <span className="gd-rcell-meta">
+                          {week.length > 1 ? (
+                            <>
+                              <span className="gd-rcell-name">
+                                {t(lang, `${week.length} Pokémon`, `${week.length} ตัว`)}
+                              </span>
+                              <span className="gd-rcell-list">
+                                {week.map(m => m.name).join(" · ")}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="gd-rcell-name gd-rcell-name-1">{week[0].name}</span>
+                          )}
+                          {/* Eggs turn over on the same boundary as raids, so
+                              the countdown belongs here too rather than a tab
+                              away. */}
+                          {i === 1 && (
+                            <span className="gd-rcell-cd live">
+                              {t(lang, "Ends in", "จบใน")} {fmt(thisEnd - now)}
+                            </span>
+                          )}
+                          {i === 2 && (
+                            <span className="gd-rcell-cd next">
+                              {t(lang, "Starts in", "เริ่มใน")} {fmt(thisEnd - now)}
+                            </span>
+                          )}
+                          {i === 0 && (
+                            <span className="gd-rcell-cd done">{t(lang, "Ended", "จบไปแล้ว")}</span>
+                          )}
+                        </span>
+                      </span>
+                    )}
                   </td>
                 ))}
               </tr>
@@ -614,7 +668,7 @@ export default function GoToolsHub({ allList = [], lang = "en", cachedFetch }) {
         <div className="gd-panel">
           {tab === "raids"   && <RaidSection lang={lang} rows={rows} status={go.status}
                                   now={now} data={go.data} />}
-          {tab === "eggs"    && <EggSection lang={lang} />}
+          {tab === "eggs"    && <EggSection lang={lang} now={now} />}
           {tab === "rocket"  && <RocketSection lang={lang} />}
           {tab === "weather" && (
             <WeatherSection lang={lang} weather={weather}

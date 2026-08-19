@@ -86,6 +86,9 @@ export const EGG_ROTATION = [
     [{ dex: 782, name: "Jangmo-o" }, { dex: 885, name: "Dreepy" }],
     [{ dex: 610, name: "Axew" }, { dex: 704, name: "Goomy" }],
   ] },
+  // Strange Eggs only come from beating a Rocket leader, so the row stands
+  // even with an empty pool — leaving it out would read as "no such egg".
+  { km: 12, note: true, weeks: [[], [], []] },
 ];
 
 /**

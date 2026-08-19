@@ -19225,3 +19225,26 @@ body:has(.gd-page) { background: #efece6; }
   transition: opacity 0.16s ease;
 }
 .scroll-top-btn:hover, .back-to-top:hover, .go-top-btn:hover { opacity: 1; }
+
+/* Long species names lose too much to a single truncated line, so the lead
+   name gets two and only then an ellipsis. */
+.gd-rcell-name-1 {
+  font-size: 12.5px; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; white-space: normal;
+}
+/* The egg column needs room now that a cell carries a countdown. */
+.gd-table .gd-rowhead { width: 190px; }
+
+/* A cell is inline-flex, so margin-top:auto floors the text inside its own
+   box rather than inside the table cell — which only lines rows up while no
+   cell outgrows the minimum. The tallest cell here is a two-line name over a
+   64px sprite, so the floor moves down to clear it. */
+.gd-rcell { min-height: 178px; }
+.gd-shadowlist .gd-rcell { min-height: 0; }
+
+/* margin-top:auto lines up the bottoms, but a one-line cell has a shorter
+   text block than a two-line one, so the names still sat at different
+   heights. Fixing the block's height lines up the tops as well. */
+.gd-rcell-meta { min-height: 64px; justify-content: flex-end; }
+.gd-shadowlist .gd-rcell-meta { min-height: 0; }
