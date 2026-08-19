@@ -278,6 +278,7 @@ export function raidsByTier(data) {
       id: matchPokemonId(b),
       mega: isMega(b),
       form: formSuffix(b),
+      types: b.types?.map(x => x.name) ?? [],
     });
   });
   return RAID_TIERS

@@ -187,6 +187,7 @@ function TierEgg({ label }) {
 }
 
 function RaidSection({ lang, rows, status, now, data }) {
+  const [openShadow, setOpenShadow] = useState(null);
   const thisEnd = nextRotation(now);
   const WEEK = 7 * 86400000;
   const cols = [
@@ -214,11 +215,17 @@ function RaidSection({ lang, rows, status, now, data }) {
   const current = raidsByTier(data) ?? [];
   const currentFor = (label) => {
     const t = current.find(x => TIER_LABEL[x.key] === label);
-    return t ? [t.bosses.map(b => ({ ...b, key: `${label}:${b.name}`, start: 0, end: 0 }))] : [];
+    // Every tier turns over on the same boundary, so a boss known only from
+    // the current roster still has a window: this one.
+    return t ? [t.bosses.map(b => ({
+      ...b, key: `${label}:${b.name}`, start: thisEnd - WEEK, end: thisEnd,
+    }))] : [];
   };
 
-  const tiers = TIER_ORDER.filter(label =>
-    cols.some(c => cell(label, c).length > 0) || currentFor(label).length > 0);
+  const has = (label) => cols.some(c => cell(label, c).length > 0) || currentFor(label).length > 0;
+  const isShadow = (label) => /shadow/i.test(label);
+  const tiers = TIER_ORDER.filter(l => !isShadow(l) && has(l));
+  const shadowTiers = TIER_ORDER.filter(l => isShadow(l) && has(l));
 
   if (status === "loading") {
     return <div className="gd-state-box"><Loader2 size={32} strokeWidth={2.2} className="gd-spin" /></div>;
@@ -264,21 +271,41 @@ function RaidSection({ lang, rows, status, now, data }) {
                   return (
                     <td key={col.key}
                       className={`${col.key === "now" ? "is-now" : ""}${col.key === "last" ? " is-past" : ""}`}>
-                      {groups.length === 0 ? <span className="gd-none">—</span> : groups.map((g, i) => (
-                        <span key={i} className="gd-rcell">
+                      {groups.length === 0 ? (
+                        <span className="gd-none">
+                          {col.key === "last" ? t(lang, "No history", "ไม่มีข้อมูลย้อนหลัง")
+                            : col.key === "next" ? t(lang, "Not announced", "ยังไม่ประกาศ")
+                            : "—"}
+                        </span>
+                      ) : groups.map((g, i) => (
+                        <span key={i} className="gd-rcell" data-n={Math.min(g.length, 3)}>
                           <span className="gd-rcell-arts">
-                            {g.map(m => (
+                            {g.slice(0, 3).map(m => (
                               <span key={m.key} className="gd-rcell-art">
                                 {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
                               </span>
                             ))}
+                            {g.length > 3 && <span className="gd-rcell-more">+{g.length - 3}</span>}
                           </span>
-                          <span className="gd-rcell-name">{g.map(m => m.name).join(", ")}</span>
+                          <span className="gd-rcell-meta">
+                          {/* A count leads; the names follow small, because
+                              truncating the count loses more than truncating
+                              a list of names. */}
+                          {g.length > 1 ? (
+                            <>
+                              <span className="gd-rcell-name">
+                                {t(lang, `${g.length} bosses`, `${g.length} ตัว`)}
+                              </span>
+                              <span className="gd-rcell-list">{g.map(m => m.name).join(" · ")}</span>
+                            </>
+                          ) : (
+                            <span className="gd-rcell-name">{g[0].name}</span>
+                          )}
                           <span className="gd-rcell-types">
                             {[...new Set(g.flatMap(m => m.types ?? []))].slice(0, 2)
                               .map(tp => <TypeBadge key={tp} type={tp} />)}
                           </span>
-                          {col.key === "now" && g[0].end > 0 && (
+                          {col.key === "now" && (
                             <span className="gd-rcell-cd live">
                               {t(lang, "Ends in", "จบใน")} {fmt(g[0].end - now)}
                             </span>
@@ -288,6 +315,10 @@ function RaidSection({ lang, rows, status, now, data }) {
                               {t(lang, "Starts in", "เริ่มใน")} {fmt(g[0].start - now)}
                             </span>
                           )}
+                          {col.key === "last" && (
+                            <span className="gd-rcell-cd done">{t(lang, "Ended", "จบไปแล้ว")}</span>
+                          )}
+                          </span>
                         </span>
                       ))}
                     </td>
@@ -298,6 +329,55 @@ function RaidSection({ lang, rows, status, now, data }) {
           })}
         </tbody>
       </table>
+
+      {shadowTiers.length > 0 && (
+        <div className="gd-shadowbar">
+          <div className="gd-shadowbar-h">Shadow Raids</div>
+          <div className="gd-shadowbar-row">
+            {shadowTiers.map(label => {
+              const g = currentFor(label)[0] ?? [];
+              return (
+                <button key={label} type="button" className="gd-schip"
+                  onClick={() => setOpenShadow(openShadow === label ? null : label)}
+                  aria-expanded={openShadow === label}>
+                  <TierEgg label={label} />
+                  <span className="gd-schip-name">{label}</span>
+                  <span className="gd-schip-arts">
+                    {g.slice(0, 3).map(m => (
+                      <span key={m.key} className="gd-schip-art">
+                        {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
+                      </span>
+                    ))}
+                  </span>
+                  <span className="gd-schip-n">{t(lang, `${g.length}`, `${g.length} ตัว`)}</span>
+                </button>
+              );
+            })}
+          </div>
+          {openShadow && (
+            <div className="gd-shadowlist">
+              {(currentFor(openShadow)[0] ?? []).map(m => (
+                <span key={m.key} className="gd-rcell" data-n="1">
+                  <span className="gd-rcell-arts">
+                    <span className="gd-rcell-art">
+                      {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
+                    </span>
+                  </span>
+                  <span className="gd-rcell-meta">
+                    <span className="gd-rcell-name">{m.name}</span>
+                    <span className="gd-rcell-types">
+                      {(m.types ?? []).slice(0, 2).map(tp => <TypeBadge key={tp} type={tp} />)}
+                    </span>
+                    <span className="gd-rcell-cd live">
+                      {t(lang, "Ends in", "จบใน")} {fmt(thisEnd - now)}
+                    </span>
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
