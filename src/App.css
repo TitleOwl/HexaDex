@@ -19360,3 +19360,16 @@ body:has(.gd-page) { background: #efece6; }
   .eg-card-art { width: 46px; height: 46px; }
   .eg-card-art img { width: 40px; height: 40px; }
 }
+
+/* The real egg art in the row label, with the distance badge kept on top. */
+.eg-shell-img { background: none !important; width: 42px; height: 50px;
+  align-items: flex-end; justify-content: center; padding-bottom: 0; }
+.eg-shell-img::before { display: none; }
+.eg-shell-img img { position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; }
+.eg-shell-img b {
+  position: relative; z-index: 1;
+  padding: 0 5px; border-radius: 999px;
+  background: rgba(20,16,12,0.62);
+  font-size: 9px; line-height: 1.5;
+}

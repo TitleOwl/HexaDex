@@ -405,6 +405,20 @@ const EGG_SOURCE = {
 };
 
 function Shell({ km }) {
+  const [failed, setFailed] = useState(false);
+  const src = EGG_IMG[km];
+  if (src && !failed) {
+    // The real art, with the distance still stamped on it — the 2 km and
+    // 10 km shells are close enough in the game's own palette that the
+    // number is what tells them apart at a glance.
+    return (
+      <span className="eg-shell eg-shell-img" aria-hidden>
+        <img src={src} alt="" referrerPolicy="no-referrer"
+          loading="lazy" decoding="async" onError={() => setFailed(true)} />
+        <b>{km}</b>
+      </span>
+    );
+  }
   const [from, to] = EGG_SHELL[km] ?? ["#e6e2da", "#c4beb6"];
   return (
     <span className="eg-shell" aria-hidden
