@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { Radio, RefreshCw, Zap, ChevronRight, Loader2 } from "lucide-react";
-import { useGoHubData, RAID_TIERS, raidsByTier } from "../goHubData.js";
+import { useGoHubData, RAID_TIERS, raidsByTier, eggPool } from "../goHubData.js";
 import { useRaidRows, nextRotation } from "./RaidSchedule.jsx";
 import {
   TYPE_COLOR, TIER_ORDER, TIER_LABEL, EGG_COLORS, EGG_ROTATION,
@@ -384,105 +384,113 @@ function RaidSection({ lang, rows, status, now, data }) {
 
 // ─── §3 · Egg rotation ───────────────────────────────────────────────────────
 
-function EggSection({ lang, now }) {
+function EggSection({ lang, now, data, status }) {
   const thisEnd = nextRotation(now);
-  const WEEK = 7 * 86400000;
+  const pool = eggPool(data);
+
   const cols = [
-    t(lang, "Last week", "สัปดาห์ที่แล้ว"),
-    t(lang, "This week", "สัปดาห์นี้"),
-    t(lang, "Next week", "สัปดาห์หน้า"),
+    { key: "last", head: t(lang, "Last week", "สัปดาห์ที่แล้ว") },
+    { key: "now",  head: t(lang, "This week", "สัปดาห์นี้") },
+    { key: "next", head: t(lang, "Next week", "สัปดาห์หน้า") },
   ];
+
+  if (status === "loading") {
+    return <div className="gd-state-box"><Loader2 size={32} strokeWidth={2.2} className="gd-spin" /></div>;
+  }
+  if (!pool) {
+    return <div className="gd-error">{t(lang, "Could not load the egg pool", "โหลดพูลไข่ไม่สำเร็จ")}</div>;
+  }
+
+  // 12 km never appears in the pool unless a leader has been beaten, so the
+  // row is added by hand with the reason rather than left out.
+  const rows = pool.some(r => r.km === "12 km") ? pool : [...pool, { km: "12 km", mons: [] }];
+
   return (
     <>
       <header className="gd-head gd-head-sub">
         <div>
           <h2 className="gd-h2">{t(lang, "Egg rotation", "รอบหมุนไข่")}</h2>
-          <p className="gd-sub">{t(lang, "What hatches from each distance", "ตัวที่ฟักได้จากไข่แต่ละระยะ")}</p>
+          <p className="gd-sub">
+            {t(lang, "Live hatch pool from LeekDuck", "พูลไข่สดจาก LeekDuck")}
+          </p>
         </div>
       </header>
       <div className="gd-scroll">
-        <table className="gd-table">
+        <table className="gd-table gd-eggtable">
           <colgroup>
             <col className="gd-rowhead" />
-            {cols.map((c, i) => <col key={c} className={i === 1 ? "gd-nowcol" : undefined} />)}
+            {cols.map(c => <col key={c.key} className={c.key === "now" ? "gd-nowcol" : undefined} />)}
           </colgroup>
           <thead>
             <tr>
               <th scope="col">{t(lang, "Distance", "ระยะทาง")}</th>
-              {cols.map((c, i) => (
-                <th key={c} scope="col" className={i === 1 ? "is-now" : undefined}>
-                  {c}{i === 1 && <em className="gd-nowtag">{t(lang, "now", "ตอนนี้")}</em>}
+              {cols.map(c => (
+                <th key={c.key} scope="col" className={c.key === "now" ? "is-now" : undefined}>
+                  {c.head}
+                  {c.key === "now" && <em className="gd-nowtag">{t(lang, "now", "ตอนนี้")}</em>}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {EGG_ROTATION.map(row => (
-              <tr key={row.km}>
-                <th scope="row" className="gd-rowlabel">
-                  <EggIcon km={row.km} />
-                  <span>{row.km} km</span>
-                </th>
-                {row.weeks.map((week, i) => (
-                  <td key={i} className={`${i === 1 ? "is-now" : ""}${i === 0 ? " is-past" : ""}`}>
-                    {week.length === 0 ? (
-                      <span className="gd-none">
-                        {row.note
-                          ? t(lang, "Beat a Rocket leader to get one",
-                               "ต้องชนะหัวหน้า Rocket ก่อนถึงจะได้")
-                          : i === 0 ? t(lang, "No history", "ไม่มีข้อมูลย้อนหลัง")
-                          : i === 2 ? t(lang, "Not announced", "ยังไม่ประกาศ")
-                          : t(lang, "No data", "ไม่มีข้อมูล")}
-                      </span>
-                    ) : (
-                      // Same cell as the raid table: one line of sprites sized
-                      // to the count, text pushed to the floor so names align
-                      // across the row.
-                      <span className="gd-rcell" data-n={Math.min(week.length, 3)}>
-                        <span className="gd-rcell-arts">
-                          {week.slice(0, 3).map(m => (
-                            <span key={m.dex + m.name} className="gd-rcell-art">
-                              <img src={leekIcon(m.dex)} alt="" loading="lazy" decoding="async" />
+            {rows.map(row => {
+              const km = parseInt(row.km, 10);
+              return (
+                <tr key={row.km}>
+                  <th scope="row" className="gd-rowlabel">
+                    <EggIcon km={km} />
+                    <span>{row.km}</span>
+                  </th>
+                  {cols.map(col => {
+                    const mons = col.key === "now" ? row.mons : [];
+                    if (mons.length === 0) {
+                      return (
+                        <td key={col.key} className={col.key === "last" ? "is-past" : undefined}>
+                          <span className="gd-none">
+                            {row.km === "12 km" && col.key === "now"
+                              ? t(lang, "Beat a Rocket leader to get one",
+                                   "ต้องชนะหัวหน้า Rocket ก่อนถึงจะได้")
+                              : col.key === "last"
+                              ? t(lang, "No history", "ไม่มีข้อมูลย้อนหลัง")
+                              : t(lang, "Not announced", "ยังไม่ประกาศ")}
+                          </span>
+                        </td>
+                      );
+                    }
+                    return (
+                      <td key={col.key} className="is-now">
+                        <span className="gd-rcell" data-n={Math.min(mons.length, 3)}>
+                          <span className="gd-rcell-arts">
+                            {mons.slice(0, 3).map(m => (
+                              <span key={m.name} className="gd-rcell-art" title={m.name}>
+                                {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
+                                {/* The reason people pick a distance. */}
+                                {m.shiny && (
+                                  <span className="gd-eshiny"
+                                    aria-label={t(lang, "Shiny possible", "มีโอกาสได้ shiny")}>✦</span>
+                                )}
+                              </span>
+                            ))}
+                            {mons.length > 3 && <span className="gd-rcell-more">+{mons.length - 3}</span>}
+                          </span>
+                          <span className="gd-rcell-meta">
+                            <span className="gd-rcell-name">
+                              {t(lang, `${mons.length} Pokémon`, `${mons.length} ตัว`)}
                             </span>
-                          ))}
-                          {week.length > 3 && <span className="gd-rcell-more">+{week.length - 3}</span>}
-                        </span>
-                        <span className="gd-rcell-meta">
-                          {week.length > 1 ? (
-                            <>
-                              <span className="gd-rcell-name">
-                                {t(lang, `${week.length} Pokémon`, `${week.length} ตัว`)}
-                              </span>
-                              <span className="gd-rcell-list">
-                                {week.map(m => m.name).join(" · ")}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="gd-rcell-name gd-rcell-name-1">{week[0].name}</span>
-                          )}
-                          {/* Eggs turn over on the same boundary as raids, so
-                              the countdown belongs here too rather than a tab
-                              away. */}
-                          {i === 1 && (
+                            <span className="gd-rcell-list">
+                              {mons.map(m => m.name).join(" · ")}
+                            </span>
                             <span className="gd-rcell-cd live">
                               {t(lang, "Ends in", "จบใน")} {fmt(thisEnd - now)}
                             </span>
-                          )}
-                          {i === 2 && (
-                            <span className="gd-rcell-cd next">
-                              {t(lang, "Starts in", "เริ่มใน")} {fmt(thisEnd - now)}
-                            </span>
-                          )}
-                          {i === 0 && (
-                            <span className="gd-rcell-cd done">{t(lang, "Ended", "จบไปแล้ว")}</span>
-                          )}
+                          </span>
                         </span>
-                      </span>
-                    )}
-                  </td>
-                ))}
-              </tr>
-            ))}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -668,7 +676,7 @@ export default function GoToolsHub({ allList = [], lang = "en", cachedFetch }) {
         <div className="gd-panel">
           {tab === "raids"   && <RaidSection lang={lang} rows={rows} status={go.status}
                                   now={now} data={go.data} />}
-          {tab === "eggs"    && <EggSection lang={lang} now={now} />}
+          {tab === "eggs"    && <EggSection lang={lang} now={now} data={go.data} status={go.status} />}
           {tab === "rocket"  && <RocketSection lang={lang} />}
           {tab === "weather" && (
             <WeatherSection lang={lang} weather={weather}

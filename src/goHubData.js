@@ -472,6 +472,36 @@ export function eggHighlights(data, perGroup = 1) {
     }));
 }
 
+/**
+ * The live hatch pool, grouped by distance.
+ *
+ * eggs.json is the current pool only — it has no history and no forecast —
+ * so this fills one column honestly rather than three by guesswork. It does
+ * carry canBeShiny and a rarity tier, which typed-out static data could not.
+ */
+export function eggPool(data) {
+  const list = data?.eggs;
+  if (!Array.isArray(list)) return null;
+  const order = ["1 km", "2 km", "5 km", "7 km", "10 km", "12 km"];
+  const groups = new Map();
+  list.forEach(e => {
+    const km = e.eggType ?? "";
+    if (!groups.has(km)) groups.set(km, []);
+    groups.get(km).push({
+      name: e.name,
+      id: matchPokemonId(e),
+      shiny: !!e.canBeShiny,
+      rarity: e.rarity ?? null,
+      regional: !!e.isRegional,
+      adventure: !!e.isAdventureSync,
+    });
+  });
+  return order
+    .filter(km => groups.has(km))
+    // Rarest first: a 1-in-many entry is the reason to pick a distance.
+    .map(km => ({ km, mons: groups.get(km).sort((a, b) => (b.rarity ?? 0) - (a.rarity ?? 0)) }));
+}
+
 /** Research rewards, rarest first — shiny-capable ones lead. */
 export function researchRewards(data, limit = 4) {
   const list = data?.research;

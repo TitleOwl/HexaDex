@@ -49,6 +49,7 @@ export const TIER_LABEL = {
  */
 const WIKIA = "https://static.wikia.nocookie.net/pokemongo/images";
 export const EGG_IMG = {
+  1:  "https://archives.bulbagarden.net/media/upload/c/c7/GO_Daily_Adventure_Egg.png",
   2:  `${WIKIA}/f/f2/Egg_2k.png/revision/latest?cb=20211208153113`,
   5:  `${WIKIA}/3/33/Egg_5k.png/revision/latest?cb=20211208153322`,
   7:  `${WIKIA}/f/f5/Egg_7k.png/revision/latest?cb=20211208153329`,

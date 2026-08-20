@@ -19248,3 +19248,8 @@ body:has(.gd-page) { background: #efece6; }
    heights. Fixing the block's height lines up the tops as well. */
 .gd-rcell-meta { min-height: 64px; justify-content: flex-end; }
 .gd-shadowlist .gd-rcell-meta { min-height: 0; }
+
+/* The shiny mark rides the sprite, as it does in the raid rows. */
+.gd-rcell-art { position: relative; }
+.gd-eshiny { position: absolute; top: -2px; right: -2px; color: #c9a227;
+  font-size: 13px; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
