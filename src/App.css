@@ -19253,3 +19253,110 @@ body:has(.gd-page) { background: #efece6; }
 .gd-rcell-art { position: relative; }
 .gd-eshiny { position: absolute; top: -2px; right: -2px; color: #c9a227;
   font-size: 13px; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Egg rotation
+   ═══════════════════════════════════════════════════════════════════════════
+   eggs.json has no dates, so Last week and Next week could only ever say
+   "no data" — two thirds of the table spent on nothing while the one real
+   column was too narrow to show a name. Those columns are gone and the width
+   went to the problem that mattered: seeing the Pokémon. */
+.eg-cardhead { display: flex; align-items: flex-start; gap: 16px;
+  padding-bottom: 14px; border-bottom: 0.5px solid #f0ede6; }
+.eg-cd { margin-left: auto; text-align: right; display: flex; flex-direction: column; gap: 1px; }
+.eg-cd span { font-size: 11px; color: #a09d95; font-weight: 600; }
+.eg-cd b { font-size: 15px; font-weight: 800; color: #2d7a3e;
+  font-variant-numeric: tabular-nums; }
+
+.eg-row + .eg-row { border-top: 0.5px solid #f0ede6; }
+.eg-head {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 22px; margin: 0 -22px; border: 0; background: none;
+  font: inherit; cursor: pointer; text-align: left;
+}
+.eg-head:hover { background: #faf8f4; }
+.eg-head:focus-visible { outline: 2px solid #8f2f2a; outline-offset: -3px; }
+
+.eg-shell {
+  position: relative; flex: 0 0 auto;
+  width: 38px; height: 46px;
+  border-radius: 50% 50% 46% 46% / 60% 60% 40% 40%;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 5px;
+}
+.eg-shell::before {
+  content: ""; position: absolute; inset: 13% 24% 55% 18%; border-radius: 50%;
+  background: linear-gradient(120deg, rgba(255,255,255,0.8), rgba(255,255,255,0) 70%);
+  transform: rotate(-18deg);
+}
+.eg-shell b { position: relative; font-size: 9.5px; font-weight: 800; color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+
+.eg-title { width: 160px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 2px; }
+.eg-km { font-size: 15px; font-weight: 800; color: #2a2521; }
+.eg-src { font-size: 11px; color: #a09d95; }
+
+/* One line, always: the peek is a preview, not a list. */
+.eg-peek { display: flex; gap: 6px; flex-wrap: nowrap; margin-left: auto; overflow: hidden; }
+.eg-peek-art {
+  position: relative; flex: 0 0 auto;
+  width: 46px; height: 46px; border-radius: 11px; background: #f4f1ec;
+  display: flex; align-items: center; justify-content: center;
+}
+.eg-peek-art img { width: 40px; height: 40px; object-fit: contain; }
+.eg-peek-more {
+  flex: 0 0 auto; width: 46px; height: 46px; border-radius: 11px;
+  background: #f0ede6; color: #8a857c; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.eg-count { width: 96px; flex: 0 0 auto; text-align: right;
+  font-size: 12.5px; font-weight: 800; color: #2a2521; }
+.eg-caret { color: #c9c4bb; flex: 0 0 auto; transition: transform 0.2s ease; }
+.eg-caret.open { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .eg-caret { transition: none; } }
+
+.eg-star { position: absolute; top: -3px; right: -3px; color: #c9a227;
+  font-size: 13px; line-height: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+.eg-star.sm { font-size: 10px; top: -2px; right: -2px; }
+
+.eg-panel { background: #faf8f4; padding: 2px 22px 20px; margin: 0 -22px;
+  animation: eg-open 200ms ease both; }
+@keyframes eg-open { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .eg-panel { animation: none; } }
+.eg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px; padding-top: 12px; }
+.eg-card {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 10px 8px; border-radius: 12px; background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05); text-decoration: none; color: inherit;
+}
+.eg-card:hover .eg-card-name { color: #8f2f2a; }
+.eg-card-art { position: relative; width: 56px; height: 56px; border-radius: 12px;
+  background: #f4f1ec; display: flex; align-items: center; justify-content: center; }
+.eg-card-art img { width: 48px; height: 48px; object-fit: contain; }
+/* Two lines before an ellipsis: "Galarian Farfetch'd" is unguessable when
+   it is cut on one. */
+.eg-card-name {
+  font-size: 11px; font-weight: 700; color: #2a2521; text-align: center; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; max-width: 100%;
+}
+.eg-card-cp { font-size: 9.5px; color: #a09d95; font-variant-numeric: tabular-nums; }
+.eg-more { margin-top: 12px; border: 0; background: none; padding: 0;
+  color: #8f2f2a; font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.eg-more:hover { text-decoration: underline; }
+
+.eg-skel { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; }
+.eg-skel-row { height: 74px; border-radius: 12px; background: #f2efe9;
+  animation: gd-pulse 1.4s ease-in-out infinite; }
+
+@media (max-width: 900px) { .eg-peek-art:nth-of-type(n+3) { display: none; } }
+@media (max-width: 767px) {
+  .eg-title { width: auto; }
+  .eg-src { display: none; }
+  .eg-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+}
+@media (max-width: 479px) {
+  .eg-peek { display: none; }
+  .eg-card-art { width: 46px; height: 46px; }
+  .eg-card-art img { width: 40px; height: 40px; }
+}

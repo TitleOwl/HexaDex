@@ -384,115 +384,165 @@ function RaidSection({ lang, rows, status, now, data }) {
 
 // ─── §3 · Egg rotation ───────────────────────────────────────────────────────
 
+/** §5.1 — one shell per distance, numbered, so the row reads without colour. */
+const EGG_SHELL = {
+  1:  ["#a8c8e8", "#5c7fa8"],
+  2:  ["#a8d98a", "#5c9440"],
+  5:  ["#f0d98a", "#c9a83c"],
+  7:  ["#f0a8c4", "#c96a8a"],
+  10: ["#c4a8e0", "#7a4d9e"],
+  12: ["#e08a8a", "#a83c3c"],
+};
+
+/** §5.2 — where each egg actually comes from, for anyone who does not know. */
+const EGG_SOURCE = {
+  1:  { en: "Weekly Adventure Sync", th: "Adventure Sync รายสัปดาห์" },
+  2:  { en: "PokéStops · Gyms",      th: "PokéStop · Gym" },
+  5:  { en: "PokéStops · Gyms",      th: "PokéStop · Gym" },
+  7:  { en: "Gifts from friends",    th: "ของขวัญจากเพื่อน" },
+  10: { en: "PokéStops · Gyms",      th: "PokéStop · Gym" },
+  12: { en: "Team GO Rocket leaders", th: "หัวหน้า Team GO Rocket" },
+};
+
+function Shell({ km }) {
+  const [from, to] = EGG_SHELL[km] ?? ["#e6e2da", "#c4beb6"];
+  return (
+    <span className="eg-shell" aria-hidden
+      style={{ background: `linear-gradient(160deg, ${from}, ${to})` }}>
+      <b>{km}</b>
+    </span>
+  );
+}
+
+function EggCard({ m, lang }) {
+  return (
+    <a className="eg-card" href={m.id ? `/pokedex?q=${encodeURIComponent(m.name)}` : "#"}
+      onClick={(e) => { if (!m.id) e.preventDefault(); }}>
+      <span className="eg-card-art">
+        {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
+        {m.shiny && (
+          <span className="eg-star" aria-label={t(lang, "Shiny possible", "มีโอกาสได้ shiny")}>✦</span>
+        )}
+      </span>
+      <span className="eg-card-name">{m.name}</span>
+      {m.cpMin != null && (
+        <span className="eg-card-cp num">CP {m.cpMin}–{m.cpMax}</span>
+      )}
+    </a>
+  );
+}
+
+const CAP = 12;
+
+function EggRow({ row, lang, open, onToggle }) {
+  const [all, setAll] = useState(false);
+  const km = parseInt(row.km, 10);
+  const src = EGG_SOURCE[km];
+  const shown = all ? row.mons : row.mons.slice(0, CAP);
+  const id = `eg-panel-${km}`;
+
+  return (
+    <div className="eg-row">
+      <button type="button" className="eg-head" aria-expanded={open} aria-controls={id}
+        onClick={onToggle}>
+        <Shell km={km} />
+        <span className="eg-title">
+          <span className="eg-km">{row.km}</span>
+          {src && <span className="eg-src">{t(lang, src.en, src.th)}</span>}
+        </span>
+        <span className="eg-peek">
+          {row.mons.slice(0, 3).map(m => (
+            <span key={m.name} className="eg-peek-art" title={m.name}>
+              {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
+              {m.shiny && <span className="eg-star sm" aria-hidden>✦</span>}
+            </span>
+          ))}
+          {row.mons.length > 3 && <span className="eg-peek-more">+{row.mons.length - 3}</span>}
+        </span>
+        <span className="eg-count">{t(lang, `${row.mons.length}`, `${row.mons.length} ตัว`)}</span>
+        <ChevronRight size={13} strokeWidth={2.6} className={`eg-caret${open ? " open" : ""}`} aria-hidden />
+      </button>
+
+      {open && (
+        <div className="eg-panel" id={id}>
+          <div className="eg-grid">
+            {shown.map(m => <EggCard key={m.name} m={m} lang={lang} />)}
+          </div>
+          {row.mons.length > CAP && !all && (
+            <button type="button" className="eg-more" onClick={() => setAll(true)}>
+              {t(lang, `See ${row.mons.length - CAP} more`, `ดูอีก ${row.mons.length - CAP} ตัว`)} ›
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EggSection({ lang, now, data, status }) {
   const thisEnd = nextRotation(now);
   const pool = eggPool(data);
 
-  const cols = [
-    { key: "last", head: t(lang, "Last week", "สัปดาห์ที่แล้ว") },
-    { key: "now",  head: t(lang, "This week", "สัปดาห์นี้") },
-    { key: "next", head: t(lang, "Next week", "สัปดาห์หน้า") },
-  ];
+  const [open, setOpen] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("pkdx_egg_open") ?? "[]"); } catch { return []; }
+  });
+  const toggle = (km) => setOpen(prev => {
+    const next = prev.includes(km) ? prev.filter(x => x !== km) : [...prev, km];
+    try { localStorage.setItem("pkdx_egg_open", JSON.stringify(next)); } catch { /* private mode */ }
+    return next;
+  });
+
+  // Announced once a minute; every distance ends together, so one region.
+  const coarse = fmt(thisEnd - now).replace(/\s\d+s$/, "");
+  const [spoken, setSpoken] = useState(coarse);
+  if (spoken !== coarse) setSpoken(coarse);
 
   if (status === "loading") {
-    return <div className="gd-state-box"><Loader2 size={32} strokeWidth={2.2} className="gd-spin" /></div>;
+    return (
+      <div className="eg-skel">
+        {[0,1,2,3,4].map(i => <span key={i} className="eg-skel-row" />)}
+      </div>
+    );
   }
   if (!pool) {
-    return <div className="gd-error">{t(lang, "Could not load the egg pool", "โหลดพูลไข่ไม่สำเร็จ")}</div>;
+    return (
+      <div className="gd-error">
+        {t(lang, "Could not load the egg pool", "โหลดพูลไข่ไม่สำเร็จ")}
+        <button type="button" className="gd-refresh" style={{ marginLeft: 12 }}
+          onClick={() => window.location.reload()}>
+          {t(lang, "Try again", "ลองใหม่")}
+        </button>
+      </div>
+    );
   }
 
-  // 12 km never appears in the pool unless a leader has been beaten, so the
-  // row is added by hand with the reason rather than left out.
-  const rows = pool.some(r => r.km === "12 km") ? pool : [...pool, { km: "12 km", mons: [] }];
+  // A distance with nothing in it is hidden rather than shown empty.
+  const rows = pool.filter(r => r.mons.length > 0);
 
   return (
     <>
-      <header className="gd-head gd-head-sub">
+      <header className="eg-cardhead">
         <div>
           <h2 className="gd-h2">{t(lang, "Egg rotation", "รอบหมุนไข่")}</h2>
           <p className="gd-sub">
-            {t(lang, "Live hatch pool from LeekDuck", "พูลไข่สดจาก LeekDuck")}
+            {t(lang, "What hatches right now · live from LeekDuck",
+                 "โปเกมอนที่ฟักได้ตอนนี้ · ข้อมูลสดจาก LeekDuck")}
           </p>
         </div>
+        {/* One countdown: every distance turns over on the same boundary, so
+            repeating it per row would be the same number six times. */}
+        <div className="eg-cd">
+          <span>{t(lang, "This rotation ends in", "รอบนี้จบใน")}</span>
+          <b className="num">{fmt(thisEnd - now)}</b>
+          <span className="sr-only" aria-live="polite">{spoken}</span>
+        </div>
       </header>
-      <div className="gd-scroll">
-        <table className="gd-table gd-eggtable">
-          <colgroup>
-            <col className="gd-rowhead" />
-            {cols.map(c => <col key={c.key} className={c.key === "now" ? "gd-nowcol" : undefined} />)}
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col">{t(lang, "Distance", "ระยะทาง")}</th>
-              {cols.map(c => (
-                <th key={c.key} scope="col" className={c.key === "now" ? "is-now" : undefined}>
-                  {c.head}
-                  {c.key === "now" && <em className="gd-nowtag">{t(lang, "now", "ตอนนี้")}</em>}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(row => {
-              const km = parseInt(row.km, 10);
-              return (
-                <tr key={row.km}>
-                  <th scope="row" className="gd-rowlabel">
-                    <EggIcon km={km} />
-                    <span>{row.km}</span>
-                  </th>
-                  {cols.map(col => {
-                    const mons = col.key === "now" ? row.mons : [];
-                    if (mons.length === 0) {
-                      return (
-                        <td key={col.key} className={col.key === "last" ? "is-past" : undefined}>
-                          <span className="gd-none">
-                            {row.km === "12 km" && col.key === "now"
-                              ? t(lang, "Beat a Rocket leader to get one",
-                                   "ต้องชนะหัวหน้า Rocket ก่อนถึงจะได้")
-                              : col.key === "last"
-                              ? t(lang, "No history", "ไม่มีข้อมูลย้อนหลัง")
-                              : t(lang, "Not announced", "ยังไม่ประกาศ")}
-                          </span>
-                        </td>
-                      );
-                    }
-                    return (
-                      <td key={col.key} className="is-now">
-                        <span className="gd-rcell" data-n={Math.min(mons.length, 3)}>
-                          <span className="gd-rcell-arts">
-                            {mons.slice(0, 3).map(m => (
-                              <span key={m.name} className="gd-rcell-art" title={m.name}>
-                                {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
-                                {/* The reason people pick a distance. */}
-                                {m.shiny && (
-                                  <span className="gd-eshiny"
-                                    aria-label={t(lang, "Shiny possible", "มีโอกาสได้ shiny")}>✦</span>
-                                )}
-                              </span>
-                            ))}
-                            {mons.length > 3 && <span className="gd-rcell-more">+{mons.length - 3}</span>}
-                          </span>
-                          <span className="gd-rcell-meta">
-                            <span className="gd-rcell-name">
-                              {t(lang, `${mons.length} Pokémon`, `${mons.length} ตัว`)}
-                            </span>
-                            <span className="gd-rcell-list">
-                              {mons.map(m => m.name).join(" · ")}
-                            </span>
-                            <span className="gd-rcell-cd live">
-                              {t(lang, "Ends in", "จบใน")} {fmt(thisEnd - now)}
-                            </span>
-                          </span>
-                        </span>
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+
+      <div className="eg-list">
+        {rows.map(row => (
+          <EggRow key={row.km} row={row} lang={lang}
+            open={open.includes(row.km)} onToggle={() => toggle(row.km)} />
+        ))}
       </div>
     </>
   );

@@ -494,6 +494,8 @@ export function eggPool(data) {
       rarity: e.rarity ?? null,
       regional: !!e.isRegional,
       adventure: !!e.isAdventureSync,
+      cpMin: e.combatPower?.min ?? null,
+      cpMax: e.combatPower?.max ?? null,
     });
   });
   return order
