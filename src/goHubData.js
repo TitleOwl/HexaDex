@@ -19,6 +19,7 @@ const FILES = {
   events:   `${BASE}/events.json`,
   eggs:     `${BASE}/eggs.json`,
   research: `${BASE}/research.json`,
+  rocket:   `${BASE}/rocketLineups.json`,
 };
 
 /** One hour — the same cadence the old header chip claimed. */
@@ -58,7 +59,7 @@ async function loadAll(force = false) {
 
     // Partial success is still useful: a card whose slice is missing falls
     // back to its plain form rather than the whole page failing.
-    const data = { raids: null, events: null, eggs: null, research: null };
+    const data = { raids: null, events: null, eggs: null, research: null, rocket: null };
     entries.forEach(e => { if (e.status === "fulfilled") data[e.value[0]] = e.value[1]; });
 
     cache = { at: Date.now(), data };
@@ -518,6 +519,40 @@ export function researchRewards(data, limit = 4) {
     });
   });
   return mons.sort((a, b) => b.shiny - a.shiny).slice(0, limit);
+}
+
+/**
+ * Rocket line-ups, live.
+ *
+ * rocketLineups.json carries the boss, the three leaders AND every grunt,
+ * with each Pokémon's types, shiny flag and an isEncounter mark for the one
+ * you get to catch. All of that was hand-typed here before, which meant it
+ * was already drifting and had no grunts at all.
+ */
+export function rocketLineups(data) {
+  const list = data?.rocket;
+  if (!Array.isArray(list)) return null;
+
+  const slot = (arr) => (arr ?? []).map(m => ({
+    name: m.name,
+    id: matchPokemonId(m),
+    types: m.types ?? [],
+    shiny: !!m.canBeShiny,
+    encounter: !!m.isEncounter,
+  }));
+
+  const rank = (t) => /Boss/i.test(t) ? 0 : /Leader/i.test(t) ? 1 : 2;
+  return list
+    .map(e => ({
+      name: e.name,
+      title: e.title,
+      kind: /Boss/i.test(e.title) ? "boss" : /Leader/i.test(e.title) ? "leader" : "grunt",
+      type: e.type ?? null,
+      slots: [slot(e.firstPokemon), slot(e.secondPokemon), slot(e.thirdPokemon)],
+      // The catchable one is flagged per Pokémon rather than named separately.
+      reward: slot(e.firstPokemon).find(m => m.encounter) ?? null,
+    }))
+    .sort((a, b) => rank(a.title) - rank(b.title) || a.name.localeCompare(b.name));
 }
 
 /** Team GO Rocket leaders — a fixed cast, so their signatures are constants. */

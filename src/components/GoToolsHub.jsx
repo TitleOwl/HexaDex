@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import { Radio, RefreshCw, Zap, ChevronRight, Loader2 } from "lucide-react";
-import { useGoHubData, RAID_TIERS, raidsByTier, eggPool } from "../goHubData.js";
+import { useGoHubData, RAID_TIERS, raidsByTier, eggPool, rocketLineups } from "../goHubData.js";
 import { useRaidRows, nextRotation } from "./RaidSchedule.jsx";
 import {
   TYPE_COLOR, TIER_ORDER, TIER_LABEL, EGG_COLORS, EGG_ROTATION,
@@ -596,64 +596,119 @@ function EggSection({ lang, now, data, status }) {
 
 // ─── §4 · Team GO Rocket ─────────────────────────────────────────────────────
 
-function RocketSection({ lang }) {
+function RocketSection({ lang, data, status }) {
+  const [showGrunts, setShowGrunts] = useState(false);
+  const all = rocketLineups(data);
+
+  if (status === "loading") {
+    return <div className="gd-state-box"><Loader2 size={32} strokeWidth={2.2} className="gd-spin" /></div>;
+  }
+  if (!all) {
+    return (
+      <div className="gd-error">
+        {t(lang, "Could not load Rocket line-ups", "โหลดทีม Rocket ไม่สำเร็จ")}
+        <button type="button" className="gd-refresh" style={{ marginLeft: 12 }}
+          onClick={() => window.location.reload()}>{t(lang, "Try again", "ลองใหม่")}</button>
+      </div>
+    );
+  }
+
+  const leaders = all.filter(x => x.kind !== "grunt");
+  const grunts = all.filter(x => x.kind === "grunt");
+
+  const Row = ({ e }) => (
+    <tr>
+      <th scope="row" className="gd-rowlabel gd-leader"
+        title={e.kind === "boss" ? t(lang, "Needs a Super Rocket Radar", "ต้องใช้ Super Rocket Radar") : undefined}>
+        {LEADER_IMG[e.name] && (
+          <span className="gd-leader-face">
+            <img src={LEADER_IMG[e.name]} alt={e.name} loading="lazy" decoding="async" />
+          </span>
+        )}
+        <span className="rk-who">
+          <span className="gd-leader-name">{e.name}</span>
+          {e.type && <span className="tp" data-type={e.type}>{e.type}</span>}
+          {e.kind === "boss" && (
+            <em className="rk-note">{t(lang, "Super Rocket Radar", "ต้องใช้ Super Rocket Radar")}</em>
+          )}
+        </span>
+      </th>
+      {e.slots.map((slot, i) => (
+        <td key={i}>
+          <span className="rk-cell">
+            <SpriteRail pokemon={slot} maxVisible={3} />
+            <span className="rk-types">
+              {[...new Set(slot.flatMap(m => m.types))].slice(0, 3)
+                .map(tp => <span key={tp} className="tp rk-tp" data-type={tp}>{tp}</span>)}
+            </span>
+            <span className="rk-meta">
+              {slot.length > 1
+                ? t(lang, `1 of ${slot.length} at random`, `สุ่ม 1 ใน ${slot.length}`)
+                : t(lang, "Always first", "คงที่เสมอ")}
+            </span>
+          </span>
+        </td>
+      ))}
+      <td>
+        {e.reward ? (
+          <span className="rk-cell">
+            <SpriteRail pokemon={[e.reward]} maxVisible={1} showNames={false} size={54} />
+            <span className="rk-meta">
+              <b className="rk-reward">{e.reward.name}</b>
+              {t(lang, "catchable", "จับได้")}
+            </span>
+          </span>
+        ) : <span className="gd-none">—</span>}
+      </td>
+    </tr>
+  );
+
+  const head = (
+    <tr>
+      <th scope="col">{t(lang, "Who", "ใคร")}</th>
+      <th scope="col">{t(lang, "First", "ตัวแรก")}</th>
+      <th scope="col">{t(lang, "Second", "ตัวที่สอง")}</th>
+      <th scope="col">{t(lang, "Third", "ตัวที่สาม")}</th>
+      <th scope="col">{t(lang, "Catchable", "จับได้")}</th>
+    </tr>
+  );
+
   return (
     <>
       <header className="gd-head gd-head-sub">
         <div>
           <h2 className="gd-h2">Team GO Rocket</h2>
-          <p className="gd-sub">{t(lang, "Line-ups to counter before you fight", "ทีมที่ต้องเจอ เอาไว้จัดตัวเคาน์เตอร์")}</p>
+          <p className="gd-sub">
+            {t(lang, "Live line-ups from LeekDuck", "ทีมสดจาก LeekDuck")}
+          </p>
         </div>
       </header>
+
       <div className="gd-scroll">
-        <table className="gd-table">
-          <thead>
-            <tr>
-              <th scope="col">{t(lang, "Leader", "หัวหน้า")}</th>
-              <th scope="col">{t(lang, "First", "ตัวแรก")}</th>
-              <th scope="col">{t(lang, "Second", "ตัวที่สอง")}</th>
-              <th scope="col">{t(lang, "Third", "ตัวที่สาม")}</th>
-              <th scope="col">{t(lang, "Reward", "รางวัล")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ROCKET_LINEUPS.map(l => (
-              <tr key={l.leader}>
-                <th scope="row" className="gd-rowlabel gd-leader"
-                  title={l.sub ? t(lang, l.subEn, l.sub) : undefined}>
-                  <span className="gd-leader-face">
-                    <img src={LEADER_IMG[l.leader]} alt={l.leader}
-                      loading="lazy" decoding="async" />
-                  </span>
-                  <span className="gd-leader-name">{l.leader}</span>
-                </th>
-                {l.slots.map((slot, i) => (
-                  <td key={i}>
-                    <span className="rk-cell">
-                      <SpriteRail pokemon={slot.mons.map(m => ({ name: m.name, id: m.dex }))}
-                        maxVisible={3} />
-                      <span className="rk-meta">
-                        {/* In the document, not a pseudo-element: a screen
-                            reader has to hear it too. */}
-                        {slot.random
-                          ? t(lang, "1 of 3 at random", "สุ่ม 1 ใน 3")
-                          : t(lang, "Always first", "คงที่เสมอ")}
-                      </span>
-                    </span>
-                  </td>
-                ))}
-                <td>
-                  <span className="gd-reward" style={{
-                    background: (TYPE_COLOR[l.reward.type] ?? TYPE_COLOR.normal).bg,
-                    color: (TYPE_COLOR[l.reward.type] ?? TYPE_COLOR.normal).fg }}>
-                    {l.reward.name}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+        <table className="gd-table rk-table">
+          <thead>{head}</thead>
+          <tbody>{leaders.map(e => <Row key={e.name} e={e} />)}</tbody>
         </table>
       </div>
+
+      {grunts.length > 0 && (
+        <div className="rk-grunts">
+          <button type="button" className="rk-gtoggle" aria-expanded={showGrunts}
+            onClick={() => setShowGrunts(v => !v)}>
+            {t(lang, `Grunt line-ups (${grunts.length})`, `ทีมของ Grunt (${grunts.length})`)}
+            <ChevronRight size={14} strokeWidth={2.6}
+              className={`eg-caret${showGrunts ? " open" : ""}`} aria-hidden />
+          </button>
+          {showGrunts && (
+            <div className="gd-scroll">
+              <table className="gd-table rk-table">
+                <thead>{head}</thead>
+                <tbody>{grunts.map(e => <Row key={e.name} e={e} />)}</tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -774,7 +829,7 @@ export default function GoToolsHub({ allList = [], lang = "en", cachedFetch }) {
           {tab === "raids"   && <RaidSection lang={lang} rows={rows} status={go.status}
                                   now={now} data={go.data} />}
           {tab === "eggs"    && <EggSection lang={lang} now={now} data={go.data} status={go.status} />}
-          {tab === "rocket"  && <RocketSection lang={lang} />}
+          {tab === "rocket"  && <RocketSection lang={lang} data={go.data} status={go.status} />}
           {tab === "weather" && (
             <WeatherSection lang={lang} weather={weather}
               locating={locating} requestLocation={requestLocation} />
