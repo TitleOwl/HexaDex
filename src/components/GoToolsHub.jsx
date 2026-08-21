@@ -440,7 +440,9 @@ function EggCard({ m, lang }) {
       </span>
       <span className="eg-card-name">{m.name}</span>
       {m.cpMin != null && (
-        <span className="eg-card-cp num">CP {m.cpMin}–{m.cpMax}</span>
+        <span className="eg-card-cp num">
+          CP {m.cpMin}{m.cpMax > m.cpMin ? `–${m.cpMax}` : ""}
+        </span>
       )}
     </a>
   );
@@ -464,6 +466,11 @@ function EggRow({ row, lang, open, onToggle }) {
           <span className="eg-km">{row.km}</span>
           {src && <span className="eg-src">{t(lang, src.en, src.th)}</span>}
         </span>
+        {open ? (
+          <span className="eg-openhint">
+            {t(lang, `${row.mons.length} hatching`, `${row.mons.length} ตัวที่ฟักได้`)}
+          </span>
+        ) : (
         <span className="eg-peek">
           {row.mons.slice(0, 3).map(m => (
             <span key={m.name} className="eg-peek-art" title={m.name}>
@@ -473,6 +480,7 @@ function EggRow({ row, lang, open, onToggle }) {
           ))}
           {row.mons.length > 3 && <span className="eg-peek-more">+{row.mons.length - 3}</span>}
         </span>
+        )}
         <span className="eg-count">{t(lang, `${row.mons.length}`, `${row.mons.length} ตัว`)}</span>
         <ChevronRight size={13} strokeWidth={2.6} className={`eg-caret${open ? " open" : ""}`} aria-hidden />
       </button>
