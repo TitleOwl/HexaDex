@@ -19428,3 +19428,32 @@ body:has(.gd-page) { background: #efece6; }
    That shift was the original misalignment; auto width then collapsed the
    head to its content, which was worse. */
 .eg-head, .eg-panel { width: calc(100% + 44px); box-sizing: border-box; }
+
+/* 4. The star was 13px of pale gold on a pale box — present but not visible.
+      Bigger, darker, and on a disc so it reads against any sprite. */
+.eg-card .eg-star {
+  top: -4px; right: -4px;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #c9a227; color: #fff; font-size: 12px;
+  text-shadow: none; box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+}
+
+/* 5. auto-fill stretched eight cards across the row and left the last row
+      short; a fixed card packs them from the left and fits nine or ten. */
+.eg-grid {
+  grid-template-columns: repeat(auto-fill, 118px);
+  justify-content: start;
+}
+.eg-card-art { width: 72px; height: 72px; }
+.eg-card-art img { width: 66px; height: 66px; }
+@media (max-width: 767px) { .eg-grid { grid-template-columns: repeat(auto-fill, 96px); } }
+@media (max-width: 479px) { .eg-grid { grid-template-columns: repeat(auto-fill, 84px); } }
+
+/* The summary sat hard right, leaving the middle of the row empty again;
+   next to the distance it fills the space it was meant to fill. */
+.eg-openhint { margin-left: 0; }
+/* Narrower cards fit nine or ten per row instead of seven. */
+.eg-grid { grid-template-columns: repeat(auto-fill, 104px); }
+.eg-card-art { width: 64px; height: 64px; }
+.eg-card-art img { width: 58px; height: 58px; }

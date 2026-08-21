@@ -468,7 +468,13 @@ function EggRow({ row, lang, open, onToggle }) {
         </span>
         {open ? (
           <span className="eg-openhint">
-            {t(lang, `${row.mons.length} hatching`, `${row.mons.length} ตัวที่ฟักได้`)}
+            {(() => {
+              const shiny = row.mons.filter(m => m.shiny).length;
+              const top = row.mons.reduce((a, m) => Math.max(a, m.cpMax ?? 0), 0);
+              return t(lang,
+                `${shiny} can be shiny · highest CP ${top}`,
+                `shiny ได้ ${shiny} ตัว · CP สูงสุด ${top}`);
+            })()}
           </span>
         ) : (
         <span className="eg-peek">
