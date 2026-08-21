@@ -19457,3 +19457,38 @@ body:has(.gd-page) { background: #efece6; }
 .eg-grid { grid-template-columns: repeat(auto-fill, 104px); }
 .eg-card-art { width: 64px; height: 64px; }
 .eg-card-art img { width: 58px; height: 58px; }
+
+/* ── §2 · The shared sprite rail ─────────────────────────────────────────── */
+.sr-rail { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; align-items: flex-start; }
+.sr-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 0 0 auto; }
+.sr-box {
+  position: relative; flex: 0 0 auto;
+  border-radius: 12px; background: #f4f1ec;
+  display: flex; align-items: center; justify-content: center;
+}
+.sr-box img { width: 86%; height: 86%; object-fit: contain; }
+.sr-star { position: absolute; top: -4px; right: -4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #c9a227; color: #fff; font-size: 11px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.22); }
+.sr-name {
+  font-size: 10.5px; font-weight: 700; color: #2a2521; text-align: center; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; max-width: 100%;
+}
+.sr-more {
+  flex: 0 0 auto; border-radius: 12px; background: #f0ede6; color: #8a857c;
+  font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── §4 · Every Rocket cell floors its label, so a row reads across ─────── */
+.gd-table td { vertical-align: top; }
+.rk-cell { display: flex; flex-direction: column; min-height: 150px; width: 100%; }
+.rk-meta { margin-top: auto; padding-top: 8px; font-size: 10.5px; color: #a09d95; font-weight: 600; }
+.gd-leader-face { border-radius: 14px; background: #f4f1ec; width: 72px; height: 72px; }
+.gd-leader-face img { width: 68px; height: 68px; }
+
+/* The rail replaced these, so they only govern spacing now. */
+.gd-rcell-arts, .eg-peek { display: block; }

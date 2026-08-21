@@ -76,6 +76,37 @@ function EggIcon({ km, size = 30 }) {
   );
 }
 
+/**
+ * §2 — the one sprite rail all three tables use.
+ *
+ * The wrap rule, the size-by-count rule and the +N chip were fixed three
+ * separate times, in three separate places, and Rocket never got them. One
+ * component means the next fix lands everywhere at once.
+ */
+export function SpriteRail({ pokemon = [], maxVisible = 3, showNames = true, size = "auto" }) {
+  const shown = pokemon.slice(0, maxVisible);
+  const extra = pokemon.length - shown.length;
+  // 1 → 76, 2 → 64, 3+ → 54. A fixed size wins when the caller asks for one.
+  const px = size === "auto" ? (shown.length === 1 ? 76 : shown.length === 2 ? 64 : 54) : size;
+
+  return (
+    <span className="sr-rail" data-names={showNames ? "y" : "n"}>
+      {shown.map((m, i) => (
+        <span key={m.name ?? i} className="sr-item" style={{ width: px }}>
+          <span className="sr-box" style={{ width: px, height: px }}>
+            {m.id && <img src={leekIcon(m.id)} alt={m.name ?? ""} loading="lazy" decoding="async" />}
+            {m.shiny && <span className="sr-star" aria-hidden>✦</span>}
+          </span>
+          {showNames && m.name && <span className="sr-name">{m.name}</span>}
+        </span>
+      ))}
+      {extra > 0 && (
+        <span className="sr-more" style={{ width: px, height: px }}>+{extra}</span>
+      )}
+    </span>
+  );
+}
+
 /** A Pokémon in a table cell: LeekDuck's cropped icon over the pale box. */
 function Mon({ dex, name, small }) {
   const [failed, setFailed] = useState(false);
@@ -279,14 +310,7 @@ function RaidSection({ lang, rows, status, now, data }) {
                         </span>
                       ) : groups.map((g, i) => (
                         <span key={i} className="gd-rcell" data-n={Math.min(g.length, 3)}>
-                          <span className="gd-rcell-arts">
-                            {g.slice(0, 3).map(m => (
-                              <span key={m.key} className="gd-rcell-art">
-                                {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
-                              </span>
-                            ))}
-                            {g.length > 3 && <span className="gd-rcell-more">+{g.length - 3}</span>}
-                          </span>
+                          <SpriteRail pokemon={g} maxVisible={3} showNames={false} />
                           <span className="gd-rcell-meta">
                           {/* A count leads; the names follow small, because
                               truncating the count loses more than truncating
@@ -478,13 +502,7 @@ function EggRow({ row, lang, open, onToggle }) {
           </span>
         ) : (
         <span className="eg-peek">
-          {row.mons.slice(0, 3).map(m => (
-            <span key={m.name} className="eg-peek-art" title={m.name}>
-              {m.id && <img src={leekIcon(m.id)} alt="" loading="lazy" decoding="async" />}
-              {m.shiny && <span className="eg-star sm" aria-hidden>✦</span>}
-            </span>
-          ))}
-          {row.mons.length > 3 && <span className="eg-peek-more">+{row.mons.length - 3}</span>}
+          <SpriteRail pokemon={row.mons} maxVisible={3} showNames={false} size={46} />
         </span>
         )}
         <span className="eg-count">{t(lang, `${row.mons.length}`, `${row.mons.length} ตัว`)}</span>
@@ -604,23 +622,24 @@ function RocketSection({ lang }) {
                 <th scope="row" className="gd-rowlabel gd-leader"
                   title={l.sub ? t(lang, l.subEn, l.sub) : undefined}>
                   <span className="gd-leader-face">
-                    <img src={LEADER_IMG[l.leader]} alt="" aria-hidden
+                    <img src={LEADER_IMG[l.leader]} alt={l.leader}
                       loading="lazy" decoding="async" />
                   </span>
                   <span className="gd-leader-name">{l.leader}</span>
                 </th>
                 {l.slots.map((slot, i) => (
                   <td key={i}>
-                    {slot.random ? (
-                      <span className="gd-random">
-                        <span className="gd-random-row">
-                          {slot.mons.map(m => <Mon key={m.dex} dex={m.dex} name={m.name} small />)}
-                        </span>
-                        <em>{t(lang, "1 of 3 at random", "สุ่ม 1 ใน 3")}</em>
+                    <span className="rk-cell">
+                      <SpriteRail pokemon={slot.mons.map(m => ({ name: m.name, id: m.dex }))}
+                        maxVisible={3} />
+                      <span className="rk-meta">
+                        {/* In the document, not a pseudo-element: a screen
+                            reader has to hear it too. */}
+                        {slot.random
+                          ? t(lang, "1 of 3 at random", "สุ่ม 1 ใน 3")
+                          : t(lang, "Always first", "คงที่เสมอ")}
                       </span>
-                    ) : (
-                      slot.mons.map(m => <Mon key={m.dex} dex={m.dex} name={m.name} />)
-                    )}
+                    </span>
                   </td>
                 ))}
                 <td>
