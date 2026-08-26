@@ -9,7 +9,10 @@
 // goDashboardData because the game fixes them rather than publishing them.
 
 import { useEffect, useState } from "react";
-import { Radio, RefreshCw, Zap, ChevronRight, Loader2 } from "lucide-react";
+import {
+  Radio, RefreshCw, Zap, ChevronRight, Loader2,
+  Sun, Cloud, CloudRain, CloudSnow, CloudFog, CloudSun,
+} from "lucide-react";
 import { useGoHubData, RAID_TIERS, raidsByTier, eggPool, rocketLineups } from "../goHubData.js";
 import { useRaidRows, nextRotation } from "./RaidSchedule.jsx";
 import {
@@ -19,6 +22,12 @@ import {
 import { useWeather } from "../useWeather.js";
 
 const t = (lang, en, th) => (lang === "th" ? th : en);
+
+/** One glyph per weather row, so the bar shows the sky as well as the types. */
+const WX_ICON = {
+  clear: Sun, "partly-cloudy": CloudSun, cloudy: Cloud,
+  rain: CloudRain, windy: Zap, snow: CloudSnow, fog: CloudFog,
+};
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
 // §5.5. Recomputed from the target every tick rather than decremented, so a
@@ -805,6 +814,45 @@ export default function GoToolsHub({ allList = [], lang = "en", cachedFetch }) {
               <span className="gd-num">{clock}</span><em className="gd-tz">ICT</em>
               <span className="gd-dot" aria-hidden>·</span>
               {t(lang, "rotation changes Wed 06:00", "รอบเปลี่ยนทุกพุธ 06:00")}
+            </p>
+
+            {/* Weather belongs on the bar, not behind a tab: it changes what
+                is worth doing right now, which is what this line is for. No
+                new button — when location is off the text itself asks. */}
+            <p className="gd-wx">
+              {weather ? (
+                <>
+                  <span className="gd-wx-ico">
+                    {(() => {
+                      const key = CONDITION_ROW[weather.condition];
+                      const I = WX_ICON[key] ?? CloudSun;
+                      return <I size={15} strokeWidth={2.3} />;
+                    })()}
+                  </span>
+                  <b>{weather.temp}&deg;C</b>
+                  <span className="gd-dot" aria-hidden>·</span>
+                  <span className="gd-wx-lbl">{t(lang, "boosting", "บูสต์")}</span>
+                  <span className="gd-wx-types">
+                    {(WEATHER_TABLE.find(r => r.key === CONDITION_ROW[weather.condition])?.types ?? []).map(tp => (
+                      <span key={tp} className="tp" data-type={tp}>
+                        {lang === "th" ? (TYPE_NAMES_TH[tp] ?? tp)
+                          : lang === "ja" ? (TYPE_NAMES_JA[tp] ?? tp) : tp}
+                      </span>
+                    ))}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="gd-wx-ico"><CloudSun size={15} strokeWidth={2.3} /></span>
+                  <button type="button" className="gd-wx-ask" disabled={locating}
+                    onClick={requestLocation}>
+                    {locating
+                      ? t(lang, "Finding your weather…", "กำลังหาสภาพอากาศ…")
+                      : t(lang, "Turn on location to see today's weather boost",
+                             "เปิดตำแหน่งเพื่อดูธาตุที่ได้โบนัสวันนี้")}
+                  </button>
+                </>
+              )}
             </p>
           </div>
           <button type="button" className="gd-refresh" onClick={() => window.location.reload()}>
